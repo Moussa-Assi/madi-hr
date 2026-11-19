@@ -1,0 +1,1540 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Madi HR</title>
+<meta name="robots" content="noindex">
+<base target="_top">
+<meta charset="utf-8">
+<style>
+:root{--bg:#f5f6f8;--card:#fff;--ink:#1d2330;--mut:#6b7280;--line:#e5e7eb;--pri:#1F3864;--pri2:#2f5597;
+--ok:#1e8e3e;--okb:#e6f4ea;--late:#b06000;--lateb:#fef3e0;--bad:#c5221f;--badb:#fce8e6;--chk:#7b1fa2;--chkb:#f3e5f5;--inf:#1967d2;--infb:#e8f0fe;--off:#5f6368;--offb:#f1f3f4}
+*{box-sizing:border-box}body{margin:0;font:14px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{background:var(--pri);color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:5}
+header h1{font-size:16px;margin:0;font-weight:600;flex:1}
+.lang{display:flex;border:1px solid rgba(255,255,255,.5);border-radius:6px;overflow:hidden}
+.lang button{background:none;border:0;color:#fff;padding:4px 10px;cursor:pointer;font-weight:600}
+.lang button.on{background:#fff;color:var(--pri)}
+nav{display:flex;gap:4px;padding:8px 12px;background:#fff;border-bottom:1px solid var(--line);overflow-x:auto;position:sticky;top:48px;z-index:4}
+nav button{border:0;background:none;padding:8px 12px;border-radius:6px;cursor:pointer;color:var(--mut);font-weight:600;white-space:nowrap}
+nav button.on{background:var(--infb);color:var(--pri)}
+nav .badge{background:var(--bad);color:#fff;border-radius:9px;padding:0 6px;font-size:11px;margin-left:4px}
+main{padding:16px;max-width:1200px;margin:0 auto}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.bar .sp{flex:1}
+.muted{color:var(--mut);font-size:12px}
+.btn{background:var(--pri);color:#fff;border:0;border-radius:6px;padding:8px 14px;cursor:pointer;font:inherit;font-weight:600}
+.btn.sec{background:#fff;color:var(--pri);border:1px solid var(--line)}
+.btn.sm{padding:3px 9px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:default}
+.chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{border:1px solid var(--line);background:#fff;border-radius:16px;padding:4px 12px;cursor:pointer;font-size:13px}
+.chip.on{background:var(--pri);color:#fff;border-color:var(--pri)}
+input,select,textarea{border:1px solid var(--line);border-radius:6px;padding:7px 10px;font:inherit;background:#fff;color:var(--ink)}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px}
+.kpi b{display:block;font-size:24px;margin-top:2px}
+.kpi.ok b{color:var(--ok)}.kpi.late b{color:var(--late)}.kpi.bad b{color:var(--bad)}.kpi.chk b{color:var(--chk)}.kpi.inf b{color:var(--inf)}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.card h3{margin:0;padding:12px 14px;font-size:14px;border-bottom:1px solid var(--line)}
+.tw{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th,td{padding:8px 10px;border-bottom:1px solid var(--line);text-align:left;white-space:nowrap}
+th{background:#fafbfc;font-size:12px;color:var(--mut);font-weight:600;position:sticky;top:0}
+.click{cursor:pointer}tr.click:hover td{background:#f8fafc}
+td.n{text-align:right;font-variant-numeric:tabular-nums}
+.st{display:inline-block;padding:2px 8px;border-radius:10px;font-size:12px;font-weight:600}
+.s-ok{background:var(--okb);color:var(--ok)}.s-late{background:var(--lateb);color:var(--late)}.s-bad{background:var(--badb);color:var(--bad)}
+.s-chk{background:var(--chkb);color:var(--chk)}.s-inf{background:var(--infb);color:var(--inf)}.s-off{background:var(--offb);color:var(--off)}
+.pend{display:grid;gap:10px}
+.pc{background:#fff;border:1px solid var(--line);border-left:4px solid var(--chk);border-radius:8px;padding:12px;display:grid;gap:8px}
+.pc .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.pc textarea{width:100%;min-height:34px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.hb{display:flex;align-items:center;gap:8px;padding:6px 14px}
+.hb .l{width:150px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb .t{flex:1;background:var(--offb);border-radius:4px;height:14px;overflow:hidden}
+.hb .f{height:100%;background:var(--pri2)}
+.hb .v{width:60px;text-align:right;font-variant-numeric:tabular-nums}
+.cols{display:flex;align-items:flex-end;gap:3px;height:120px;padding:12px 14px}
+.cols div{flex:1;background:var(--bad);border-radius:3px 3px 0 0;min-height:2px;position:relative}
+.cols div span{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--mut)}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-start;justify-content:center;padding:40px 12px;z-index:10;overflow:auto}
+.modal.on{display:flex}
+.mbox{background:#fff;border-radius:12px;max-width:860px;width:100%;padding:0 0 12px}
+.mbox .mh{display:flex;align-items:center;padding:14px;border-bottom:1px solid var(--line);gap:8px;flex-wrap:wrap}
+.mbox .mh h2{margin:0;font-size:16px;flex:1}
+.mbox .mh .x{border:0;background:none;font-size:20px;cursor:pointer}
+.info{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;padding:12px 14px}
+.info div{background:var(--bg);border-radius:6px;padding:8px}
+.info small{display:block;color:var(--mut);font-size:11px}
+.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px;padding:14px}
+.form label{display:grid;gap:4px;font-size:12px;color:var(--mut);font-weight:600}
+.form .full{grid-column:1/-1}
+.form .act{grid-column:1/-1;display:flex;gap:8px;justify-content:flex-end}
+.inline{background:var(--bg);border-radius:8px;margin:12px 14px;padding:10px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.load{padding:40px;text-align:center;color:var(--mut)}
+.err{background:var(--badb);color:var(--bad);padding:10px 14px;border-radius:8px;margin-bottom:12px}
+.toast{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 16px;border-radius:8px;display:none;z-index:20}
+.alertbar{background:var(--bad);color:#fff;padding:10px 16px;display:flex;gap:10px;align-items:center;flex-wrap:wrap;font-weight:600}
+.alertbar button{background:#fff;color:var(--bad);border:0;border-radius:6px;padding:6px 12px;font-weight:700;cursor:pointer}
+.newp{border-left-color:var(--bad)!important}
+.gridt td.c{padding:3px 4px;font-size:11px;text-align:center;min-width:46px;border-left:1px solid #fff}
+.gridt th.c{padding:4px;font-size:10px;text-align:center;min-width:46px}
+.gridt td.nm{position:sticky;left:0;background:#fff;z-index:1;font-weight:600}
+.legend{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px}
+.c-ok{background:var(--okb)}.c-late{background:var(--lateb)}.c-bad{background:var(--badb);color:var(--bad);font-weight:700}.c-chk{background:var(--chkb);color:var(--chk);font-weight:700}.c-inf{background:var(--infb)}.c-off{background:var(--offb);color:var(--off)}
+@media print{header,nav,#alert,.noprint,.toast{display:none!important}body{background:#fff}main{max-width:none;padding:0}.card{border:0}.gridt td.c,.gridt th.c{min-width:0;font-size:8px;padding:1px}.gridt td,.gridt th{font-size:9px;padding:2px 3px}*{-webkit-print-color-adjust:exact;print-color-adjust:exact}}
+@media print{body.pm main,body.pm header,body.pm nav,body.pm #alert{display:none!important}body.pm .modal{position:static;display:block;background:#fff;padding:0;overflow:visible}body.pm .mbox{max-width:none;border-radius:0}body.pm .mh .x,body.pm .mh #mActs,body.pm .noprint{display:none!important}body.pm .rep td,body.pm .rep th{font-size:10px;padding:3px 5px}}
+.rep td{vertical-align:top}.sig{display:flex;gap:40px;padding:30px 14px 10px}.sig div{flex:1;border-top:1px solid #333;padding-top:6px;font-size:12px;text-align:center}
+@media(max-width:700px){.grid2{grid-template-columns:1fr}header h1{font-size:14px}main{padding:12px}.hb .l{width:100px}}
+</style>
+</head>
+<body>
+<header>
+  <h1 id="appTitle"></h1>
+  <div class="lang"><button id="lang-pt">PT</button><button id="lang-en">EN</button></div>
+</header>
+<nav id="nav"></nav><div id="alert"></div>
+<main id="main"><div class="load" id="loading"></div></main>
+<div class="modal" id="modal"><div class="mbox"><div class="mh"><h2 id="mTitle"></h2><span id="mActs"></span><button class="x" onclick="closeModal()">×</button></div><div id="mBody"></div></div></div>
+<div class="toast" id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<style>#login{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}#login .box{background:#fff;padding:28px 24px;border-radius:12px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}#login h2{margin:0 0 4px;color:var(--pri,#23365e);font-size:20px}#login label{display:block;font-size:13px;color:#374151}#login input{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}#login button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--pri,#23365e);color:#fff;font-weight:600;font-size:15px;cursor:pointer}#login button:disabled{opacity:.6}#login .e{color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:8px}#login .s{color:#6b7280;font-size:13px;margin-bottom:18px}</style>
+<div id="login" style="display:none"><form class="box" onsubmit="return doLogin(event)"><h2>Madi HR</h2><div class="s">Entrar · Sign in</div><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form></div>
+<script>
+/* Login with Supabase (email + password). After login the app below starts with a short-lived pass that renews itself. */
+const SB_URL = 'https://erxlksuoplobtfbsvypg.supabase.co', SB_PK = 'sb_publishable_M5dLHCm5GFfgzP0g0Ol9lQ_3vjLme_l', FN_URL = SB_URL + '/functions/v1/rh-api';
+const sbc = supabase.createClient(SB_URL, SB_PK, { auth: { persistSession: true, autoRefreshToken: true } });
+let TOK = '', STARTED = false;
+sbc.auth.onAuthStateChange((ev, s) => { TOK = s ? s.access_token : ''; if (ev === 'SIGNED_OUT' && STARTED) location.reload(); });
+function showLogin(err) { document.getElementById('login').style.display = 'flex'; document.getElementById('lg_err').textContent = err || ''; }
+async function startApp(session) {
+  TOK = session.access_token;
+  let me;
+  try { me = await fetch(FN_URL + '?a=me', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: TOK, action: '__me' }) }).then(r => r.json()); }
+  catch (e) { return showLogin('Sem ligação · No connection'); }
+  if (me.error) { await sbc.auth.signOut(); return showLogin(me.error); }
+  window.ROLE = me.role; window.KEY = ''; window.V2 = { url: FN_URL, get token() { return TOK; } };
+  if (me.role === 'assistant') { window.ASSIST = { user: me.nome, pin: '' }; try { sessionStorage.removeItem('rh_assist'); } catch (e) {} }
+  document.getElementById('login').style.display = 'none';
+  STARTED = true;
+  const s = document.createElement('script'); s.textContent = document.getElementById('appsrc').textContent; document.body.appendChild(s);
+  if (me.role === 'assistant') { window.ASSIST = { user: me.nome, pin: '' }; window.assistLogout = () => sbc.auth.signOut(); }
+  const h = document.querySelector('header .lang');
+  if (h) { const b = document.createElement('button'); b.textContent = '⎋'; b.title = 'Sair · Sign out'; b.style.cssText = 'background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer'; b.onclick = () => sbc.auth.signOut(); h.parentNode.insertBefore(b, h.nextSibling); }
+}
+async function doLogin(e) {
+  e.preventDefault();
+  const b = document.getElementById('lg_b'); b.disabled = true; document.getElementById('lg_err').textContent = '';
+  const { data, error } = await sbc.auth.signInWithPassword({ email: document.getElementById('lg_e').value.trim(), password: document.getElementById('lg_p').value });
+  b.disabled = false;
+  if (error) return showLogin(/invalid/i.test(error.message) ? 'Email ou palavra-passe errados · Wrong email or password' : error.message);
+  startApp(data.session); return false;
+}
+sbc.auth.getSession().then(({ data }) => data.session ? startApp(data.session) : showLogin());
+</script>
+<script type="text/plain" id="appsrc">
+const T = {
+  pt: { app:'Sistema RH Madi', today:'Dia', month:'Mês', pending:'Pendentes', people:'Pessoas', dash:'Painel',
+    loading:'A carregar…', refresh:'Atualizar agora', lastSync:'Última sincronização', all:'Todos', search:'Procurar nome…',
+    name:'Nome', dept:'Departamento', in:'Entrada', out:'Saída', status:'Estado', late:'Atraso', early:'Saída antec.',
+    present:'Presentes', lateK:'Atrasados', absentSoFar:'Ainda sem picagem', absent:'Faltas', toCheck:'A verificar', offLeave:'Folga / licença',
+    period:'Período', days:'Dias trab.', absences:'Faltas', lateN:'Atrasos', lateMin:'Min atraso', earlyN:'Saídas antec.', earlyMin:'Min saída', checkN:'Verificar', extra:'Horas extra',
+    date:'Data', reason:'Motivo', newStatus:'Novo estado', note:'Nota (opcional)', save:'Guardar', saved:'Guardado', noPending:'Nada pendente 🎉',
+    pendHint:'Resolva estes dias antes de fechar o período.', id:'ID', role:'Função', schedule:'Horário', state:'Situação', notes:'Notas',
+    entity:'Entidade', location:'Localização', salary:'Salário base', other:'Outras rem.', exempt:'Isento de ponto', dayoff:'Folga fixa', yes:'Sim', no:'Não',
+    attendance:'Assiduidade', totalAbs:'Total de faltas', totalLate:'Minutos de atraso', topLate:'Mais minutos de atraso', topAbs:'Mais faltas',
+    absByDay:'Faltas por dia', byDept:'Assiduidade por departamento', leaves:'Licenças', debts:'Dívidas', daily:'Dia a dia', none:'—',
+    from:'De', to:'Até', type:'Tipo', amount:'Valor', balance:'Saldo', withFlags:'Só com alertas', hours:'Horas', source:'Origem',
+    selectStatus:'Escolha o estado', error:'Erro', week:['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'],
+    newPerson:'+ Novo funcionário', edit:'Editar', newLeave:'+ Licença', leave:'Licença', justify:'Justificar', cancel:'Cancelar',
+    idHint:'O ID tem de ser o mesmo número da pessoa no Hik-Connect.', admission:'Data de admissão', contract:'Tipo de contrato', phone:'Telefone',
+    inss:'Nº INSS', nuit:'NUIT', bank:'Banco', nib:'NIB', exitDate:'Data de saída', active:'Ativo', inactive:'Inativo',
+    noDayoff:'Nenhuma', saturday:'Sábado', open:'em aberto', setEnd:'Definir fim', doc:'Documento / nº relatório',
+    leaveHint:'Sem data de fim = em aberto. Os dias ficam com este estado automaticamente.', required:'Preencha os campos obrigatórios',
+    justifyHint:'O novo estado substitui o resultado da máquina neste dia.', pickDay:'Ver dia', backToday:'Hoje',
+    grid:'Presença', fromD:'De', toD:'Até', exportS:'Exportar (Excel)', print:'Imprimir', exporting:'A exportar…', fileReady:'Ficheiro criado', openFile:'Abrir ficheiro',
+    newHik:'Novas pessoas no Hik-Connect', newHikMsg:'pessoa(s) a picar no relógio sem ficha nem horário', resolveNow:'Resolver agora', firstSeen:'1ª picagem', daysP:'dias com picagem',
+    add:'Adicionar', notEmp:'Não é funcionário', newHikHint:'Confirme o departamento e o horário. Os dias desde a 1ª picagem são calculados automaticamente.', legend:'Legenda', entryLate:'Hora = entrada · +N = minutos de atraso', curPeriod:'Período atual',
+    leave:'Licenças', loans:'Adiantamentos', req:'Pedidos', lvReq:'Por aprovar', lvAll:'Todas as licenças', lvBal:'Saldos de férias', lvHol:'Feriados',
+    approve:'Aprovar', reject:'Rejeitar', newLv:'+ Nova licença', person:'Pessoa', mode:'Datas', modeRange:'Período contínuo', modeDays:'Dias soltos', addDay:'+ dia', nDays:'Dias', nDaysHint:'vazio = calculado (sem domingos e feriados)',
+    ref:'Ref.', reqBy:'Pedido por', noReq:'Sem pedidos por aprovar 🎉', entitle:'Direito', carried:'Transitado', usedBefore:'Usados antes', baseDate:'Data base', taken:'Gozados (app)', pendD:'Pendentes', bal:'Saldo', year:'Ano',
+    rule:'Regra automática: 1º ano de serviço {1} dias · a partir do 2º ano {2} dias (sem saldo definido)', holType:'Tipo', scope:'Aplica-se a', dayOff:'Folga?', holiday:'Feriado', tolerance:'Tolerância', addHol:'+ Adicionar dia', scopeAll:'Todos', allTypes:'Todos os tipos', allStatus:'Todos os estados',
+    outstanding:'Saldo em dívida', periodDed:'Descontos deste período', activeL:'Empréstimos ativos', unassigned:'Sem pessoa', prevBal:'Saldo anterior', thisDed:'Desconto do mês', curBal:'Saldo atual', nLoans:'Nº',
+    newLoan:'+ Novo adiantamento / empréstimo', loanType:'Tipo', advance:'Adiantamento', loan:'Empréstimo', total:'Valor total', inst:'Prestação', firstDed:'1º desconto (mês)', paid:'Pago', paidBefore:'Já pago antes',
+    lActive:'Ativo', lPaused:'Suspenso', lDone:'Liquidado', changeDed:'Alterar este mês', payment:'Pagamento', payType:'Forma', payCash:'Pagamento direto', payAdj:'Ajuste',
+    closeDed:'Confirmar descontos do período', closeQ:'Confirmar todos os descontos previstos deste período? Ficam registados como pagos.', closedTxt:'Descontos deste período já confirmados',
+    assign:'Atribuir', unassignedHint:'Empréstimos do sistema antigo sem pessoa — escolha a pessoa e clique Atribuir.', estimated:'saldo estimado', history:'Histórico de descontos', loansOf:'Empréstimos',
+    assistLink:'Link da assistente', copied:'Link copiado', hello:'Olá', submit:'Enviar pedido', sent:'Pedido enviado — aguarda aprovação', myReq:'Os meus pedidos', reqHint:'Os pedidos ficam pendentes até o Moussa aprovar.',
+    stApproved:'Aprovado', stPending:'Pendente', stRejected:'Rejeitado', status2:'Estado', after:'depois',
+    choose:'escolher', paidHint:'Férias pagas: escolha a data do pagamento e o nº de dias pagos. Desconta do saldo, não altera a presença.', lateOv:'Min atraso (vazio = manter)',
+    report:'🖨 Relatório detalhado', show:'Mostrar', printBtn:'Imprimir', punchesCol:'Picagens (hora · dispositivo)', signEmp:'Assinatura do trabalhador', signHR:'RH / Direção', printedOn:'Impresso em', repTitle:'Relatório de presenças',
+    transferId:'Transferir ID', lastDay:'Último dia desta pessoa', newName:'Nome da nova pessoa', transferHint:'A pessoa atual fica inativa com todo o histórico (licenças, dívidas) num ID de arquivo. O ID passa para a nova pessoa a partir do dia seguinte.',
+    idWas:'este ID era de', showInactive:'Mostrar inativos', totals:'Totais',
+    approvals:'Aprovações', login:'Entrar', who:'Quem é?', logout:'Sair', notReady:'Há perfis sem PIN — peça ao Moussa para definir.', newReq:'Novo pedido', machine:'Máquina neste dia (só informação)', viewDoc:'📄 Ver documento', openDrive:'Abrir ficheiro',
+    subBy:'Submetido por', recent:'Decididos recentemente', noApprovals:'Nada para aprovar 🎉', assistants:'👤 Assistentes e PINs', newPin:'Novo PIN (4–8 dígitos)', canSubmit:'Pode submeter', pinOk:'PIN definido', pinNo:'Sem PIN', sending:'A enviar…',
+    photo:'Foto do documento assinado *', startT:'Início', endT:'Fim', respSig:'Responsável que assinou', debtNow:'Dívida atual', onlyMin:'— só alterar minutos de atraso —', link:'Link', copy:'Copiar', decNote:'Nota da decisão',
+    rtJust:'Justificação de falta', rtLeave:'Licença / férias', rtAdv:'Adiantamento / empréstimo', rtOT:'Horas extra', reqOwnerHint:'Os pedidos das assistentes (com foto) estão em Aprovações.',
+    pay:'Salários', pDraft:'Rascunho', pClosedOn:'Fechado em', pUpTo:'Presenças contadas até', pBase:'Salário base', pOther:'Outras remunerações', pOT:'Horas extra', pLP:'Férias pagas', pBonus:'Bónus', pAllow:'Subsídios',
+    pAbs:'Faltas', pLate:'Atrasos', pPro:'Dias fora do contrato', pGross:'Salário bruto', pInss:'INSS', pEf:'Dias efetivos', pPrev:'Saldo anterior', pNewD:'Dívida contraída', pBal:'Saldo atual', pTotD:'Total descontos', pSun:'domingo', pEfH:'vazio = automático', inssBase:'Base INSS', inssBaseH:'vazio = salário base · 0 = isento', efDays:'Dias pagos por mês', efDaysH:'vazio = 30', pAdv:'Pagamento adiantamento', pOth:'Outros descontos', pNet:'Salário líquido', pInssE:'INSS empresa',
+    pAdd:'Acréscimos', pDed:'Faltas e atrasos', pOthD:'Outros', pClose:'Fechar período', pReopen:'Reabrir', pSlip:'🖨 Recibo', pEarn:'Remunerações', pDeds:'Descontos', pManual:'Valores manuais (este período)', pDays:'dias', pSigC:'Empresa',
+    pCloseQ:'Fechar este período? Os valores ficam bloqueados e os descontos de adiantamentos ficam registados.', pReopenQ:'Reabrir este período? Os descontos de adiantamentos deste fecho são anulados.', pCant:'Não é possível fechar:', pWarn:'Antes de fechar, atenção:',
+    wEnded:'O período ainda não terminou', wChk:'{n} dia(s) ainda em "Verificar"', wReq:'{n} pedido(s) por aprovar', wSal:'{n} pessoa(s) sem salário', wEnt:'{n} sem entidade', wEst:'{n} com saldo de adiantamento estimado', wNeg:'{n} com salário líquido negativo',
+    f_sal:'Sem salário', f_ent:'Sem entidade', f_chk:'Verificar', f_est:'Adiant. estimado', f_neg:'Negativo', payGo:'Descontos confirmam-se em Salários →', pCompany:'Entidade', pToCheck:'A rever',
+    pRules:'Regras: bruto = base ÷ 30 × dias efetivos + horas extra + outras rem. · INSS {a}% do salário base · dia de falta = base ÷ 30 · minuto de atraso = base ÷ {h} ÷ 60 · hora extra = base ÷ {h} × {n} (domingo × {s}) · Galerie Madi: {g} em vez de {h}. Alteram-se na folha CONFIG.' },
+  en: { app:'Madi HR System', today:'Day', month:'Month', pending:'To resolve', people:'People', dash:'Dashboard',
+    loading:'Loading…', refresh:'Refresh now', lastSync:'Last sync', all:'All', search:'Search name…',
+    name:'Name', dept:'Department', in:'In', out:'Out', status:'Status', late:'Late', early:'Left early',
+    present:'Present', lateK:'Late', absentSoFar:'No punch yet', absent:'Absences', toCheck:'To check', offLeave:'Off / leave',
+    period:'Period', days:'Days worked', absences:'Absences', lateN:'Late days', lateMin:'Late min', earlyN:'Early leaves', earlyMin:'Early min', checkN:'To check', extra:'Overtime h',
+    date:'Date', reason:'Reason', newStatus:'New status', note:'Note (optional)', save:'Save', saved:'Saved', noPending:'Nothing to resolve 🎉',
+    pendHint:'Resolve these days before closing the period.', id:'ID', role:'Role', schedule:'Schedule', state:'Status', notes:'Notes',
+    entity:'Company', location:'Location', salary:'Base salary', other:'Other pay', exempt:'Clock-exempt', dayoff:'Fixed day off', yes:'Yes', no:'No',
+    attendance:'Attendance', totalAbs:'Total absences', totalLate:'Late minutes', topLate:'Most late minutes', topAbs:'Most absences',
+    absByDay:'Absences per day', byDept:'Attendance by department', leaves:'Leave', debts:'Loans', daily:'Day by day', none:'—',
+    from:'From', to:'To', type:'Type', amount:'Amount', balance:'Balance', withFlags:'Flagged only', hours:'Hours', source:'Source',
+    selectStatus:'Choose status', error:'Error', week:['Sun','Mon','Tue','Wed','Thu','Fri','Sat'],
+    newPerson:'+ New employee', edit:'Edit', newLeave:'+ Leave', leave:'Leave', justify:'Justify', cancel:'Cancel',
+    idHint:'The ID must be the same number the person has in Hik-Connect.', admission:'Start date', contract:'Contract type', phone:'Phone',
+    inss:'INSS no.', nuit:'NUIT', bank:'Bank', nib:'NIB', exitDate:'Exit date', active:'Active', inactive:'Inactive',
+    noDayoff:'None', saturday:'Saturday', open:'open', setEnd:'Set end', doc:'Document / report no.',
+    leaveHint:'No end date = open-ended. Those days get this status automatically.', required:'Fill in the required fields',
+    justifyHint:'The new status replaces the machine result for this day.', pickDay:'View day', backToday:'Today',
+    grid:'Attendance grid', fromD:'From', toD:'To', exportS:'Export (Excel)', print:'Print', exporting:'Exporting…', fileReady:'File created', openFile:'Open file',
+    newHik:'New people on Hik-Connect', newHikMsg:'person(s) punching with no record or schedule', resolveNow:'Resolve now', firstSeen:'First punch', daysP:'days punched',
+    add:'Add', notEmp:'Not an employee', newHikHint:'Confirm department and schedule. Days since the first punch are calculated automatically.', legend:'Legend', entryLate:'Time = entry · +N = late minutes', curPeriod:'Current period',
+    leave:'Leave', loans:'Advances', req:'Requests', lvReq:'To approve', lvAll:'All leave', lvBal:'Leave balances', lvHol:'Holidays',
+    approve:'Approve', reject:'Reject', newLv:'+ New leave', person:'Person', mode:'Dates', modeRange:'Continuous range', modeDays:'Specific days', addDay:'+ day', nDays:'Days', nDaysHint:'empty = calculated (no Sundays or holidays)',
+    ref:'Ref.', reqBy:'Requested by', noReq:'Nothing to approve 🎉', entitle:'Entitlement', carried:'Carried over', usedBefore:'Used before', baseDate:'Base date', taken:'Taken (app)', pendD:'Pending', bal:'Balance', year:'Year',
+    rule:'Automatic rule: first year of service {1} days · from 2nd year {2} days (when no balance is set)', holType:'Type', scope:'Applies to', dayOff:'Day off?', holiday:'Holiday', tolerance:'Tolerance day', addHol:'+ Add day', scopeAll:'Everyone', allTypes:'All types', allStatus:'All statuses',
+    outstanding:'Outstanding', periodDed:'Deductions this period', activeL:'Active loans', unassigned:'Unassigned', prevBal:'Previous balance', thisDed:'This month', curBal:'Current balance', nLoans:'Count',
+    newLoan:'+ New advance / loan', loanType:'Type', advance:'Salary advance', loan:'Loan', total:'Total', inst:'Instalment', firstDed:'First deduction (month)', paid:'Paid', paidBefore:'Paid before',
+    lActive:'Active', lPaused:'Paused', lDone:'Paid off', changeDed:'Change this month', payment:'Payment', payType:'Method', payCash:'Direct payment', payAdj:'Adjustment',
+    closeDed:'Confirm this period’s deductions', closeQ:'Confirm all planned deductions for this period? They will be recorded as paid.', closedTxt:'This period’s deductions are confirmed',
+    assign:'Assign', unassignedHint:'Loans from the old sheet with no person — choose the person and click Assign.', estimated:'estimated balance', history:'Deduction history', loansOf:'Loans',
+    assistLink:'Assistant link', copied:'Link copied', hello:'Hello', submit:'Submit request', sent:'Request sent — awaiting approval', myReq:'My requests', reqHint:'Requests stay pending until Moussa approves them.',
+    stApproved:'Approved', stPending:'Pending', stRejected:'Rejected', status2:'Status', after:'after',
+    choose:'choose', paidHint:'Leave paid out: pick the payment date and the number of days paid. Deducted from the balance; attendance is not changed.', lateOv:'Late min (empty = keep)',
+    report:'🖨 Detailed report', show:'Show', printBtn:'Print', punchesCol:'Punches (time · device)', signEmp:'Employee signature', signHR:'HR / Management', printedOn:'Printed on', repTitle:'Attendance report',
+    transferId:'Transfer ID', lastDay:'Last day of this person', newName:'New person’s name', transferHint:'The current person becomes inactive and keeps all history (leave, loans) under an archive ID. The ID passes to the new person from the next day.',
+    idWas:'this ID belonged to', showInactive:'Show inactive', totals:'Totals',
+    approvals:'Approvals', login:'Sign in', who:'Who are you?', logout:'Sign out', notReady:'Some profiles have no PIN yet — ask Moussa to set it.', newReq:'New request', machine:'Machine that day (info only)', viewDoc:'📄 View document', openDrive:'Open file',
+    subBy:'Submitted by', recent:'Recently decided', noApprovals:'Nothing to approve 🎉', assistants:'👤 Assistants & PINs', newPin:'New PIN (4–8 digits)', canSubmit:'Can submit', pinOk:'PIN set', pinNo:'No PIN', sending:'Sending…',
+    photo:'Photo of the signed document *', startT:'Start', endT:'End', respSig:'Signed by (manager)', debtNow:'Current debt', onlyMin:'— only change late minutes —', link:'Link', copy:'Copy', decNote:'Decision note',
+    rtJust:'Absence justification', rtLeave:'Leave', rtAdv:'Advance / loan', rtOT:'Overtime', reqOwnerHint:'Assistants’ requests (with photo) are in Approvals.',
+    pay:'Payroll', pDraft:'Draft', pClosedOn:'Closed on', pUpTo:'Attendance counted up to', pBase:'Base salary', pOther:'Other pay', pOT:'Overtime', pLP:'Leave paid out', pBonus:'Bonus', pAllow:'Allowances',
+    pAbs:'Absences', pLate:'Late', pPro:'Days outside contract', pGross:'Gross pay', pInss:'INSS', pEf:'Effective days', pPrev:'Previous balance', pNewD:'New advance', pBal:'Closing balance', pTotD:'Total deductions', pSun:'Sunday', pEfH:'empty = automatic', inssBase:'INSS base', inssBaseH:'empty = base salary · 0 = exempt', efDays:'Paid days per month', efDaysH:'empty = 30', pAdv:'Advance payment', pOth:'Other deductions', pNet:'Net pay', pInssE:'INSS (company)',
+    pAdd:'Additions', pDed:'Absences & late', pOthD:'Other', pClose:'Close period', pReopen:'Reopen', pSlip:'🖨 Payslip', pEarn:'Earnings', pDeds:'Deductions', pManual:'Manual amounts (this period)', pDays:'days', pSigC:'Company',
+    pCloseQ:'Close this period? Amounts are locked and advance deductions are recorded.', pReopenQ:'Reopen this period? The advance deductions from this close are cancelled.', pCant:'Cannot close:', pWarn:'Before closing, note:',
+    wEnded:'The period has not ended yet', wChk:'{n} day(s) still "To check"', wReq:'{n} request(s) waiting for approval', wSal:'{n} person(s) with no salary', wEnt:'{n} with no company', wEst:'{n} with an estimated advance balance', wNeg:'{n} with negative net pay',
+    f_sal:'No salary', f_ent:'No company', f_chk:'To check', f_est:'Est. advance', f_neg:'Negative', payGo:'Deductions are confirmed in Payroll →', pCompany:'Company', pToCheck:'To review',
+    pRules:'Rules: gross = base ÷ 30 × effective days + overtime + other pay · INSS {a}% of base salary · absence day = base ÷ 30 · late minute = base ÷ {h} ÷ 60 · overtime hour = base ÷ {h} × {n} (Sunday × {s}) · Galerie Madi: {g} instead of {h}. Change them in the CONFIG sheet.' }
+};
+const ST = {
+  'Presente':{en:'Present',c:'ok'}, 'Atraso':{en:'Late',c:'late'}, 'Saída antecipada':{en:'Left early',c:'late'},
+  'Atraso e saída antecipada':{en:'Late & left early',c:'late'}, 'Verificar':{en:'To check',c:'chk'}, 'Falta':{en:'Absent',c:'bad'},
+  'Dispensa':{en:'Time off (deducted)',c:'bad'}, 'Confirmado':{en:'Confirmed',c:'ok'}, 'Férias':{en:'Annual leave',c:'inf'},
+  'Sem vencimento':{en:'Leave without pay',c:'bad'}, 'Licença de paternidade':{en:'Paternity leave',c:'inf'}, 'Luto':{en:'Bereavement leave',c:'inf'}, 'Casamento':{en:'Wedding leave',c:'inf'}, 'Férias pagas':{en:'Leave paid out',c:'inf'},
+  'Licença de parto':{en:'Maternity leave',c:'inf'}, 'Licença':{en:'Leave',c:'inf'}, 'Folga':{en:'Day off',c:'off'},
+  'Domingo':{en:'Sunday',c:'off'}, 'Feriado':{en:'Holiday',c:'off'}, 'Tolerância':{en:'Tolerance day',c:'off'},
+  'Isento':{en:'Exempt',c:'ok'}, 'Serviço externo':{en:'Field work',c:'ok'}, 'Novo':{en:'Not started',c:'off'},
+  'Máquina':{en:'Device fault',c:'inf'}, 'Energia':{en:'Power cut',c:'inf'}, 'Mercado':{en:'Market',c:'ok'},
+  'Falta justificada':{en:'Excused absence',c:'inf'}, 'Baixa médica':{en:'Sick leave',c:'inf'}
+};
+const WORKED = ['Presente','Atraso','Saída antecipada','Atraso e saída antecipada','Confirmado','Isento','Serviço externo','Mercado'];
+const ABS = ['Falta','Dispensa','Sem vencimento'];
+const NOT_DUE = ['Domingo','Folga','Feriado','Tolerância','Férias','Licença de parto','Licença','Novo','Falta justificada','Baixa médica','Licença de paternidade','Luto','Casamento'];
+const RESOLVE = ['Presente','Confirmado','Falta justificada','Baixa médica','Falta','Dispensa','Serviço externo','Mercado','Máquina','Energia','Folga','Férias','Licença','Isento'];
+
+let LANG = 'en';
+try { LANG = localStorage.getItem('rh_lang') || 'en'; } catch (e) {}
+const t = k => T[LANG][k];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const stName = s => LANG === 'pt' ? s : ((ST[s] || {}).en || s);
+const stTag = s => '<span class="st s-' + ((ST[s] || {}).c || 'off') + '">' + esc(stName(s)) + '</span>';
+const fmtD = d => { const p = String(d).split('-'); return p.length === 3 ? p[2] + '/' + p[1] : d; };
+const fmtDY = d => { const p = String(d).split('-'); return p.length === 3 ? p[2] + '/' + p[1] + '/' + p[0] : d; };
+const dow = d => T[LANG].week[new Date(d + 'T12:00:00').getDay()];
+const hm = s => s ? String(s).slice(0, 5) : '';
+const todayStr = () => { const d = new Date(); return d.getFullYear() + '-' + ('0' + (d.getMonth() + 1)).slice(-2) + '-' + ('0' + d.getDate()).slice(-2); };
+const stOpts = (list, sel) => list.map(s => '<option value="' + esc(s) + '"' + (s === sel ? ' selected' : '') + '>' + esc(stName(s)) + '</option>').join('');
+
+let VIEW = window.ROLE === 'assistant' ? 'req' : 'today', CACHE = {}, F = { dept: 'all', q: '', flags: false }, DAY = todayStr(), DAY2 = '', G = { from: '', to: '' }, DR = { from: '', to: '' }, NEWP = [];
+
+function call(action, p) {
+  const P = Object.assign({}, p || {}, { key: window.KEY || '', user: (window.ASSIST || {}).user || '', pin: (window.ASSIST || {}).pin || '' });
+  if (window.V2) { const ac = new AbortController(), tm = setTimeout(() => ac.abort(), 45000);
+    return fetch(window.V2.url + '?a=' + encodeURIComponent(action), { method: 'POST', signal: ac.signal, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: window.V2.token, action: action, p: P }) })
+    .then(r => { clearTimeout(tm); return r.json(); }).catch(() => { throw (LANG === 'pt' ? 'Sem ligação — tente de novo' : 'No connection — try again'); }).then(d => { if (d && d.error) throw d.error; return d; }); }
+  return new Promise((res, rej) => google.script.run
+    .withSuccessHandler(s => { const d = JSON.parse(s); d && d.error ? rej(d.error) : res(d); })
+    .withFailureHandler(e => rej(e && e.message || e)).api(action, P));
+}
+/* login password for the new (non-Google) address · 🔑 button in the header */
+function pwForm() {
+  const pt = LANG === 'pt';
+  modal(pt ? 'Acessos' : 'Logins', '', '<h3 style="margin:4px 0 8px">' + (pt ? 'A minha palavra-passe' : 'My password') + '</h3><div class="form"><label class="full">' + (pt ? 'Nova palavra-passe (mín. 8)' : 'New password (min. 8)') + '<input id="pw1" type="password" autocomplete="new-password"></label><label class="full">' + (pt ? 'Repetir' : 'Repeat') + '<input id="pw2" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="pwb" onclick="pwSave()">' + t('save') + '</button></div></div>' +
+    '<h3 style="margin:18px 0 6px">' + (pt ? 'Acessos das assistentes' : 'Assistant logins') + '</h3><div class="mut" style="font-size:12px;margin-bottom:8px">' + (pt ? 'Cada assistente entra no novo link com o seu email e palavra-passe (sem PIN). Deixe a palavra-passe vazia para só mudar o email.' : 'Each assistant signs in on the new link with her own email and password (no PIN). Leave the password empty to change only the email.') + '</div><div id="usrs"><div class="load">' + t('loading') + '</div></div>');
+  pwUsers();
+}
+async function apiV2(action, extra) {
+  const r = await fetch(window.V2.url + '?a=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ token: window.V2.token, action: action }, extra || {})) }).then(x => x.json());
+  if (r.error) throw r.error; return r;
+}
+async function pwUsers() {
+  const pt = LANG === 'pt', el = document.getElementById('usrs'); if (!el) return;
+  let rows = []; try { rows = (await apiV2('__users')).rows || []; } catch (e) { el.innerHTML = '<div class="err">' + esc(e) + '</div>'; return; }
+  el.innerHTML = ['Juvência', 'Yorna'].map((n, i) => { const u = rows.filter(r => r.nome === n && r.role === 'assistant')[0];
+    return '<div class="form" style="border:1px solid var(--lin,#e5e7eb);border-radius:8px;padding:10px;margin-bottom:10px"><div class="full"><b>' + esc(n) + '</b> <span class="mut" style="font-size:12px">' + (u ? (pt ? 'ativo' : 'active') + (u.last_sign_in_at ? ' · ' + (pt ? 'última entrada ' : 'last sign-in ') + String(u.last_sign_in_at).slice(0, 16).replace('T', ' ') : '') : (pt ? 'sem acesso' : 'no login yet')) + '</span></div>' +
+      '<label class="full">Email<input id="ue' + i + '" type="email" value="' + esc(u ? u.email : '') + '"></label><label class="full">' + (pt ? 'Palavra-passe (mín. 8)' : 'Password (min. 8)') + '<input id="up' + i + '" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="ub' + i + '" onclick="pwUserSave(' + i + ',\'' + n + '\')">' + t('save') + '</button></div></div>'; }).join('');
+}
+async function pwUserSave(i, n) {
+  const b = document.getElementById('ub' + i); b.disabled = true;
+  try { const r = await apiV2('__setUser', { nome: n, email: val('ue' + i), password: val('up' + i) }); toast((LANG === 'pt' ? 'Acesso guardado: ' : 'Login saved: ') + n + ' · ' + r.email); pwUsers(); }
+  catch (e) { toast(String(e)); b.disabled = false; }
+}
+async function pwSave() {
+  const pt = LANG === 'pt', a = val('pw1'), b = val('pw2');
+  if (a.length < 8) return toast(pt ? 'Mínimo 8 caracteres' : 'At least 8 characters');
+  if (a !== b) return toast(pt ? 'As palavras-passe não coincidem' : 'Passwords do not match');
+  document.getElementById('pwb').disabled = true;
+  try {
+    const r = await fetch(window.V2.url + '?a=pw', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: window.V2.token, action: '__setPassword', password: a }) }).then(x => x.json());
+    if (r.error) throw r.error;
+    closeModal(); toast((pt ? 'Palavra-passe guardada para ' : 'Password saved for ') + r.email);
+  } catch (e) { toast(String(e)); document.getElementById('pwb').disabled = false; }
+}
+(function () {
+  if (window.ROLE !== 'owner' || !window.V2) return;
+  const h = document.querySelector('header .lang'); if (!h) return;
+  const b = document.createElement('button'); b.textContent = '🔑'; b.title = 'Logins'; b.onclick = pwForm;
+  b.style.cssText = 'margin-left:auto;background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer';
+  h.parentNode.insertBefore(b, h);
+})();
+/* any unexpected error is shown instead of leaving the screen stuck on 'loading' */
+window.addEventListener('unhandledrejection', e => { const m = String(e.reason && e.reason.message || e.reason || ''); try { toast((LANG === 'pt' ? 'Erro: ' : 'Error: ') + m); } catch (_) {} });
+window.addEventListener('error', e => { try { toast('Error: ' + e.message); } catch (_) {} });
+/* files kept in Supabase Storage: 'sbfile:' links open through a short-lived signed link */
+async function sbUrl(u) {
+  if (!/^sbfile:/.test(String(u))) return u;
+  const r = await fetch(window.V2.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ token: window.V2.token, action: '__file', path: u }) });
+  const j = await r.json(); if (j.error) throw j.error; return j.url;
+}
+(function () {
+  const _open = window.open.bind(window);
+  window.open = function (u, n, f) {
+    if (/^sbfile:/.test(String(u || ''))) { const w = _open('', n || '_blank', f); sbUrl(u).then(x => { if (w) w.location.href = x; else _open(x, '_blank'); }).catch(e => { try { w && w.close(); } catch (_) {} toast(String(e)); }); return w; }
+    return _open(u, n, f);
+  };
+  document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="sbfile:"]'); if (!a) return; e.preventDefault(); window.open(a.getAttribute('href'), '_blank'); }, true);
+})();
+function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2600); }
+function setLang(l) { LANG = l; try { localStorage.setItem('rh_lang', l); } catch (e) {} paintChrome(); render(); }
+document.getElementById('lang-pt').onclick = () => setLang('pt');
+document.getElementById('lang-en').onclick = () => setLang('en');
+
+function paintChrome() {
+  document.title = t('app');
+  document.getElementById('appTitle').textContent = t('app');
+  document.getElementById('lang-pt').className = LANG === 'pt' ? 'on' : '';
+  document.getElementById('lang-en').className = LANG === 'en' ? 'on' : '';
+  const pend = (CACHE.month ? CACHE.month.rows.filter(r => r[6] === 'Verificar').length : 0) + NEWP.length;
+  const nreq = window.NREQ || 0;
+  document.getElementById('alert').innerHTML = NEWP.length ? '<div class="alertbar">⚠ ' + NEWP.length + ' ' + t('newHikMsg') + ': ' + NEWP.map(p => esc(p.nome || ('ID ' + p.id)) + ' (' + esc(p.dept) + ')').join(', ') + ' <button onclick="go(\'pending\')">' + t('resolveNow') + '</button></div>' : '';
+  document.getElementById('nav').innerHTML = (window.ROLE === 'assistant' ? ['req'] : ['today','month','grid','approvals','leave','loans','pay','pending','people','dash']).map(v =>
+    '<button class="' + (VIEW === v ? 'on' : '') + '" onclick="go(\'' + v + '\')">' + t(v) + (v === 'pending' && pend ? '<span class="badge">' + pend + '</span>' : '') + (v === 'approvals' && nreq ? '<span class="badge">' + nreq + '</span>' : '') + (v === 'people' && window.NDOC ? '<span class="badge">' + window.NDOC + '</span>' : '') + '</button>').join('');
+}
+function go(v) { VIEW = v; F.q = ''; paintChrome(); render(); }
+function loading() { document.getElementById('main').innerHTML = '<div class="load">' + t('loading') + '</div>'; }
+function showErr(e) { document.getElementById('main').innerHTML = '<div class="err">' + t('error') + ': ' + esc(e) + '</div>'; }
+function invalidate() { CACHE = { meta: CACHE.meta }; if (window.ROLE !== 'assistant') PEOPLE_DL = null; }
+
+async function need(key, p) {
+  const ck = key + (p ? JSON.stringify(p) : '');
+  if (CACHE[ck]) return CACHE[ck];
+  loading();
+  CACHE[ck] = await call(key, p);
+  if (key === 'month') CACHE.month = CACHE[ck];
+  paintChrome();
+  return CACHE[ck];
+}
+
+async function render() {
+  try {
+    if (VIEW === 'today') return (DAY2 && DAY2 > DAY) ? renderRange(await need('range', { from: DAY, to: DAY2 })) : renderDay(await need('day', { date: DAY }));
+    if (VIEW === 'grid') { if (!G.from) { const m = await need('month'); G.from = m.from; G.to = m.to < todayStr() ? m.to : todayStr(); } return renderGrid(await need('range', { from: G.from, to: G.to })); }
+    if (VIEW === 'month') return renderMonth(await need('month'));
+    if (VIEW === 'leave') return renderLeave();
+    if (VIEW === 'loans') { await peopleDL(); return renderLoans(await need('loans')); }
+    if (VIEW === 'req') return renderAssist();
+    if (VIEW === 'approvals') return renderApprovals(await need('requests'));
+    if (VIEW === 'pay') return renderPay(await need('payroll', PAYP ? { periodo: PAYP } : undefined));
+    if (VIEW === 'pending') return renderPending(await need('month'));
+    if (VIEW === 'people') { const al = await need('docs'); return renderPeople(await need('people'), al); }
+    if (VIEW === 'dash') return renderDash(DR.from ? await need('range', { from: DR.from, to: DR.to }) : await need('month'));
+  } catch (e) { showErr(e); }
+}
+
+function deptChips(rows, deptIdx) {
+  const ds = [...new Set(rows.map(r => r[deptIdx]).filter(Boolean))].sort();
+  return '<div class="chips">' + ['all'].concat(ds).map(d => '<span class="chip ' + (F.dept === d ? 'on' : '') + '" onclick="F.dept=\'' + esc(d) + '\';render()">' + (d === 'all' ? t('all') : esc(d)) + '</span>').join('') + '</div>';
+}
+const byDept = (r, i) => F.dept === 'all' || r[i] === F.dept;
+const byName = (n) => !F.q || String(n).toLowerCase().indexOf(F.q.toLowerCase()) >= 0;
+function searchBox() { return '<input type="search" id="q" placeholder="' + t('search') + '" value="' + esc(F.q) + '" oninput="F.q=this.value;render();setTimeout(()=>{const q=document.getElementById(\'q\');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},0)">'; }
+
+/* ---------- Day (any date) ---------- */
+function renderDay(d) {
+  const rows = d.rows.filter(r => byDept(r, 3) && byName(r[2]));
+  const cnt = f => rows.filter(f).length;
+  const k = [
+    ['ok', t('present'), cnt(r => WORKED.indexOf(r[6]) >= 0 || (r[6] === 'Verificar' && r[4]))],
+    ['late', t('lateK'), cnt(r => r[7] > 0)],
+    ['bad', d.isToday ? t('absentSoFar') : t('absent'), cnt(r => r[6] === 'Falta')],
+    ['chk', t('toCheck'), cnt(r => r[6] === 'Verificar')],
+    ['inf', t('offLeave'), cnt(r => NOT_DUE.indexOf(r[6]) >= 0)]
+  ];
+  rows.sort((a, b) => (a[6] === 'Falta') - (b[6] === 'Falta') || String(a[3]).localeCompare(b[3]) || String(a[2]).localeCompare(b[2]));
+  document.getElementById('main').innerHTML =
+    '<div class="bar"><b>' + dow(d.date) + ' ' + fmtDY(d.date) + '</b>' +
+    rangeInputs(d.date, d.date, 'day') +
+    (d.isToday ? '' : '<button class="btn sec sm" onclick="DAY=todayStr();DAY2=\'\';render()">' + t('backToday') + '</button>') +
+    '<span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span><span class="sp"></span>' +
+    (d.isToday ? '<button class="btn" id="rf" onclick="refreshToday()">' + t('refresh') + '</button>' : '') + '</div>' +
+    '<div class="kpis">' + k.map(x => '<div class="kpi ' + x[0] + '">' + x[1] + '<b>' + x[2] + '</b></div>').join('') + '</div>' +
+    '<div class="bar">' + deptChips(d.rows, 3) + '<span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + t('name') + '</th><th>' + t('dept') + '</th><th>' + t('in') + '</th><th>' + t('out') + '</th><th>' + t('status') + '</th><th class="n">' + t('late') + '</th><th class="n">' + t('early') + '</th><th></th></tr>' +
+    rows.map(r => '<tr><td class="click" onclick="openPerson(' + r[1] + ')"><b>' + esc(r[2]) + '</b></td><td>' + esc(r[3]) + '</td><td>' + hm(r[4]) + '</td><td>' + hm(r[5]) + '</td><td>' +
+      (r[6] === 'Falta' && d.isToday ? '<span class="st s-bad">' + t('absentSoFar') + '</span>' : stTag(r[6])) + '</td><td class="n">' + (r[7] || '') + '</td><td class="n">' + (r[8] || '') +
+      '</td><td><button class="btn sec sm" onclick="openPerson(' + r[1] + ',\'' + r[0] + '\')">' + t('justify') + '</button></td></tr>').join('') +
+    '</table></div>';
+}
+async function refreshToday() {
+  const b = document.getElementById('rf'); b.disabled = true; b.textContent = t('loading');
+  try { const d = await call('today', { refresh: true }); invalidate(); CACHE['day' + JSON.stringify({ date: DAY })] = { date: d.date, isToday: true, lastSync: d.lastSync, rows: d.rows }; render(); } catch (e) { showErr(e); }
+}
+
+/* ---------- Month ---------- */
+function summarize(rows) {
+  const m = {};
+  rows.forEach(r => {
+    const s = m[r[1]] = m[r[1]] || { id: r[1], nome: r[2], dept: r[3], due: 0, worked: 0, abs: 0, lateN: 0, lateM: 0, earlyN: 0, earlyM: 0, chk: 0, extra: 0 };
+    if (NOT_DUE.indexOf(r[6]) < 0) s.due++;
+    if (WORKED.indexOf(r[6]) >= 0) s.worked++;
+    if (ABS.indexOf(r[6]) >= 0) s.abs++;
+    if (r[6] === 'Verificar') s.chk++;
+    if (r[7] > 0) { s.lateN++; s.lateM += r[7]; }
+    if (r[8] > 0) { s.earlyN++; s.earlyM += r[8]; }
+    s.extra += r[10] || 0;
+  });
+  return Object.values(m);
+}
+function renderMonth(d) {
+  let list = summarize(d.rows.filter(r => byDept(r, 3))).filter(s => byName(s.nome));
+  if (F.flags) list = list.filter(s => s.abs || s.chk || s.lateM || s.earlyM);
+  list.sort((a, b) => String(a.dept).localeCompare(b.dept) || String(a.nome).localeCompare(b.nome));
+  const c = (v, cls) => v ? '<span class="st s-' + cls + '">' + v + '</span>' : '<span class="muted">0</span>';
+  document.getElementById('main').innerHTML =
+    '<div class="bar"><b>' + t('period') + ': ' + fmtD(d.from) + ' → ' + fmtD(d.to) + '</b><span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span></div>' +
+    '<div class="bar">' + deptChips(d.rows, 3) + '<span class="sp"></span><label class="muted"><input type="checkbox" ' + (F.flags ? 'checked' : '') + ' onchange="F.flags=this.checked;render()"> ' + t('withFlags') + '</label>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('days') + '</th><th class="n">' + t('absences') + '</th><th class="n">' + t('lateN') + '</th><th class="n">' + t('lateMin') +
+    '</th><th class="n">' + t('earlyN') + '</th><th class="n">' + t('earlyMin') + '</th><th class="n">' + t('checkN') + '</th><th class="n">' + t('extra') + '</th></tr>' +
+    list.map(s => '<tr class="click" onclick="openPerson(' + s.id + ')"><td>' + esc(s.nome) + '</td><td>' + esc(s.dept) + '</td><td class="n">' + s.worked + '/' + s.due + '</td><td class="n">' + c(s.abs, 'bad') +
+      '</td><td class="n">' + s.lateN + '</td><td class="n">' + c(s.lateM, 'late') + '</td><td class="n">' + s.earlyN + '</td><td class="n">' + c(s.earlyM, 'late') + '</td><td class="n">' + c(s.chk, 'chk') +
+      '</td><td class="n">' + (s.extra ? s.extra.toFixed(1) : '') + '</td></tr>').join('') + '</table></div>';
+}
+
+/* ---------- Pending ---------- */
+function renderPending(d) {
+  const rows = d.rows.filter(r => r[6] === 'Verificar' && byDept(r, 3)).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : String(a[2]).localeCompare(b[2]));
+  document.getElementById('main').innerHTML =
+    newPeopleHtml() + '<div class="bar"><span class="muted">' + t('pendHint') + '</span></div><div class="bar">' + deptChips(d.rows.filter(r => r[6] === 'Verificar'), 3) + '</div>' +
+    (rows.length ? '<div class="pend">' + rows.map((r, i) =>
+      '<div class="pc"><div class="row"><b class="click" onclick="openPerson(' + r[1] + ')">' + esc(r[2]) + '</b><span class="muted">' + esc(r[3]) + ' · ' + dow(r[0]) + ' ' + fmtD(r[0]) + '</span></div>' +
+      '<div class="row muted">' + t('in') + ': <b>' + (hm(r[4]) || '—') + '</b> &nbsp; ' + t('out') + ': <b>' + (hm(r[5]) || '—') + '</b>' +
+        (r[11] && r[11] !== 'Hik-Connect' ? ' &nbsp; · ' + (String(r[11]).indexOf('ª vez') > 0 ? '<span class="st s-bad">⚠ ' + esc(r[11]) + '</span>' : esc(r[11])) : '') + '</div>' +
+      '<div class="row"><select id="ps' + i + '"><option value="">' + t('selectStatus') + '</option>' + stOpts(RESOLVE) + '</select>' +
+      '<button class="btn" onclick="resolvePending(' + i + ')">' + t('save') + '</button></div>' +
+      '<textarea id="pn' + i + '" placeholder="' + t('note') + '"></textarea></div>').join('') + '</div>'
+      : '<div class="card"><div class="load">' + t('noPending') + '</div></div>');
+  window._pend = rows;
+}
+async function resolvePending(i) {
+  const r = window._pend[i], st = document.getElementById('ps' + i).value;
+  if (!st) return;
+  document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
+  try {
+    await call('resolve', { id: r[1], date: r[0], nome: r[2], st: st, old: r[6], motivo: document.getElementById('pn' + i).value });
+    invalidate(); toast(t('saved'));
+    renderPending(await need('month'));
+  } catch (e) { showErr(e); }
+}
+
+/* ---------- People ---------- */
+function renderPeople(list, al) {
+  const rows = list.filter(p => (F.inact || p.estado !== 'Inativo') && (F.dept === 'all' || p.dept === F.dept) && byName(p.nome));
+  document.getElementById('main').innerHTML =
+    '<div class="bar">' + deptChips(list.filter(p => F.inact || p.estado !== 'Inativo').map(p => [0, 0, 0, p.dept]), 3) + '<span class="sp"></span><label class="muted"><input type="checkbox" ' + (F.inact ? 'checked' : '') + ' onchange="F.inact=this.checked;render()"> ' + t('showInactive') + '</label>' + searchBox() +
+    '<button class="btn sec" onclick="listsModal()">' + t('lists') + '</button><button class="btn" onclick="personForm(null)">' + t('newPerson') + '</button></div>' + docAlertsHtml(al) +
+    '<div class="card tw"><table><tr><th>' + t('id') + '</th><th>' + t('name') + '</th><th>' + t('entity') + '</th><th>' + t('dept') + '</th><th>' + t('role') + '</th><th>' + t('schedule') + '</th><th>' + t('state') + '</th><th>' + t('notes') + '</th></tr>' +
+    rows.map(p => '<tr class="click" onclick="openPerson(' + p.id + ')"><td>' + p.id + '</td><td>' + esc(p.nome) + '</td><td>' + esc(p.ent) + '</td><td>' + esc(p.dept) + '</td><td>' + esc(p.func) + '</td><td>' + esc(p.hor) +
+      '</td><td>' + esc(p.estado) + '</td><td class="muted">' + esc(p.notas) + '</td></tr>').join('') + '</table></div>';
+}
+
+/* ---------- Modal helpers ---------- */
+function modal(title, acts, body) {
+  document.getElementById('modal').classList.add('on');
+  document.getElementById('mTitle').textContent = title;
+  document.getElementById('mActs').innerHTML = acts || '';
+  document.getElementById('mBody').innerHTML = body || '<div class="load">' + t('loading') + '</div>';
+}
+function closeModal() { document.getElementById('modal').classList.remove('on'); if (document.querySelector('#main > .load')) render(); }
+document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
+const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+const clearInl = () => { const el = document.getElementById('inl'); if (el) el.innerHTML = ''; };
+
+/* ---------- Person profile ---------- */
+let CUR = null;
+async function openPerson(id, focusDate) {
+  modal(t('loading'));
+  try {
+    const d = await call('person', { id: id });
+    const month = CACHE.month || (CACHE.month = await call('month'));
+    const p = d.person || { id: id, nome: '' };
+    CUR = { p: p, d: d };
+    const days = month.rows.filter(r => r[1] === id).sort((a, b) => a[0] < b[0] ? -1 : 1);
+    const s = summarize(days)[0] || {};
+    const yn = v => v === 'Sim' ? t('yes') : t('no');
+    modal(p.nome + ' · ' + id,
+      '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> <button class="btn sec sm" onclick="personForm(CUR.p)">' + t('edit') + '</button> <button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>',
+      '<div id="inl"></div>' +
+      '<div class="info">' + [[t('entity'), p.ent], [t('dept'), p.dept], [t('role'), p.func], [t('schedule'), p.hor], [t('exempt'), yn(p.isento)], [t('dayoff'), folgaName(p.folga)], [t('payRule'), prName(p.regra)], [t('contractEnd'), p.fimContrato ? fmtDY(p.fimContrato) : t('none')],
+        [t('salary'), p.sal ? Number(p.sal).toLocaleString('pt-PT') : t('none')], [t('days'), (s.worked || 0) + '/' + (s.due || 0)], [t('absences'), s.abs || 0], [t('lateMin'), s.lateM || 0], [t('earlyMin'), s.earlyM || 0], [t('checkN'), s.chk || 0]]
+        .map(x => '<div><small>' + x[0] + '</small>' + esc(x[1]) + '</div>').join('') + '</div>' +
+      (p.notas ? '<div class="info"><div style="grid-column:1/-1"><small>' + t('notes') + '</small>' + esc(p.notas) + '</div></div>' : '') +
+      docsCard(d.docs || []) +
+      (d.licencas.length ? '<div class="card" style="margin:0 14px 12px"><h3>' + t('leaves') + '</h3><table><tr><th>' + t('type') + '</th><th>' + t('from') + '</th><th>' + t('to') + '</th><th></th></tr>' +
+        d.licencas.map(l => '<tr><td>' + stTag(l[0]) + '</td><td>' + fmtDY(l[1]) + '</td><td>' + (l[2] ? fmtDY(l[2]) : '<span class="muted">' + t('open') + '</span>') +
+          '</td><td><button class="btn sec sm" onclick="endForm(' + l[4] + ',\'' + (l[2] || '') + '\')">' + t('setEnd') + '</button></td></tr>').join('') + '</table></div>' : '') +
+      (d.dividas.length ? '<div class="card" style="margin:0 14px 12px"><h3>' + t('debts') + '</h3><table><tr><th>' + t('type') + '</th><th>' + t('date') + '</th><th class="n">' + t('amount') + '</th><th class="n">' + t('balance') + '</th></tr>' +
+        d.dividas.map(x => '<tr><td>' + esc(x[0]) + '</td><td>' + fmtD(x[1]) + '</td><td class="n">' + x[2].toLocaleString('pt-PT') + '</td><td class="n">' + x[3].toLocaleString('pt-PT') + '</td></tr>').join('') + '</table></div>' : '') +
+      '<div class="card tw" style="margin:0 14px"><h3>' + t('daily') + '</h3><table><tr><th>' + t('date') + '</th><th>' + t('in') + '</th><th>' + t('out') + '</th><th>' + t('status') + '</th><th class="n">' + t('late') + '</th><th class="n">' + t('early') + '</th><th class="n">' + t('hours') + '</th><th></th></tr>' +
+        days.map(r => '<tr' + (r[0] === focusDate ? ' style="background:var(--lateb)"' : '') + '><td>' + dow(r[0]) + ' ' + fmtD(r[0]) + '</td><td>' + hm(r[4]) + '</td><td>' + hm(r[5]) + '</td><td>' + stTag(r[6]) + '</td><td class="n">' + (r[7] || '') + '</td><td class="n">' + (r[8] || '') + '</td><td class="n">' + (r[9] || '') +
+          '</td><td><button class="btn sec sm" onclick="justifyForm(\'' + r[0] + '\',\'' + esc(r[6]) + '\')">' + t('justify') + '</button></td></tr>').join('') +
+      '</table></div>');
+    if (focusDate) justifyForm(focusDate, (days.filter(r => r[0] === focusDate)[0] || [])[6] || '');
+  } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+
+function justifyForm(date, cur) {
+  const el = document.getElementById('inl');
+  el.innerHTML = '<div class="inline"><b>' + t('justify') + ' · ' + dow(date) + ' ' + fmtDY(date) + '</b>' + (cur ? stTag(cur) : '') +
+    '<select id="jst"><option value="">' + t('selectStatus') + '</option>' + stOpts(RESOLVE) + '</select>' +
+    '<input id="jmin" type="number" min="0" placeholder="' + t('lateOv') + '" style="width:190px">' +
+    '<input id="jdoc" placeholder="' + t('doc') + '" style="min-width:180px">' +
+    '<input id="jnote" placeholder="' + t('note') + '" style="flex:1;min-width:180px">' +
+    '<button class="btn" id="jbtn" onclick="saveJustify(\'' + date + '\',\'' + esc(cur) + '\')">' + t('save') + '</button>' +
+    '<button class="btn sec" onclick="clearInl()">' + t('cancel') + '</button>' +
+    '<span class="muted" style="width:100%">' + t('justifyHint') + '</span></div>';
+  el.scrollIntoView({ behavior: 'smooth' });
+}
+async function saveJustify(date, old) {
+  const st = val('jst'), jm = val('jmin'); if (!st && jm === '') return toast(t('required'));
+  document.getElementById('jbtn').disabled = true;
+  try {
+    await call('resolve', { id: CUR.p.id, date: date, nome: CUR.p.nome, st: st, min: jm, old: old, motivo: val('jnote'), doc: val('jdoc') });
+    invalidate(); toast(t('saved')); render(); openPerson(CUR.p.id);
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('jbtn').disabled = false; }
+}
+
+async function leaveForm() {
+  const meta = CACHE.meta || (CACHE.meta = await call('meta'));
+  document.getElementById('inl').innerHTML = '<div class="inline"><b>' + t('leave') + '</b>' +
+    '<select id="lt">' + stOpts(meta.leaveTypes) + '</select>' +
+    '<label class="muted">' + t('from') + ' <input type="date" id="lde"></label>' +
+    '<label class="muted">' + t('to') + ' <input type="date" id="late"></label>' +
+    '<input id="ldoc" placeholder="' + t('doc') + '">' +
+    '<input id="lnote" placeholder="' + t('note') + '" style="flex:1;min-width:160px">' +
+    '<button class="btn" id="lbtn" onclick="saveLeave()">' + t('save') + '</button>' +
+    '<button class="btn sec" onclick="clearInl()">' + t('cancel') + '</button>' +
+    '<span class="muted" style="width:100%">' + t('leaveHint') + '</span></div>';
+}
+async function saveLeave() {
+  if (!val('lde')) return toast(t('required'));
+  document.getElementById('lbtn').disabled = true;
+  try {
+    await call('addLeave', { id: CUR.p.id, nome: CUR.p.nome, tipo: val('lt'), de: val('lde'), ate: val('late'), doc: val('ldoc'), nota: val('lnote') });
+    invalidate(); toast(t('saved')); render(); openPerson(CUR.p.id);
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lbtn').disabled = false; }
+}
+function endForm(n, cur) {
+  document.getElementById('inl').innerHTML = '<div class="inline"><b>' + t('setEnd') + '</b>' +
+    '<input type="date" id="eate" value="' + esc(cur) + '"><button class="btn" id="ebtn" onclick="saveEnd(' + n + ')">' + t('save') + '</button>' +
+    '<button class="btn sec" onclick="clearInl()">' + t('cancel') + '</button></div>';
+}
+async function saveEnd(n) {
+  document.getElementById('ebtn').disabled = true;
+  try { await call('updateLeave', { n: n, ate: val('eate') }); invalidate(); toast(t('saved')); render(); openPerson(CUR.p.id); }
+  catch (e) { toast(t('error') + ': ' + e); document.getElementById('ebtn').disabled = false; }
+}
+
+/* ---------- New / edit employee ---------- */
+async function personForm(p) {
+  const isNew = !p;
+  modal(isNew ? t('newPerson').replace('+ ', '') : t('edit') + ' · ' + p.nome, '', '');
+  const meta = CACHE.meta || (CACHE.meta = await call('meta'));
+  p = p || { id: meta.maxId + 1, estado: 'Ativo', isento: 'Não', hor: 'Office' };
+  const dl = (id, arr) => '<datalist id="' + id + '">' + arr.map(x => '<option value="' + esc(x) + '">').join('') + '</datalist>';
+  const inp = (k, label, type, extra) => '<label>' + label + '<input id="f_' + k + '" type="' + (type || 'text') + '" value="' + esc(p[k] == null ? '' : p[k]) + '" ' + (extra || '') + '></label>';
+  const lsel = (k, label, arr) => { const cur = String(p[k] || ''); const a = (arr || []).slice(); if (cur && a.indexOf(cur) < 0) a.push(cur);
+    return '<label>' + label + '<select id="f_' + k + '"><option value=""></option>' + a.map(x => '<option' + (x === cur ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select></label>'; };
+  const sel = (k, label, opts) => '<label>' + label + '<select id="f_' + k + '">' + opts.map(o => '<option value="' + esc(o[0]) + '"' + (String(p[k] || '') === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
+  document.getElementById('mBody').innerHTML = '<div class="form">' +
+    inp('id', t('id') + ' *', 'number', isNew ? '' : 'readonly') + inp('nome', t('name') + ' *') +
+    lsel('ent', t('entity'), meta.ent) + lsel('dept', t('dept'), meta.dept) +
+    lsel('loc', t('location'), meta.loc) + lsel('func', t('role'), meta.func) +
+    sel('hor', t('schedule'), meta.hor.map(h => [h, h])) +
+    sel('isento', t('exempt'), [['Não', t('no')], ['Sim', t('yes')]]) +
+    sel('folga', t('dayoff'), [['', t('noDayoff')]].concat(WD_PT.map((d, i) => [d, T[LANG].wdNames[i]]))) +
+    inp('adm', t('admission'), 'date') + inp('contrato', t('contract'), 'text', 'list="dl_contrato"') +
+    inp('sal', t('salary'), 'number', 'step="0.01"') + inp('outras', t('other'), 'number', 'step="0.01"') +
+    inp('inssBase', t('inssBase'), 'number', 'step="0.01" placeholder="' + t('inssBaseH') + '"') + inp('ef', t('efDays'), 'number', 'step="0.5" placeholder="' + t('efDaysH') + '"') +
+    sel('regra', t('payRule'), [['', t('prAuto')], ['Padrão', t('prStd')], ['Gallery', t('prGal')]]) + inp('fimContrato', t('contractEnd'), 'date') +
+    inp('tel', t('phone')) + inp('nuit', t('nuit')) + inp('inss', t('inss')) + inp('banco', t('bank')) + inp('nib', t('nib')) +
+    sel('estado', t('state'), [['Ativo', t('active')], ['Inativo', t('inactive')]]) + inp('saida', t('exitDate'), 'date') +
+    '<label class="full">' + t('notes') + '<input id="f_notas" value="' + esc(p.notas || '') + '"></label>' +
+    '<div class="full muted">ⓘ ' + t('idHint') + ' · <a href="#" onclick="listsModal();return false">' + t('manageLists') + '</a></div>' +
+    '<div class="act"><button class="btn sec" onclick="' + (isNew ? 'closeModal()' : 'openPerson(' + p.id + ')') + '">' + t('cancel') + '</button><button class="btn" id="pbtn" onclick="savePerson(' + isNew + ')">' + t('save') + '</button></div>' +
+    '</div>' + dl('dl_ent', meta.ent) + dl('dl_dept', meta.dept) + dl('dl_loc', meta.loc) + dl('dl_func', meta.func) + dl('dl_contrato', meta.contrato);
+}
+async function savePerson(isNew) {
+  const keys = ['id','nome','ent','dept','loc','func','hor','isento','folga','adm','contrato','sal','outras','inss','nuit','banco','nib','tel','estado','saida','notas','inssBase','ef','regra','fimContrato'];
+  const p = { isNew: isNew }; keys.forEach(k => p[k] = val('f_' + k));
+  if (!p.id || !p.nome.trim()) return toast(t('required'));
+  document.getElementById('pbtn').disabled = true;
+  try {
+    await call('savePerson', p);
+    invalidate(); CACHE.meta = null; toast(t('saved')); render(); openPerson(Number(p.id));
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('pbtn').disabled = false; }
+}
+
+/* ---------- Dashboard ---------- */
+function renderDash(d) {
+  const rows = d.rows.filter(r => byDept(r, 3));
+  const sum = summarize(rows);
+  const due = sum.reduce((a, s) => a + s.due, 0), worked = sum.reduce((a, s) => a + s.worked, 0);
+  const abs = sum.reduce((a, s) => a + s.abs, 0), lateM = sum.reduce((a, s) => a + s.lateM, 0), chk = sum.reduce((a, s) => a + s.chk, 0);
+  const rate = due ? Math.round(worked / due * 1000) / 10 : 0;
+  const bars = (list, key, fmt) => { const mx = Math.max(1, ...list.map(x => x[key])); return list.map(x => '<div class="hb"><span class="l">' + esc(x.nome) + '</span><span class="t"><span class="f" style="display:block;width:' + (x[key] / mx * 100) + '%"></span></span><span class="v">' + fmt(x[key]) + '</span></div>').join('') || '<div class="load">' + t('none') + '</div>'; };
+  const topLate = sum.filter(s => s.lateM).sort((a, b) => b.lateM - a.lateM).slice(0, 8);
+  const topAbs = sum.filter(s => s.abs).sort((a, b) => b.abs - a.abs).slice(0, 8);
+  const days = [...new Set(rows.map(r => r[0]))].sort();
+  const perDay = days.map(x => ({ d: x, v: rows.filter(r => r[0] === x && ABS.indexOf(r[6]) >= 0).length }));
+  const mxd = Math.max(1, ...perDay.map(x => x.v));
+  const depts = [...new Set(d.rows.map(r => r[3]))].sort().map(dp => { const s = summarize(d.rows.filter(r => r[3] === dp)); const du = s.reduce((a, x) => a + x.due, 0), w = s.reduce((a, x) => a + x.worked, 0); return { nome: dp, v: du ? Math.round(w / du * 1000) / 10 : 0 }; });
+  document.getElementById('main').innerHTML =
+    '<div class="bar">' + rangeInputs(d.from, d.to < todayStr() ? d.to : todayStr(), 'dash') + (DR.from ? '<button class="btn sec sm" onclick="DR={from:\'\',to:\'\'};render()">' + t('curPeriod') + '</button>' : '') + '</div><div class="bar">' + deptChips(d.rows, 3) + '</div>' +
+    '<div class="kpis"><div class="kpi ok">' + t('attendance') + '<b>' + rate + '%</b></div><div class="kpi bad">' + t('totalAbs') + '<b>' + abs + '</b></div><div class="kpi late">' + t('totalLate') + '<b>' + lateM.toLocaleString('pt-PT') + '</b></div><div class="kpi chk">' + t('toCheck') + '<b>' + chk + '</b></div></div>' +
+    '<div class="grid2"><div class="card"><h3>' + t('topLate') + '</h3>' + bars(topLate, 'lateM', v => v + ' min') + '</div><div class="card"><h3>' + t('topAbs') + '</h3>' + bars(topAbs, 'abs', v => v) + '</div></div>' +
+    '<div class="grid2"><div class="card"><h3>' + t('absByDay') + '</h3><div class="cols" style="margin-bottom:18px">' + perDay.map(x => '<div class="click" onclick="DAY=\'' + x.d + '\';go(\'today\')" title="' + fmtD(x.d) + ': ' + x.v + '" style="height:' + (x.v / mxd * 100) + '%"><span>' + x.d.slice(8) + '</span></div>').join('') + '</div></div>' +
+    '<div class="card"><h3>' + t('byDept') + '</h3>' + bars(depts, 'v', v => v + '%') + '</div></div>';
+}
+
+/* ---------- Date ranges ---------- */
+function rangeInputs(a, b, kind) {
+  return '<label class="muted">' + t('fromD') + ' <input type="date" value="' + a + '" min="2026-10-19" max="' + todayStr() + '" onchange="setRange(\'' + kind + '\',\'from\',this.value)"></label>' +
+    '<label class="muted">' + t('toD') + ' <input type="date" value="' + b + '" min="2026-10-19" max="' + todayStr() + '" onchange="setRange(\'' + kind + '\',\'to\',this.value)"></label>';
+}
+function setRange(kind, which, value) {
+  if (!value) return;
+  if (kind === 'day') {
+    if (which === 'from') { DAY = value; if (DAY2 && DAY2 < DAY) DAY2 = ''; } else { DAY2 = value < DAY ? '' : value; }
+  } else {
+    const o = kind === 'grid' ? G : DR;
+    const cur = kind === 'dash' && !DR.from && CACHE.month ? { from: CACHE.month.from, to: CACHE.month.to < todayStr() ? CACHE.month.to : todayStr() } : { from: o.from, to: o.to };
+    cur[which] = value;
+    if (cur.to < cur.from) { if (which === 'from') cur.to = cur.from; else cur.from = cur.to; }
+    o.from = cur.from; o.to = cur.to;
+  }
+  render();
+}
+
+/* ---------- Day tab with From → To ---------- */
+function renderRange(d) {
+  const rows = d.rows.filter(r => byDept(r, 3) && byName(r[2]));
+  const cnt = f => rows.filter(f).length;
+  const k = [
+    ['ok', t('present'), cnt(r => WORKED.indexOf(r[6]) >= 0)], ['late', t('lateK'), cnt(r => r[7] > 0)],
+    ['bad', t('absent'), cnt(r => ABS.indexOf(r[6]) >= 0)], ['chk', t('toCheck'), cnt(r => r[6] === 'Verificar')], ['inf', t('offLeave'), cnt(r => NOT_DUE.indexOf(r[6]) >= 0)]
+  ];
+  rows.sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : String(a[3]).localeCompare(b[3]) || String(a[2]).localeCompare(b[2]));
+  document.getElementById('main').innerHTML =
+    '<div class="bar">' + rangeInputs(d.from, d.to, 'day') + '<button class="btn sec sm" onclick="DAY=todayStr();DAY2=\'\';render()">' + t('backToday') + '</button><span class="sp"></span><span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span></div>' +
+    '<div class="kpis">' + k.map(x => '<div class="kpi ' + x[0] + '">' + x[1] + '<b>' + x[2] + '</b></div>').join('') + '</div>' +
+    '<div class="bar">' + deptChips(d.rows, 3) + '<span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + t('date') + '</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th>' + t('in') + '</th><th>' + t('out') + '</th><th>' + t('status') + '</th><th class="n">' + t('late') + '</th><th class="n">' + t('early') + '</th><th></th></tr>' +
+    rows.map(r => '<tr><td>' + dow(r[0]) + ' ' + fmtD(r[0]) + '</td><td class="click" onclick="openPerson(' + r[1] + ')"><b>' + esc(r[2]) + '</b></td><td>' + esc(r[3]) + '</td><td>' + hm(r[4]) + '</td><td>' + hm(r[5]) + '</td><td>' + stTag(r[6]) +
+      '</td><td class="n">' + (r[7] || '') + '</td><td class="n">' + (r[8] || '') + '</td><td><button class="btn sec sm" onclick="openPerson(' + r[1] + ',\'' + r[0] + '\')">' + t('justify') + '</button></td></tr>').join('') +
+    '</table></div>';
+}
+
+/* ---------- Presence grid (person × day) ---------- */
+const SHORT = {
+  pt: { 'Presente':'P','Atraso':'A','Saída antecipada':'S','Atraso e saída antecipada':'AS','Verificar':'V','Falta':'F','Dispensa':'D','Confirmado':'C','Férias':'FÉ','Licença de parto':'LP','Licença':'L','Folga':'FO','Domingo':'DO','Feriado':'FR','Tolerância':'T','Isento':'I','Serviço externo':'SE','Novo':'N','Máquina':'M','Energia':'E','Mercado':'ME','Falta justificada':'FJ','Baixa médica':'BM','Sem vencimento':'SV','Licença de paternidade':'LPA','Luto':'LU','Casamento':'CA','Férias pagas':'FP' },
+  en: { 'Presente':'P','Atraso':'L','Saída antecipada':'LE','Atraso e saída antecipada':'LL','Verificar':'CK','Falta':'AB','Dispensa':'UL','Confirmado':'CF','Férias':'VC','Licença de parto':'ML','Licença':'LV','Folga':'DO','Domingo':'SU','Feriado':'HO','Tolerância':'TD','Isento':'EX','Serviço externo':'FW','Novo':'NS','Máquina':'DF','Energia':'PC','Mercado':'MK','Falta justificada':'XA','Baixa médica':'SL','Sem vencimento':'LW','Licença de paternidade':'PL','Luto':'BL','Casamento':'WL','Férias pagas':'PO' }
+};
+function renderGrid(d) {
+  const rows = d.rows.filter(r => byDept(r, 3) && byName(r[2]));
+  const days = []; for (let x = new Date(d.from + 'T12:00:00'); x <= new Date(d.to + 'T12:00:00'); x = new Date(x.getTime() + 864e5)) days.push(x.getFullYear() + '-' + ('0' + (x.getMonth() + 1)).slice(-2) + '-' + ('0' + x.getDate()).slice(-2));
+  const people = {};
+  rows.forEach(r => { const p = people[r[1]] = people[r[1]] || { id: r[1], nome: r[2], dept: r[3], d: {} }; p.d[r[0]] = r; });
+  const sum = summarize(rows); const sm = {}; sum.forEach(s => sm[s.id] = s);
+  const list = Object.values(people).sort((a, b) => String(a.dept).localeCompare(b.dept) || String(a.nome).localeCompare(b.nome));
+  let lastDept = '';
+  const cell = r => {
+    if (!r) return '<td class="c"></td>';
+    const cls = 'c-' + ((ST[r[6]] || {}).c || 'off');
+    const txt = (r[4] || r[5]) && NOT_DUE.indexOf(r[6]) < 0 ? (hm(r[4]) || '—') + '<br>' + (hm(r[5]) || '—') + (r[7] ? '<br><b>+' + r[7] + '</b>' : '') : (SHORT[LANG][r[6]] || r[6]);
+    return '<td class="c ' + cls + '" title="' + esc(stName(r[6]) + (r[4] ? ' · ' + hm(r[4]) : '') + (r[5] ? '–' + hm(r[5]) : '')) + '">' + txt + '</td>';
+  };
+  const legend = Object.keys(SHORT[LANG]).map(s => '<span class="st s-' + ((ST[s] || {}).c || 'off') + '">' + SHORT[LANG][s] + ' = ' + esc(stName(s)) + '</span>').join('');
+  document.getElementById('main').innerHTML =
+    '<div class="bar noprint">' + rangeInputs(d.from, d.to, 'grid') + '<span class="sp"></span><button class="btn sec" onclick="window.print()">' + t('print') + '</button><button class="btn" id="xbtn" onclick="doExport()">' + t('exportS') + '</button></div>' +
+    '<div class="bar noprint">' + deptChips(d.rows, 3) + '<span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="bar"><b>' + t('grid') + ' · ' + fmtDY(d.from) + ' → ' + fmtDY(d.to) + (F.dept !== 'all' ? ' · ' + esc(F.dept) : '') + '</b></div>' +
+    '<div class="card tw"><table class="gridt"><tr><th>' + t('name') + '</th>' + days.map(x => '<th class="c">' + dow(x) + '<br>' + x.slice(8) + '</th>').join('') +
+      '<th class="n">' + t('days') + '</th><th class="n">' + t('absences') + '</th><th class="n">' + t('lateMin') + '</th><th class="n">' + t('earlyMin') + '</th><th class="n">' + t('checkN') + '</th></tr>' +
+    list.map(p => {
+      const s = sm[p.id] || {};
+      const head = p.dept !== lastDept ? '<tr><td colspan="' + (days.length + 6) + '" style="background:var(--infb);font-weight:700;color:var(--pri)">' + esc(p.dept) + '</td></tr>' : '';
+      lastDept = p.dept;
+      return head + '<tr><td class="nm click" onclick="openPerson(' + p.id + ')">' + esc(p.nome) + '</td>' + days.map(x => cell(p.d[x])).join('') +
+        '<td class="n">' + (s.worked || 0) + '/' + (s.due || 0) + '</td><td class="n">' + (s.abs || '') + '</td><td class="n">' + (s.lateM || '') + '</td><td class="n">' + (s.earlyM || '') + '</td><td class="n">' + (s.chk || '') + '</td></tr>';
+    }).join('') + '</table></div>' +
+    '<div class="card"><h3>' + t('legend') + ' <span class="muted">· ' + t('entryLate') + '</span></h3><div class="legend">' + legend + '</div></div>';
+}
+async function doExport() {
+  const b = document.getElementById('xbtn'); b.disabled = true; b.textContent = t('exporting');
+  try {
+    const r = await call('export', { from: G.from, to: G.to, dept: F.dept, q: F.q });
+    b.disabled = false; b.textContent = t('exportS');
+    const a = document.createElement('div'); a.className = 'bar noprint';
+    a.innerHTML = '<span class="st s-ok">' + t('fileReady') + ': ' + esc(r.name) + '</span> <a class="btn sm" href="' + r.url + '" target="_blank" rel="noopener">' + t('openFile') + '</a>';
+    document.getElementById('main').prepend(a);
+    window.open(r.url, '_blank');
+  } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('exportS'); }
+}
+
+/* ---------- New people on Hik-Connect ---------- */
+async function loadNewPeople() {
+  try { NEWP = await call('newPeople'); if (NEWP.length && !CACHE.meta) CACHE.meta = await call('meta'); paintChrome(); } catch (e) {}
+  try { window.NREQ = (await call('requests', { countOnly: true })).pending; paintChrome(); } catch (e) {}
+  try { const a = await call('docs'); window.NDOC = a.count; paintChrome(); } catch (e) {}
+}
+function newPeopleHtml() {
+  if (!NEWP.length) return '';
+  const meta = CACHE.meta || { dept: [], hor: [], ent: [], func: [] };
+  const opt = (arr, sel) => arr.map(x => '<option' + (x === sel ? ' selected' : '') + '>' + esc(x) + '</option>').join('');
+  const depts = meta.dept.slice(); NEWP.forEach(p => { if (p.dept && depts.indexOf(p.dept) < 0) depts.push(p.dept); });
+  return '<div class="card" style="border-color:var(--bad)"><h3 style="color:var(--bad)">⚠ ' + t('newHik') + ' (' + NEWP.length + ')</h3><div style="padding:10px" class="pend">' +
+    '<span class="muted">' + t('newHikHint') + '</span>' +
+    NEWP.map((p, i) => '<div class="pc newp"><div class="row"><b>' + esc(p.nome || '—') + '</b><span class="muted">ID ' + p.id + ' · ' + esc(p.dept) + ' · ' + t('firstSeen') + ' ' + fmtDY(p.first) + ' · ' + p.days + ' ' + t('daysP') + (p.wasUsedBy ? ' · ⚠ ' + t('idWas') + ' ' + esc(p.wasUsedBy) : '') + '</span></div>' +
+      '<div class="row"><input id="nn' + i + '" value="' + esc(p.nome) + '" placeholder="' + t('name') + '" style="min-width:200px">' +
+      '<select id="nd' + i + '">' + opt(depts, p.dept) + '</select>' +
+      '<select id="nh' + i + '">' + opt(meta.hor, p.hor) + '</select>' +
+      '<input id="ne' + i + '" list="dl_nent" placeholder="' + t('entity') + '">' +
+      '<input id="nf' + i + '" list="dl_nfunc" placeholder="' + t('role') + '" style="width:110px">' +
+      '<input id="ns' + i + '" type="number" placeholder="' + t('salary') + '" style="width:120px">' +
+      '<button class="btn" onclick="addNew(' + i + ')">' + t('add') + '</button><button class="btn sec" onclick="ignoreNew(' + i + ')">' + t('notEmp') + '</button></div></div>').join('') +
+    '</div><datalist id="dl_nent">' + meta.ent.map(x => '<option value="' + esc(x) + '">').join('') + '</datalist><datalist id="dl_nfunc">' + meta.func.map(x => '<option value="' + esc(x) + '">').join('') + '</datalist></div>';
+}
+async function addNew(i) {
+  const p = NEWP[i];
+  const nome = val('nn' + i).trim(); if (!nome) return toast(t('required'));
+  document.querySelectorAll('.newp .btn').forEach(b => b.disabled = true);
+  try {
+    await call('savePerson', { isNew: true, id: p.id, nome: nome, dept: val('nd' + i), hor: val('nh' + i), ent: val('ne' + i), func: val('nf' + i), sal: val('ns' + i), adm: p.first, estado: 'Ativo', isento: 'Não', folga: '' });
+    toast(t('saved')); invalidate(); CACHE.meta = null; await loadNewPeople(); render();
+  } catch (e) { toast(t('error') + ': ' + e); document.querySelectorAll('.newp .btn').forEach(b => b.disabled = false); }
+}
+async function ignoreNew(i) {
+  try { await call('ignoreId', { id: NEWP[i].id }); toast(t('saved')); await loadNewPeople(); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+
+/* ======================= Phase 4 screens ======================= */
+const money = n => Number(n || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const STW = s => ({ 'Aprovado': t('stApproved'), 'Pendente': t('stPending'), 'Rejeitado': t('stRejected') }[s] || s);
+const stwTag = s => '<span class="st s-' + ({ 'Aprovado': 'ok', 'Pendente': 'chk', 'Rejeitado': 'bad' }[s] || 'off') + '">' + esc(STW(s)) + '</span>';
+const LSTW = s => ({ 'Ativo': t('lActive'), 'Suspenso': t('lPaused'), 'Liquidado': t('lDone') }[s] || s);
+const fmtDates = l => l.datas && l.datas.length ? l.datas.map(fmtD).join(', ') : (fmtD(l.de) + (l.ate && l.ate !== l.de ? ' → ' + fmtD(l.ate) : ''));
+let LV = 'req', LVY = String(new Date().getFullYear()), LF = { st: '', tp: '' };
+let PEOPLE_DL = null;
+async function peopleDL() {
+  if (!PEOPLE_DL) { const pp = CACHE.people || (CACHE.people = await call('people')); PEOPLE_DL = pp.filter(p => p.estado !== 'Inativo').map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome, ent: p.ent, dept: p.dept })); }
+  return '<datalist id="dl_people">' + PEOPLE_DL.map(p => '<option value="' + esc(p.label) + '">').join('') + '</datalist>';
+}
+const pid = s => parseInt(String(s || '').split('—')[0], 10) || '';
+const plabel = id => { const p = (PEOPLE_DL || []).filter(x => x.id === Number(id))[0]; return p ? p.label : (id || ''); };
+
+/* ---------- Leave ---------- */
+async function renderLeave() {
+  const tabs = [['req', t('lvReq')], ['all', t('lvAll')], ['bal', t('lvBal')], ['hol', t('lvHol')]];
+  const head = '<div class="bar">' + '<div class="chips">' + tabs.map(x => '<span class="chip ' + (LV === x[0] ? 'on' : '') + '" onclick="LV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span>' +
+    '<button class="btn sec sm" onclick="assistLink()">🔗 ' + t('assistLink') + '</button> <button class="btn" onclick="leaveForm(null)">' + t('newLv') + '</button></div>';
+  try {
+    if (LV === 'bal') return renderBalances(head, await need('balances', { year: LVY }));
+    if (LV === 'hol') return renderHolidays(head, await need('holidays', { year: LVY }));
+    const d = await need('leaves');
+    if (LV === 'req') return renderLeaveReq(head, d);
+    return renderLeaveAll(head, d);
+  } catch (e) { showErr(e); }
+}
+async function assistLink() {
+  try { const r = await call('assistInfo'); try { await navigator.clipboard.writeText(r.link); toast(t('copied')); } catch (e) {} prompt(t('assistLink') + ' (' + r.name + ')', r.link); } catch (e) { toast(t('error') + ': ' + e); }
+}
+function renderLeaveReq(head, d) {
+  const rows = d.rows.filter(l => l.estado === 'Pendente');
+  document.getElementById('main').innerHTML = head + '<div class="bar"><span class="muted">ⓘ ' + t('reqOwnerHint') + '</span> <button class="btn sec sm" onclick="go(\'approvals\')">' + t('approvals') + (window.NREQ ? ' (' + window.NREQ + ')' : '') + '</button></div>' + (rows.length ? '<div class="pend">' + rows.map(l =>
+    '<div class="pc"><div class="row"><b class="click" onclick="openPerson(' + l.id + ')">' + esc(l.nome) + '</b><span class="muted">ID ' + l.id + '</span>' + stTag(l.tipo) + '<span class="muted">' + t('reqBy') + ': ' + esc(l.pedidoPor) + ' · ' + esc(l.pedidoEm) + '</span></div>' +
+    '<div class="row"><b>' + fmtDates(l) + '</b><span class="muted">' + l.dias + ' ' + t('nDays').toLowerCase() + (l.ref ? ' · ' + t('ref') + ' ' + esc(l.ref) : '') + (l.notas ? ' · ' + esc(l.notas) : '') + '</span></div>' +
+    '<div class="row"><input id="dn' + l.n + '" placeholder="' + t('note') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decide(' + l.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decide(' + l.n + ',\'Rejeitado\')">' + t('reject') + '</button><button class="btn sec" onclick="leaveFormN(' + l.n + ')">' + t('edit') + '</button></div></div>').join('') + '</div>'
+    : '<div class="card"><div class="load">' + t('noReq') + '</div></div>');
+}
+async function decide(n, dec) {
+  document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
+  try { await call('leaveDecide', { n: n, decision: dec, nota: val('dn' + n) }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); render(); }
+}
+function renderLeaveAll(head, d) {
+  let rows = d.rows.filter(l => (!LF.st || l.estado === LF.st) && (!LF.tp || l.tipo === LF.tp) && byName(l.nome));
+  document.getElementById('main').innerHTML = head +
+    '<div class="bar"><select onchange="LF.st=this.value;render()"><option value="">' + t('allStatus') + '</option>' + ['Pendente','Aprovado','Rejeitado'].map(s => '<option value="' + s + '"' + (LF.st === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select>' +
+    '<select onchange="LF.tp=this.value;render()"><option value="">' + t('allTypes') + '</option>' + stOpts(d.types, LF.tp) + '</select><span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>Nº</th><th>' + t('person') + '</th><th>' + t('type') + '</th><th>' + t('mode') + '</th><th class="n">' + t('nDays') + '</th><th>' + t('status2') + '</th><th>' + t('ref') + '</th><th>' + t('reqBy') + '</th></tr>' +
+    rows.map(l => '<tr class="click" onclick="leaveFormN(' + l.n + ')"><td>' + l.n + '</td><td>' + esc(l.nome) + '</td><td>' + stTag(l.tipo) + '</td><td>' + fmtDates(l) + '</td><td class="n">' + l.dias + '</td><td>' + stwTag(l.estado) + '</td><td>' + esc(l.ref) + '</td><td class="muted">' + esc(l.pedidoPor) + '</td></tr>').join('') + '</table></div>';
+}
+function leaveFormN(n) { const l = (CACHE.leaves || { rows: [] }).rows.filter(x => x.n === n)[0]; leaveForm(l || null); }
+let LDAYS = [];
+async function leaveForm(l, presetId) {
+  modal(l ? t('edit') + ' · Nº ' + l.n : t('newLv').replace('+ ', ''), '', '');
+  const dl = await peopleDL();
+  const types = (CACHE.leaves && CACHE.leaves.types) || ['Férias','Dispensa','Baixa médica','Licença de parto','Licença de paternidade','Luto','Casamento','Falta justificada','Sem vencimento','Licença'];
+  LDAYS = l && l.datas ? l.datas.slice() : [];
+  const days = !!(l && l.datas && l.datas.length);
+  document.getElementById('mBody').innerHTML = '<div class="form">' +
+    '<label>' + t('person') + ' *' + personSelect('lf_p', l ? l.id : presetId) + '</label>' +
+    '<label>' + t('type') + ' *<select id="lf_t">' + stOpts(types, l ? l.tipo : 'Férias') + '</select></label>' +
+    '<label>' + t('mode') + '<select id="lf_m" onchange="lfMode()"><option value="r"' + (days ? '' : ' selected') + '>' + t('modeRange') + '</option><option value="d"' + (days ? ' selected' : '') + '>' + t('modeDays') + '</option></select></label>' +
+    '<label class="lf_r">' + t('fromD') + ' *<input type="date" id="lf_de" value="' + (l && !days ? l.de : '') + '"></label>' +
+    '<label class="lf_r">' + t('toD') + '<input type="date" id="lf_ate" value="' + (l && !days ? l.ate : '') + '"></label>' +
+    '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
+    '<label>' + t('nDays') + '<input type="number" id="lf_n" value="' + (l ? l.dias : '') + '" placeholder="' + t('nDaysHint') + '"></label>' +
+    '<label>' + t('ref') + '<input id="lf_ref" value="' + esc(l ? l.ref : '') + '"></label>' +
+    '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
+    (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
+    '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? l.notas : '') + '"></label>' +
+    '<div class="full muted">ⓘ ' + t('paidHint') + '</div>' +
+    '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
+  lfMode(); lfShow();
+}
+function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
+function lfAdd() { const x = val('lf_day'); if (x && LDAYS.indexOf(x) < 0) { LDAYS.push(x); LDAYS.sort(); } lfShow(); }
+function lfDel(i) { LDAYS.splice(i, 1); lfShow(); }
+function lfShow() { const el = document.getElementById('lf_days'); if (el) el.innerHTML = LDAYS.map((d, i) => '<span class="chip on" onclick="lfDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); }
+async function saveLeaveForm(n) {
+  const id = pid(val('lf_p')); const mode = val('lf_m');
+  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: val('lf_ref'), doc: val('lf_doc'), nota: val('lf_note'), estado: val('lf_st') || 'Pendente' };
+  if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
+  if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
+  document.getElementById('lf_btn').disabled = true;
+  try {
+    await call(window.ROLE === 'assistant' ? 'aSubmit' : 'leaveSave', p);
+    invalidate(); closeModal(); toast(window.ROLE === 'assistant' ? t('sent') : t('saved')); render();
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lf_btn').disabled = false; }
+}
+
+function yearSel(kind) { const y = new Date().getFullYear(); return '<select onchange="LVY=this.value;render()">' + [y - 1, y, y + 1].map(x => '<option' + (String(x) === LVY ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>'; }
+function renderBalances(head, d) {
+  const rows = d.rows.filter(b => byDept([0, 0, 0, b.dept], 3) && byName(b.nome)).sort((a, b) => String(a.dept).localeCompare(b.dept) || String(a.nome).localeCompare(b.nome));
+  document.getElementById('main').innerHTML = head +
+    '<div class="bar">' + t('year') + ' ' + yearSel() + '<span class="muted">' + t('rule').replace('{1}', d.rule.y1).replace('{2}', d.rule.y2) + '</span><span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="bar">' + deptChips(d.rows.map(b => [0, 0, 0, b.dept]), 3) + '</div>' +
+    '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + t('bal') + '</th><th>' + t('notes') + '</th></tr>' +
+    rows.map(b => '<tr class="click" onclick="balForm(' + b.id + ')"><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
+      '</td><td class="n">' + (b.usados || '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
+  window._bal = d;
+}
+function balForm(id) {
+  const b = window._bal.rows.filter(x => x.id === id)[0];
+  document.getElementById('inlb').innerHTML = '<div class="inline" style="margin:0 0 12px"><b>' + esc(b.nome) + ' · ' + window._bal.year + '</b>' +
+    '<label class="muted">' + t('entitle') + ' <input type="number" id="bf_d" value="' + b.direito + '" style="width:70px"></label>' +
+    '<label class="muted">' + t('carried') + ' <input type="number" id="bf_t" value="' + b.transitado + '" style="width:70px"></label>' +
+    '<label class="muted">' + t('usedBefore') + ' <input type="number" id="bf_u" value="' + b.usadosAntes + '" style="width:70px"></label>' +
+    '<label class="muted">' + t('baseDate') + ' <input type="date" id="bf_b" value="' + b.dataBase + '"></label>' +
+    '<input id="bf_n" value="' + esc(b.notas || '') + '" placeholder="' + t('note') + '" style="flex:1;min-width:150px">' +
+    '<button class="btn" onclick="saveBal(' + id + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'inlb\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+async function saveBal(id) {
+  const b = window._bal.rows.filter(x => x.id === id)[0];
+  try { await call('balanceSave', { row: b.row, id: id, nome: b.nome, year: window._bal.year, direito: val('bf_d'), transitado: val('bf_t'), usadosAntes: val('bf_u'), dataBase: val('bf_b'), notas: val('bf_n') }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+function renderHolidays(head, d) {
+  const scopeName = s => s === 'Todos' ? t('scopeAll') : s;
+  document.getElementById('main').innerHTML = head +
+    '<div class="bar">' + t('year') + ' ' + yearSel() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + t('date') + '</th><th>' + t('name') + '</th><th>' + t('holType') + '</th><th>' + t('scope') + '</th><th>' + t('dayOff') + '</th></tr>' +
+    d.rows.map(h => '<tr><td>' + dow(h.data) + ' ' + fmtDY(h.data) + '</td><td>' + esc(h.nome) + '</td>' +
+      '<td><select onchange="holSave(' + h.row + ',\'tipo\',this.value)"><option value="Feriado"' + (h.tipo === 'Feriado' ? ' selected' : '') + '>' + t('holiday') + '</option><option value="Tolerância"' + (h.tipo === 'Tolerância' ? ' selected' : '') + '>' + t('tolerance') + '</option></select></td>' +
+      '<td><select onchange="holSave(' + h.row + ',\'ambito\',this.value)">' + d.scopes.map(s => '<option value="' + s + '"' + (h.ambito === s ? ' selected' : '') + '>' + scopeName(s) + '</option>').join('') + '</select></td>' +
+      '<td><select onchange="holSave(' + h.row + ',\'ativo\',this.value)"><option value="Sim"' + (h.ativo === 'Sim' ? ' selected' : '') + '>' + t('yes') + '</option><option value="Não"' + (h.ativo !== 'Sim' ? ' selected' : '') + '>' + t('no') + '</option></select></td></tr>').join('') +
+    '</table></div>' +
+    '<div class="card"><h3>' + t('addHol') + '</h3><div class="form"><label>' + t('date') + '<input type="date" id="hn_d"></label><label>' + t('name') + '<input id="hn_n"></label>' +
+    '<label>' + t('holType') + '<select id="hn_t"><option value="Tolerância">' + t('tolerance') + '</option><option value="Feriado">' + t('holiday') + '</option></select></label>' +
+    '<label>' + t('scope') + '<select id="hn_s">' + d.scopes.map(s => '<option value="' + s + '">' + scopeName(s) + '</option>').join('') + '</select></label>' +
+    '<div class="act"><button class="btn" onclick="holAdd()">' + t('save') + '</button></div></div></div>';
+  window._hol = d;
+}
+async function holSave(row, field, value) {
+  const h = window._hol.rows.filter(x => x.row === row)[0]; const p = Object.assign({}, h); p[field] = value;
+  try { await call('holidaySave', p); invalidate(); toast(t('saved')); } catch (e) { toast(t('error') + ': ' + e); render(); }
+}
+async function holAdd() {
+  const p = { data: val('hn_d'), nome: val('hn_n'), tipo: val('hn_t'), ambito: val('hn_s'), ativo: 'Sim' };
+  if (!p.data || !p.nome) return toast(t('required'));
+  try { await call('holidaySave', p); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+
+/* ---------- Advances & loans ---------- */
+let LOF = { ent: 'all' };
+function renderLoans(d) {
+  const all = d.rows;
+  const ents = [...new Set(all.map(x => x.ent || x.entPessoa).filter(Boolean))].sort();
+  const rows = all.filter(x => (LOF.ent === 'all' || (x.ent || x.entPessoa) === LOF.ent) && byName(x.nome));
+  const assigned = rows.filter(x => x.id), un = rows.filter(x => !x.id && x.estado !== 'Liquidado');
+  const per = {};
+  assigned.forEach(x => { const p = per[x.id] = per[x.id] || { id: x.id, nome: x.nome, dept: x.dept, n: 0, prev: 0, ded: 0, cur: 0, est: 0 };
+    if (x.estado !== 'Liquidado' || x.saldoAnterior > 0) { p.n++; p.prev += x.saldoAnterior; p.ded += x.previsto + x.confirmadoPeriodo; p.cur += x.saldoAtual; if (String(x.notas).indexOf('estimado') >= 0) p.est++; } });
+  const list = Object.values(per).filter(p => p.n).sort((a, b) => String(a.nome).localeCompare(b.nome));
+  const out = rows.filter(x => x.estado !== 'Liquidado').reduce((a, x) => a + x.saldo, 0);
+  const ded = list.reduce((a, p) => a + p.ded, 0);
+  document.getElementById('main').innerHTML =
+    '<div class="bar"><b>' + t('period') + ': ' + d.periodo + '</b>' + (d.closed ? '<span class="st s-ok">' + t('closedTxt') + '</span>' : '') + '<span class="sp"></span>' +
+    '<button class="btn sec" onclick="go(\'pay\')">' + t('payGo') + '</button><button class="btn" onclick="loanForm(null)">' + t('newLoan') + '</button></div>' +
+    '<div class="kpis"><div class="kpi bad">' + t('outstanding') + '<b>' + money(out) + '</b></div><div class="kpi late">' + t('periodDed') + '<b>' + money(ded) + '</b></div><div class="kpi inf">' + t('activeL') + '<b>' + rows.filter(x => x.estado === 'Ativo' && x.saldo > 0).length + '</b></div><div class="kpi chk">' + t('unassigned') + '<b>' + un.length + '</b></div></div>' +
+    '<div class="bar"><div class="chips">' + ['all'].concat(ents).map(e => '<span class="chip ' + (LOF.ent === e ? 'on' : '') + '" onclick="LOF.ent=\'' + esc(e) + '\';render()">' + (e === 'all' ? t('all') : esc(e)) + '</span>').join('') + '</div><span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('nLoans') + '</th><th class="n">' + t('prevBal') + '</th><th class="n">' + t('thisDed') + '</th><th class="n">' + t('curBal') + '</th><th></th></tr>' +
+    list.map(p => '<tr class="click" onclick="loanPerson(' + p.id + ')"><td>' + esc(p.nome) + '</td><td>' + esc(p.dept) + '</td><td class="n">' + p.n + '</td><td class="n">' + money(p.prev) + '</td><td class="n"><b>' + money(p.ded) + '</b></td><td class="n">' + money(p.cur) + '</td><td>' + (p.est ? '<span class="st s-chk">' + t('estimated') + '</span>' : '') + '</td></tr>').join('') + '</table></div>' +
+    (un.length ? '<div class="card"><h3>⚠ ' + t('unassigned') + ' (' + un.length + ')</h3><div style="padding:10px 14px" class="muted">' + t('unassignedHint') + '</div><div class="tw"><table><tr><th>Nº</th><th>' + t('ref') + '</th><th>' + t('date') + '</th><th>' + t('entity') + '</th><th class="n">' + t('total') + '</th><th class="n">' + t('inst') + '</th><th class="n">' + t('curBal') + '</th><th>' + t('person') + '</th><th></th></tr>' +
+      un.map(x => '<tr><td>' + x.n + '</td><td>' + esc(x.ref) + '</td><td>' + fmtDY(x.data) + '</td><td>' + esc(x.ent) + '</td><td class="n">' + money(x.total) + '</td><td class="n">' + money(x.prest) + '</td><td class="n">' + money(x.saldo) + '</td><td>' + personSelect('as' + x.n, '') + '</td><td><button class="btn sm" onclick="assignLoan(' + x.n + ')">' + t('assign') + '</button></td></tr>').join('') +
+      '</table></div></div>' : '') + '<span id="dlh"></span>';
+  peopleDL().then(dl => { const el = document.getElementById('dlh'); if (el) el.innerHTML = dl; });
+}
+async function closeLoans() {
+  if (!confirm(t('closeQ'))) return;
+  try { const r = await call('loansClose'); invalidate(); toast(t('saved') + ' (' + r.count + ')'); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+function loanToP(x) { return { n: x.n, id: x.id, tipo: x.tipo, data: x.data, total: x.total, prest: x.prest, inicio: x.inicio, pagoAntes: x.pagoAntes, ent: x.ent, ref: x.ref, estado: x.estado, notas: x.notas }; }
+async function assignLoan(n) {
+  const x = CACHE.loans.rows.filter(r => r.n === n)[0]; const id = pid(val('as' + n)); if (!id) return toast(t('required'));
+  const p = loanToP(x); p.id = id; p.notas = String(x.notas || '').replace('Sem pessoa — atribuir', 'Atribuído');
+  try { await call('loanSave', p); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+async function loanPerson(id) {
+  const d = CACHE.loans || await need('loans');
+  const L = d.rows.filter(x => x.id === id).sort((a, b) => a.data < b.data ? 1 : -1);
+  const h = d.history.filter(x => x.id === id).sort((a, b) => a.periodo < b.periodo ? 1 : -1);
+  modal((L[0] || {}).nome + ' · ' + t('loansOf'), '<button class="btn sec sm" onclick="loanForm(null,' + id + ')">' + t('newLoan') + '</button>',
+    '<div id="inll"></div><div class="card tw" style="margin:12px 14px"><table><tr><th>' + t('ref') + '</th><th>' + t('date') + '</th><th>' + t('loanType') + '</th><th class="n">' + t('total') + '</th><th class="n">' + t('inst') + '</th><th>' + t('firstDed') + '</th><th class="n">' + t('paid') + '</th><th class="n">' + t('prevBal') + '</th><th class="n">' + t('thisDed') + '</th><th class="n">' + t('curBal') + '</th><th>' + t('status2') + '</th><th></th></tr>' +
+    L.map(x => '<tr><td>' + esc(x.ref) + '</td><td>' + fmtDY(x.data) + '</td><td>' + (x.tipo === 'Adiantamento' ? t('advance') : t('loan')) + '</td><td class="n">' + money(x.total) + '</td><td class="n">' + money(x.prest) + '</td><td>' + esc(x.inicio) + '</td><td class="n">' + money(x.paid) +
+      '</td><td class="n">' + money(x.saldoAnterior) + '</td><td class="n"><b>' + money(x.previsto + x.confirmadoPeriodo) + '</b>' + (x.override ? ' ✎' : '') + '</td><td class="n">' + money(x.saldoAtual) + '</td><td>' + esc(LSTW(x.estado)) + (String(x.notas).indexOf('estimado') >= 0 ? ' <span class="st s-chk">' + t('estimated') + '</span>' : '') +
+      '</td><td style="white-space:nowrap"><button class="btn sec sm" onclick="planForm(' + x.n + ')">' + t('changeDed') + '</button> <button class="btn sec sm" onclick="payForm(' + x.n + ')">' + t('payment') + '</button> <button class="btn sec sm" onclick="loanFormN(' + x.n + ')">' + t('edit') + '</button></td></tr>').join('') + '</table></div>' +
+    (h.length ? '<div class="card tw" style="margin:0 14px"><h3>' + t('history') + '</h3><table><tr><th>' + t('period') + '</th><th>' + t('ref') + '</th><th class="n">' + t('amount') + '</th><th>' + t('payType') + '</th><th>' + t('date') + '</th><th>' + t('notes') + '</th></tr>' +
+      h.map(x => '<tr><td>' + x.periodo + '</td><td>' + esc((d.rows.filter(r => r.n === x.n)[0] || {}).ref || x.n) + '</td><td class="n">' + money(x.valor) + '</td><td>' + esc(x.tipo) + '</td><td>' + fmtD(x.data) + '</td><td class="muted">' + esc(x.notas) + '</td></tr>').join('') + '</table></div>' : ''));
+}
+function planForm(n) {
+  const x = CACHE.loans.rows.filter(r => r.n === n)[0];
+  document.getElementById('inll').innerHTML = '<div class="inline"><b>' + t('changeDed') + ' · ' + esc(x.ref || x.n) + '</b><input type="number" id="pl_v" value="' + x.previsto + '" style="width:120px"><input id="pl_n" placeholder="' + t('note') + '" style="flex:1"><button class="btn" onclick="savePlan(' + n + ',' + x.id + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'inll\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+}
+async function savePlan(n, id) { try { await call('loanPlan', { n: n, valor: val('pl_v'), notas: val('pl_n') }); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); } }
+function payForm(n) {
+  const x = CACHE.loans.rows.filter(r => r.n === n)[0];
+  document.getElementById('inll').innerHTML = '<div class="inline"><b>' + t('payment') + ' · ' + esc(x.ref || x.n) + '</b><input type="number" id="pf_v" placeholder="' + t('amount') + '" style="width:120px"><input type="date" id="pf_d" value="' + todayStr() + '">' +
+    '<select id="pf_t"><option value="Pagamento direto">' + t('payCash') + '</option><option value="Ajuste">' + t('payAdj') + '</option></select><input id="pf_n" placeholder="' + t('note') + '" style="flex:1"><button class="btn" onclick="savePay(' + n + ',' + x.id + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'inll\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+}
+async function savePay(n, id) { if (!val('pf_v')) return toast(t('required')); try { await call('loanPay', { n: n, valor: val('pf_v'), data: val('pf_d'), tipo: val('pf_t'), notas: val('pf_n') }); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); } }
+function loanFormN(n) { loanForm(CACHE.loans.rows.filter(r => r.n === n)[0]); }
+async function loanForm(x, presetId) {
+  modal(x ? t('edit') + ' · ' + esc(x.ref || x.n) : t('newLoan').replace('+ ', ''), '', '');
+  const dl = await peopleDL();
+  const ents = [...new Set((CACHE.loans ? CACHE.loans.rows : []).map(r => r.ent).filter(Boolean))].sort();
+  const v2 = (k, d) => esc(x && x[k] != null ? x[k] : d);
+  document.getElementById('mBody').innerHTML = '<div class="form">' +
+    '<label>' + t('person') + ' *' + personSelect('lo_p', x ? x.id : presetId) + '</label>' +
+    '<label>' + t('loanType') + '<select id="lo_t"><option value="Adiantamento"' + (x && x.tipo === 'Adiantamento' ? ' selected' : '') + '>' + t('advance') + '</option><option value="Empréstimo"' + (!x || x.tipo !== 'Adiantamento' ? ' selected' : '') + '>' + t('loan') + '</option></select></label>' +
+    '<label>' + t('date') + '<input type="date" id="lo_d" value="' + v2('data', todayStr()) + '"></label>' +
+    '<label>' + t('total') + ' *<input type="number" step="0.01" id="lo_v" value="' + v2('total', '') + '"></label>' +
+    '<label>' + t('inst') + '<input type="number" step="0.01" id="lo_i" value="' + v2('prest', '') + '"></label>' +
+    '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
+    '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
+    '<label>' + t('entity') + '<input id="lo_e" list="dl_lent" value="' + v2('ent', '') + '"></label>' +
+    '<label>' + t('ref') + '<input id="lo_r" value="' + v2('ref', '') + '"></label>' +
+    '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
+    '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
+    '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
+    '<datalist id="dl_lent">' + ents.map(e => '<option value="' + esc(e) + '">').join('') + '</datalist>';
+}
+async function saveLoan(n) {
+  const id = pid(val('lo_p'));
+  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: val('lo_r'), estado: val('lo_st'), notas: val('lo_n') };
+  if (!id || !p.total) return toast(t('required'));
+  document.getElementById('lo_btn').disabled = true;
+  try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
+}
+
+/* ---------- Assistant screen ---------- */
+async function renderAssist() {
+  try {
+    const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
+    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : '') + (p.saldo !== '' && p.saldo != null ? ' (' + t('bal') + ' ' + p.saldo + ')' : ''), nome: p.nome }));
+    CACHE.leaves = { types: meta.types, rows: [] };
+    const mine = await call('aList');
+    document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><span class="muted">' + t('reqHint') + '</span><span class="sp"></span><button class="btn" onclick="leaveForm(null)">' + t('newLv') + '</button></div>' +
+      '<div class="card tw"><h3>' + t('myReq') + '</h3><table><tr><th>Nº</th><th>' + t('person') + '</th><th>' + t('type') + '</th><th>' + t('mode') + '</th><th class="n">' + t('nDays') + '</th><th>' + t('status2') + '</th><th>' + t('ref') + '</th></tr>' +
+      mine.map(l => '<tr><td>' + l.n + '</td><td>' + esc(l.nome) + '</td><td>' + stTag(l.tipo) + '</td><td>' + fmtDates(l) + '</td><td class="n">' + l.dias + '</td><td>' + stwTag(l.estado) + '</td><td>' + esc(l.ref) + '</td></tr>').join('') + '</table></div>';
+  } catch (e) { showErr(e); }
+}
+
+/* ---------- Phase 4b: person dropdown, detailed report, ID transfer ---------- */
+function personSelect(idAttr, sel) {
+  const list = (PEOPLE_DL || []).slice().sort((a, b) => a.id - b.id);
+  const has = list.some(p => p.id === Number(sel));
+  return '<select id="' + idAttr + '" style="min-width:240px"><option value="">— ' + t('choose') + ' —</option>' +
+    (sel && !has ? '<option value="' + Number(sel) + '" selected>' + Number(sel) + '</option>' : '') +
+    list.map(p => '<option value="' + p.id + '"' + (Number(sel) === p.id ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('') + '</select>';
+}
+
+async function reportForm(id) {
+  const m = CACHE.month || await need('month');
+  const to = m.to < todayStr() ? m.to : todayStr();
+  document.getElementById('inl').innerHTML = '<div class="inline noprint"><b>' + t('report').replace('🖨 ', '') + '</b>' +
+    '<label class="muted">' + t('fromD') + ' <input type="date" id="rp_f" value="' + m.from + '"></label><label class="muted">' + t('toD') + ' <input type="date" id="rp_t" value="' + to + '"></label>' +
+    '<button class="btn" onclick="showReport(' + id + ')">' + t('show') + '</button><button class="btn sec" onclick="clearInl()">' + t('cancel') + '</button></div>';
+}
+async function showReport(id) {
+  const f = val('rp_f'), to = val('rp_t'); if (!f || !to) return toast(t('required'));
+  modal(t('loading'));
+  try {
+    const d = await call('punches', { id: id, from: f, to: to });
+    const p = d.person;
+    const byDay = {}; d.rows.forEach(r => byDay[r[0]] = r);
+    const days = []; for (let x = new Date(f + 'T12:00:00'); x <= new Date(to + 'T12:00:00'); x = new Date(x.getTime() + 864e5)) days.push(x.getFullYear() + '-' + ('0' + (x.getMonth() + 1)).slice(-2) + '-' + ('0' + x.getDate()).slice(-2));
+    const s = summarize(d.rows)[0] || {};
+    modal(t('repTitle') + ' · ' + (p.nome || id), '<button class="btn sm" onclick="printModal()">' + t('printBtn') + '</button>',
+      '<div class="info"><div><small>' + t('name') + '</small>' + esc(p.nome) + '</div><div><small>ID</small>' + id + '</div><div><small>' + t('entity') + '</small>' + esc(p.ent) + '</div><div><small>' + t('dept') + '</small>' + esc(p.dept) + '</div>' +
+      '<div><small>' + t('schedule') + '</small>' + esc(p.hor) + '</div><div><small>' + t('period') + '</small>' + fmtDY(f) + ' → ' + fmtDY(to) + '</div></div>' +
+      '<div class="tw" style="margin:0 14px"><table class="rep"><tr><th>' + t('date') + '</th><th>' + t('punchesCol') + '</th><th>' + t('in') + '</th><th>' + t('out') + '</th><th>' + t('status') + '</th><th class="n">' + t('late') + '</th><th class="n">' + t('early') + '</th><th class="n">' + t('hours') + '</th></tr>' +
+      days.map(dd => { const r = byDay[dd]; const pu = d.punches[dd] || [];
+        return '<tr><td>' + dow(dd) + ' ' + fmtD(dd) + '</td><td>' + (pu.length ? pu.map(x => '<b>' + x[0].slice(0, 5) + '</b> <span class="muted">' + esc(x[1]) + '</span>').join('<br>') : '<span class="muted">—</span>') + '</td><td>' + (r ? hm(r[4]) : '') + '</td><td>' + (r ? hm(r[5]) : '') + '</td><td>' + (r ? stTag(r[6]) : '') +
+          '</td><td class="n">' + (r && r[7] ? r[7] : '') + '</td><td class="n">' + (r && r[8] ? r[8] : '') + '</td><td class="n">' + (r && r[9] ? r[9] : '') + '</td></tr>'; }).join('') +
+      '<tr><th>' + t('totals') + '</th><th>' + t('days') + ': ' + (s.worked || 0) + '/' + (s.due || 0) + ' · ' + t('absences') + ': ' + (s.abs || 0) + '</th><th></th><th></th><th></th><th class="n">' + (s.lateM || 0) + '</th><th class="n">' + (s.earlyM || 0) + '</th><th></th></tr></table></div>' +
+      '<div class="sig"><div>' + t('signEmp') + '</div><div>' + t('signHR') + '</div></div><div class="muted" style="padding:0 14px">' + t('printedOn') + ' ' + esc(d.printed) + '</div>');
+  } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+function printModal() { document.body.classList.add('pm'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('pm'), 500); }, 50); }
+
+async function transferForm() {
+  const p = CUR.p; const meta = CACHE.meta || (CACHE.meta = await call('meta'));
+  document.getElementById('inl').innerHTML = '<div class="inline"><b>' + t('transferId') + ' · ' + p.id + '</b>' +
+    '<label class="muted">' + t('lastDay') + ' <input type="date" id="tr_d"></label>' +
+    '<input id="tr_n" placeholder="' + t('newName') + '" style="min-width:200px">' +
+    '<select id="tr_h">' + meta.hor.map(x => '<option' + (x === p.hor ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>' +
+    '<input id="tr_e" value="' + esc(p.ent || '') + '" placeholder="' + t('entity') + '">' +
+    '<input id="tr_f" placeholder="' + t('role') + '" style="width:100px"><input id="tr_s" type="number" placeholder="' + t('salary') + '" style="width:120px">' +
+    '<button class="btn" id="tr_b" onclick="doTransfer()">' + t('save') + '</button><button class="btn sec" onclick="clearInl()">' + t('cancel') + '</button>' +
+    '<span class="muted" style="width:100%">' + t('transferHint') + '</span></div>';
+}
+async function doTransfer() {
+  const p = CUR.p; const last = val('tr_d'), nome = val('tr_n').trim();
+  if (!last || !nome) return toast(t('required'));
+  document.getElementById('tr_b').disabled = true;
+  try {
+    await call('replaceId', { id: p.id, lastDay: last, nome: nome, dept: p.dept, hor: val('tr_h'), ent: val('tr_e'), func: val('tr_f'), sal: val('tr_s') });
+    invalidate(); CACHE.meta = null; toast(t('saved')); render(); openPerson(p.id);
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('tr_b').disabled = false; }
+}
+
+/* ======================= Phase 5: requests with document photo ======================= */
+const RT = { 'Justificação': 'rtJust', 'Licença': 'rtLeave', 'Adiantamento': 'rtAdv', 'Horas extra': 'rtOT' };
+const rtName = x => t(RT[x] || '') || x;
+const rtTag = x => '<span class="st s-' + ({ 'Justificação': 'chk', 'Licença': 'inf', 'Adiantamento': 'late', 'Horas extra': 'ok' }[x] || 'off') + '">' + esc(rtName(x)) + '</span>';
+function reqSummary(r) {
+  const d = r.dados || {};
+  if (r.tipo === 'Justificação') return (d.datas || []).map(fmtD).join(', ') + ' → ' + (d.estado ? esc(stName(d.estado)) : '') + (d.min !== '' && d.min != null ? ' · ' + t('late') + ' ' + d.min + ' min' : '');
+  if (r.tipo === 'Licença') return esc(stName(d.tipo)) + ' · ' + (d.datas && d.datas.length > 1 ? d.datas.map(fmtD).join(', ') : fmtD(d.de) + (d.ate && d.ate !== d.de ? ' → ' + fmtD(d.ate) : '')) + ' · ' + d.dias + ' ' + t('nDays').toLowerCase();
+  if (r.tipo === 'Adiantamento') return (d.tipo === 'Empréstimo' ? t('loan') : t('advance')) + ' ' + money(d.total) + ' · ' + t('inst') + ' ' + money(d.prest) + ' · ' + esc(d.inicio);
+  if (r.tipo === 'Horas extra') return fmtD(d.data) + ' · <b>' + d.horas + ' h</b>' + (d.inicio ? ' (' + esc(d.inicio) + '–' + esc(d.fim) + ')' : '') + (d.responsavel ? ' · ' + esc(d.responsavel) : '') + (d.motivo ? ' · ' + esc(d.motivo) : '');
+  return '';
+}
+
+/* ---------- File → compressed base64 ---------- */
+function readDoc(input) {
+  return new Promise((res, rej) => {
+    const f = input.files && input.files[0]; if (!f) return rej(t('photo'));
+    if (f.type === 'application/pdf') {
+      if (f.size > 8e6) return rej('PDF > 8 MB');
+      const fr = new FileReader(); fr.onload = () => res({ mime: 'application/pdf', b64: String(fr.result).split(',')[1] }); fr.onerror = rej; fr.readAsDataURL(f); return;
+    }
+    const fr = new FileReader();
+    fr.onload = () => { const img = new Image(); img.onload = () => {
+      const max = 1600, sc = Math.min(1, max / Math.max(img.width, img.height));
+      const c = document.createElement('canvas'); c.width = Math.round(img.width * sc); c.height = Math.round(img.height * sc);
+      c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+      res({ mime: 'image/jpeg', b64: c.toDataURL('image/jpeg', 0.75).split(',')[1] }); }; img.onerror = rej; img.src = fr.result; };
+    fr.onerror = rej; fr.readAsDataURL(f);
+  });
+}
+
+/* ---------- Assistant: sign in + requests ---------- */
+try { const s = sessionStorage.getItem('rh_assist'); if (s) window.ASSIST = JSON.parse(s); } catch (e) {}
+let AV = 'new', AF = { tipo: '', days: [] };
+async function renderAssist() {
+  const main = document.getElementById('main');
+  if (!window.ASSIST) {
+    try {
+      const us = await call('aUsers');
+      main.innerHTML = '<div class="card" style="max-width:420px;margin:30px auto"><h3>' + t('who') + '</h3><div class="form" style="grid-template-columns:1fr">' +
+        '<label>' + t('who') + '<select id="al_u">' + us.map(u => '<option' + (u.ready ? '' : ' disabled') + '>' + esc(u.name) + '</option>').join('') + '</select></label>' +
+        '<label>PIN<input type="password" inputmode="numeric" autocomplete="off" id="al_p" maxlength="8" onkeydown="if(event.key===\'Enter\')assistLogin()"></label>' +
+        '<div class="act"><button class="btn" id="al_b" onclick="assistLogin()">' + t('login') + '</button></div>' + (us.some(u => !u.ready) ? '<div class="muted">' + t('notReady') + '</div>' : '') + '</div></div>';
+    } catch (e) { showErr(e); }
+    return;
+  }
+  try {
+    const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
+    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome }));
+    const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + [['new', t('newReq')], ['mine', t('myReq')]].map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
+    if (AV === 'mine') {
+      const mine = await call('aMine');
+      main.innerHTML = head + '<div class="card tw"><table><tr><th>Nº</th><th>' + t('date') + '</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('decNote') + '</th></tr>' +
+        mine.map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.em) + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.decNota) + '</td></tr>').join('') + '</table></div>';
+      return;
+    }
+    if (!AF.tipo || meta.types.indexOf(AF.tipo) < 0) AF.tipo = meta.types[0];
+    main.innerHTML = head + '<div class="card"><h3>' + t('newReq') + '</h3><div style="padding:10px 14px" class="chips">' + meta.types.map(x => '<span class="chip ' + (AF.tipo === x ? 'on' : '') + '" onclick="AF.tipo=\'' + x + '\';AF.days=[];render()">' + esc(rtName(x)) + '</span>').join('') + '</div>' +
+      '<div class="form" id="af">' + assistFields(meta) + '</div></div>';
+    afShow();
+  } catch (e) { if (String(e).indexOf('PIN') >= 0 || String(e).indexOf('Bloqueado') >= 0) { assistLogout(); toast(String(e)); } else showErr(e); }
+}
+async function assistLogin() {
+  const u = val('al_u'), p = val('al_p'); if (!u || !p) return;
+  window.ASSIST = { user: u, pin: p };
+  try { await call('aLogin'); try { sessionStorage.setItem('rh_assist', JSON.stringify(window.ASSIST)); } catch (e) {} CACHE = {}; AV = 'new'; render(); }
+  catch (e) { window.ASSIST = null; toast(String(e)); }
+}
+function assistLogout() { window.ASSIST = null; try { sessionStorage.removeItem('rh_assist'); } catch (e) {} CACHE = {}; render(); }
+function assistFields(meta) {
+  const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
+  const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
+  const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"></label>' +
+    '<label>' + t('ref') + '<input id="af_ref"></label>';
+  const btn = '<div class="act"><button class="btn" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div>';
+  let f = '';
+  if (AF.tipo === 'Justificação') {
+    f = per + '<label>' + t('newStatus') + '<select id="af_st"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
+      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + '<label class="full">' + t('note') + '<input id="af_n"></label>';
+  } else if (AF.tipo === 'Licença') {
+    f = per + '<label>' + t('type') + '<select id="af_lt">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
+      '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
+      '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
+      '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
+      '<label>' + t('nDays') + '<input type="number" id="af_nd" placeholder="' + t('nDaysHint') + '"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+  } else if (AF.tipo === 'Adiantamento') {
+    f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
+      '<label>' + t('total') + ' *<input type="number" step="0.01" id="af_tot"></label><label>' + t('inst') + '<input type="number" step="0.01" id="af_pre"></label>' +
+      '<label>' + t('firstDed') + '<input type="month" id="af_ini" value="' + esc(meta.periodo) + '"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+  } else if (AF.tipo === 'Horas extra') {
+    f = per + '<label>' + t('date') + ' *<input type="date" id="af_d"></label><label>' + t('hours') + ' *<input type="number" step="0.25" min="0" id="af_h"></label>' +
+      '<label>' + t('startT') + '<input type="time" id="af_hi"></label><label>' + t('endT') + '<input type="time" id="af_hf"></label>' +
+      '<label>' + t('respSig') + '<input id="af_resp"></label><label class="full">' + t('reason') + '<input id="af_mot"></label>';
+  }
+  return f + doc + btn;
+}
+function afAdd() { const x = val('af_day'); if (x && AF.days.indexOf(x) < 0) { AF.days.push(x); AF.days.sort(); } afShow(); }
+function afDel(i) { AF.days.splice(i, 1); afShow(); }
+function afShow() { const el = document.getElementById('af_days'); if (el) el.innerHTML = AF.days.map((d, i) => '<span class="chip on" onclick="afDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); }
+function afMode() { const d = val('af_m') === 'd'; document.querySelectorAll('.af_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.af_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
+async function assistSubmit() {
+  const id = Number(val('af_p')); AF.id = id;
+  let dados = {};
+  if (AF.tipo === 'Justificação') { dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
+  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), nota: val('af_n') }; if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
+  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
+  if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
+  if (!id) return toast(t('required'));
+  const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
+  try {
+    const file = await readDoc(document.getElementById('af_f'));
+    const res = await call('aSubmit2', { tipo: AF.tipo, id: id, ref: val('af_ref'), dados: dados, file: file });
+    toast(t('sent') + ' · Nº ' + res.n); AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
+  } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('submit'); }
+}
+
+/* ---------- Owner: approvals inbox ---------- */
+function renderApprovals(d) {
+  const pend = d.rows.filter(r => r.estado === 'Pendente').sort((a, b) => a.n - b.n);
+  const done = d.rows.filter(r => r.estado !== 'Pendente').slice(0, 40);
+  window._req = d;
+  const card = r => {
+    const c = d.ctx[r.n] || {}, x = r.dados || {};
+    let edit = '', info = '';
+    if (r.tipo === 'Licença') { edit = '<label class="muted">' + t('nDays') + ' <input type="number" id="ap_dias' + r.n + '" value="' + esc(x.dias) + '" style="width:70px"></label>';
+      if (x.tipo === 'Férias' || x.tipo === 'Férias pagas') info = t('bal') + ': <b>' + c.saldo + '</b> → ' + t('after') + ': <b>' + (c.saldo === '' || c.saldo == null ? '?' : c.saldo - Number(x.dias || 0)) + '</b>'; }
+    if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
+      info = t('debtNow') + ': <b>' + money(c.divida) + '</b>'; }
+    if (r.tipo === 'Horas extra') { edit = '<label class="muted">' + t('hours') + ' <input type="number" step="0.25" id="ap_h' + r.n + '" value="' + esc(x.horas) + '" style="width:80px"></label>';
+      const mq = c.maquina; info = t('machine') + ': ' + (mq ? t('in') + ' ' + hm(mq.ent) + ' · ' + t('out') + ' ' + hm(mq.sai) + ' · ' + stTag(mq.st) + (mq.extra ? ' · ' + mq.extra + ' h' : '') : '—'); }
+    if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
+      info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
+    return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
+      '<div class="row"><span>' + reqSummary(r) + '</span></div>' + (info ? '<div class="row muted">' + info + '</div>' : '') +
+      '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + edit + '</div>' +
+      '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
+  };
+  document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('approvals') + '</b><span class="sp"></span><button class="btn sec" onclick="assistAdmin()">' + t('assistants') + '</button></div>' +
+    (pend.length ? '<div class="pend">' + pend.map(card).join('') + '</div>' : '<div class="card"><div class="load">' + t('noApprovals') + '</div></div>') +
+    (done.length ? '<div class="card tw" style="margin-top:14px"><h3>' + t('recent') + '</h3><table><tr><th>Nº</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('subBy') + '</th><th>' + t('decNote') + '</th><th></th></tr>' +
+      done.map(r => '<tr><td>' + r.n + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td>' + esc(r.por) + '</td><td class="muted">' + esc(r.decNota) + '</td><td><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">📄</button></td></tr>').join('') + '</table></div>' : '');
+}
+async function decideReq(n, dec) {
+  const r = window._req.rows.filter(x => x.n === n)[0]; const dados = {};
+  if (r.tipo === 'Licença') dados.dias = val('ap_dias' + n);
+  if (r.tipo === 'Adiantamento') { dados.total = val('ap_tot' + n); dados.prest = val('ap_pre' + n); dados.inicio = val('ap_ini' + n); }
+  if (r.tipo === 'Horas extra') dados.horas = val('ap_h' + n);
+  if (r.tipo === 'Justificação') { dados.estado = val('ap_st' + n); dados.min = val('ap_min' + n); }
+  document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
+  try { await call('requestDecide', { n: n, decision: dec, nota: val('ap_note' + n), dados: dados }); invalidate(); toast(t('saved')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); paintChrome(); render(); }
+  catch (e) { toast(t('error') + ': ' + e); render(); }
+}
+async function viewDoc(n) {
+  modal(t('loading'));
+  try {
+    const f = await call('requestFile', { n: n });
+    const src = 'data:' + f.mime + ';base64,' + f.b64;
+    modal(f.name, '<a class="btn sec sm" href="' + f.url + '" target="_blank" rel="noopener">' + t('openDrive') + '</a>',
+      f.mime.indexOf('image') === 0 ? '<div style="padding:12px;text-align:center"><img src="' + src + '" style="max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px"></div>' : '<iframe src="' + src + '" style="width:100%;height:75vh;border:0"></iframe>');
+  } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+async function assistAdmin() {
+  modal(t('assistants').replace('👤 ', ''));
+  try {
+    const a = await call('assistAdmin', {});
+    document.getElementById('mBody').innerHTML = '<div class="form"><label class="full">' + t('link') + '<input id="as_link" readonly value="' + esc(a.link) + '"></label><div class="act"><button class="btn sec sm" onclick="copyLink()">' + t('copy') + '</button></div></div>' +
+      a.users.map((u, i) => '<div class="card" style="margin:0 14px 12px"><h3>' + esc(u.name) + ' <span class="st s-' + (u.hasPin ? 'ok' : 'bad') + '">' + (u.hasPin ? t('pinOk') : t('pinNo')) + '</span></h3><div class="form">' +
+        '<label>' + t('newPin') + '<input type="password" inputmode="numeric" id="as_pin' + i + '" maxlength="8"></label>' +
+        '<div class="full"><span class="muted">' + t('canSubmit') + ':</span> ' + a.types.map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_t' + i + '" value="' + esc(x) + '"' + (u.types.indexOf(x) >= 0 ? ' checked' : '') + '> ' + esc(rtName(x)) + '</label>').join('') + '</div>' +
+        '<div class="act"><button class="btn" onclick="saveAssist(' + i + ',\'' + esc(u.name) + '\')">' + t('save') + '</button></div></div></div>').join('');
+  } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+function copyLink() { const el = document.getElementById('as_link'); el.select(); try { document.execCommand('copy'); toast(t('copied')); } catch (e) {} }
+async function saveAssist(i, name) {
+  const types = [...document.querySelectorAll('.as_t' + i)].filter(x => x.checked).map(x => x.value);
+  const pin = val('as_pin' + i);
+  try { await call('assistAdmin', { set: { name: name, pin: pin, types: types } }); toast(t('saved')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+function assistLink() { assistAdmin(); }
+
+/* ======================= Phase 6: payroll ======================= */
+let PAYP = '', PAYE = 'all';
+const payWarn = c => t(c[0]).replace('{n}', c[1]);
+function renderPay(d) {
+  window._pay = d;
+  const ents = [...new Set(d.rows.map(r => r.ent || '—'))].sort();
+  const rows = payRows();
+  const S = (list, k) => list.reduce((a, r) => a + (Number(r[k]) || 0), 0);
+  const oth = r => (r.outras || 0) + (r.bonus || 0) + (r.subs || 0) + (r.vFP || 0);
+  const m0 = x => x ? money(x) : '<span class="muted">—</span>';
+  const n0 = x => x ? String(Math.round(x * 100) / 100) : '<span class="muted">—</span>';
+  const fl = r => (r.flags || []).map(f => '<span class="st s-' + (f === 'neg' || f === 'sal' ? 'bad' : 'chk') + '">' + t('f_' + f) + '</span>').join(' ');
+  const rules = Object.keys(d.cfg).reduce((s, k) => s.split('{' + k + '}').join(d.cfg[k]), t('pRules'));
+  const inssCell = r => d.closed ? m0(r.inss) : '<input type="number" step="0.01" min="0" class="pinss' + (r.inssMan ? ' man' : '') + '" value="' + (r.inssMan ? r.inss : '') + '" placeholder="' + money(r.inssAuto) + '" title="' + t('pInssHint') + '" onclick="event.stopPropagation()" onchange="payInss(' + r.id + ',this.value)">';
+  const line = (r, i) => '<tr class="click" onclick="payDetail(' + r.id + ')"><td class="n muted">' + (i + 1) + '</td><td class="n muted">' + r.id + '</td><td class="pn"><b>' + esc(r.nome) + '</b> ' + fl(r) + '</td><td class="n">' + (r.ef === 30 ? '<span class="muted">30</span>' : '<b>' + r.ef + '</b>') + '</td><td>' + esc(r.func || '') + '</td>' +
+    '<td class="n">' + m0(r.base) + '</td><td class="n">' + n0(r.heH) + '</td><td class="n">' + m0(r.vHE) + '</td><td class="n">' + m0(oth(r)) + '</td><td class="n"><b>' + money(r.bruto) + '</b></td>' +
+    '<td class="n">' + n0(r.faltas) + '</td><td class="n">' + m0(r.vFaltas) + '</td><td class="n">' + n0(r.lateMin) + '</td><td class="n">' + m0(r.vAtraso) + '</td><td class="n">' + m0(r.outros) + '</td><td class="n">' + inssCell(r) + '</td>' +
+    '<td class="n">' + m0(r.saldoAnt) + '</td><td class="n">' + m0(r.contraida) + '</td><td class="n">' + m0(r.loans) + '</td><td class="n">' + m0(r.saldoAtual) + '</td>' +
+    '<td class="n">' + m0(r.descontos) + '</td><td class="n"><b style="color:' + (r.liquido < 0 ? 'var(--bad)' : 'inherit') + '">' + money(r.liquido) + '</b></td></tr>';
+  const totRow = (list, cls) => '<tr class="' + cls + '"><td></td><td></td><td>' + t('totals') + ' (' + list.length + ')</td><td></td><td></td><td class="n">' + money(S(list, 'base')) + '</td><td class="n">' + n0(S(list, 'heH')) + '</td><td class="n">' + money(S(list, 'vHE')) + '</td><td class="n">' + money(list.reduce((a, r) => a + oth(r), 0)) + '</td><td class="n">' + money(S(list, 'bruto')) + '</td>' +
+    '<td class="n">' + n0(S(list, 'faltas')) + '</td><td class="n">' + money(S(list, 'vFaltas')) + '</td><td class="n">' + n0(S(list, 'lateMin')) + '</td><td class="n">' + money(S(list, 'vAtraso')) + '</td><td class="n">' + money(S(list, 'outros')) + '</td><td class="n">' + money(S(list, 'inss')) + '</td>' +
+    '<td class="n">' + money(S(list, 'saldoAnt')) + '</td><td class="n">' + money(S(list, 'contraida')) + '</td><td class="n">' + money(S(list, 'loans')) + '</td><td class="n">' + money(S(list, 'saldoAtual')) + '</td><td class="n">' + money(S(list, 'descontos')) + '</td><td class="n">' + money(S(list, 'liquido')) + '</td></tr>';
+  const emp = d.empresas || {};
+  const groups = [...new Set(rows.map(r => r.ent || '—'))];
+  const body = groups.map(g => { const list = rows.filter(r => (r.ent || '—') === g); const e = emp[g] || {};
+    return '<tr class="pco"><td colspan="22">' + esc(e.nome || g) + (e.nome && e.nome !== g ? ' <span class="muted">· ' + esc(g) + '</span>' : '') + '</td></tr>' + list.map(line).join('') + (groups.length > 1 ? totRow(list, 'psub') : ''); }).join('');
+  const H = ['cNo', 'id', 'name', 'pEf', 'cSector', 'pBase', 'cHE', 'cVHE', 'cOut', 'cGross', 'cAbsD', 'cAbsV', 'cLateM', 'cLateV', 'cOth', 'pInss', 'cPrev', 'cNew', 'cPaid', 'cBal', 'cTotD', 'cNet'];
+  document.getElementById('main').innerHTML =
+    '<div class="bar"><b>' + t('pay') + '</b><select onchange="PAYP=this.value;render()">' + d.periods.map(k => '<option value="' + k + '"' + (k === d.periodo ? ' selected' : '') + '>' + k + (d.closedMap[k] ? ' ✓' : '') + '</option>').join('') + '</select>' +
+    '<span class="muted">' + fmtDY(d.from) + ' → ' + fmtDY(d.to) + '</span>' +
+    (d.closed ? '<span class="st s-ok">' + t('pClosedOn') + ' ' + esc(d.closedAt) + '</span>' + (d.copyUrl ? '<a class="btn sec sm" target="_blank" rel="noopener" href="' + esc(d.copyUrl) + '">' + (LANG === 'pt' ? 'Cópia guardada' : 'Saved copy') + '</a>' : '') : '<span class="st s-chk">' + t('pDraft') + '</span>' + (d.upTo ? '<span class="muted">' + t('pUpTo') + ' ' + fmtD(d.upTo) + '</span>' : '')) +
+    (d.closed ? '' : '<button class="btn sec sm" onclick="payFresh()">' + t('pRecalc') + '</button>') + '<span class="sp"></span><button class="btn sec" onclick="payCompanies()">' + t('pCoInfo') + '</button><button class="btn sec" id="pxb" onclick="payExport()">' + t('exportS') + '</button>' +
+    (d.canReopen ? '<button class="btn sec" onclick="payReopen()">' + t('pReopen') + '</button>' : '') + (d.canClose ? '<button class="btn" onclick="payClose()">' + t('pClose') + '</button>' : '') + '</div>' +
+    (d.warn && d.warn.length ? '<div class="card" style="border-color:var(--chk)"><div style="padding:10px 14px"><b>' + t('pToCheck') + ':</b> ' + d.warn.map(payWarn).join(' · ') + '</div></div>' : '') +
+    '<div class="kpis"><div class="kpi inf">' + t('pGross') + '<b>' + money(S(rows, 'bruto')) + '</b></div><div class="kpi late">' + t('pInss') + '<b>' + money(S(rows, 'inss')) + '</b></div><div class="kpi bad">' + t('pAdv') + '<b>' + money(S(rows, 'loans')) + '</b></div><div class="kpi ok">' + t('pNet') + '<b>' + money(S(rows, 'liquido')) + '</b></div></div>' +
+    '<div class="bar"><div class="chips">' + ['all'].concat(ents).map(e => '<span class="chip ' + (PAYE === e ? 'on' : '') + '" onclick="PAYE=\'' + esc(e) + '\';render()">' + (e === 'all' ? t('all') : esc(e)) + '</span>').join('') + '</div><span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="bar"><button class="btn" onclick="printReceipts()">' + t('pPrintR') + ' (' + rows.length + ')</button><label class="muted"><input type="checkbox"' + (PAYDUP ? ' checked' : '') + ' onchange="PAYDUP=this.checked"> ' + t('pDup') + '</label><span class="sp"></span>' + (d.closed ? '' : '<span class="muted">' + t('pInssHint') + '</span>') + '</div>' +
+    '<div class="card tw"><table class="ptab"><tr class="pgh"><th colspan="5"></th><th colspan="5">' + t('pRet') + '</th><th colspan="6">' + t('pDesc') + '</th><th colspan="4">' + t('pDebt') + '</th><th colspan="2"></th></tr><tr>' + H.map((k, i) => '<th' + (i === 2 || i === 4 ? '' : ' class="n"') + '>' + t(k) + '</th>').join('') + '</tr>' +
+    body + totRow(rows, 'ptot') + '</table></div>' +
+    '<div class="muted" style="margin:6px 2px">' + esc(rules) + '</div>';
+}
+
+
+function payDetail(id) {
+  const d = window._pay, r = d.rows.filter(x => x.id === id)[0]; if (!r) return;
+  const line = (lbl, val2, q, neg) => val2 || q ? '<tr><td>' + lbl + (q ? ' <span class="muted">' + q + '</span>' : '') + '</td><td class="n">' + (neg && val2 ? '−' : '') + money(val2) + '</td></tr>' : '';
+  const vBase = Math.round(r.base / 30 * r.ef * 100) / 100;
+  const earn = line(t('pBase'), vBase, r.ef !== 30 ? money(r.base) + ' ÷ 30 × ' + r.ef + ' ' + t('pDays') : '') + line(t('pOT'), r.vHE, r.heH ? r.heH + ' h' + (r.heDom ? ' (' + r.heDom + ' h ' + t('pSun') + ')' : '') : '') + line(t('pOther'), r.outras, '') +
+    line(t('pLP'), r.vFP, r.fpDias ? r.fpDias + ' ' + t('pDays') : '') + line(t('pBonus'), r.bonus, '') + line(t('pAllow'), r.subs, '');
+  const deds = line(t('pAbs'), r.vFaltas, r.faltas ? r.faltas + ' ' + t('pDays') : '', true) + line(t('pLate'), r.vAtraso, r.lateMin ? r.lateMin + ' min' : '', true) + line(t('pInss'), r.inss, '', true) + line(t('pAdv'), r.loans, '', true) + line(t('pOth'), r.outros, '', true);
+  const debt = r.saldoAnt || r.contraida || r.loans || r.saldoAtual ? '<div class="info">' + [[t('pPrev'), r.saldoAnt], [t('pNewD'), r.contraida], [t('pAdv'), r.loans], [t('pBal'), r.saldoAtual]].map(x => '<div><small>' + x[0] + '</small>' + money(x[1]) + '</div>').join('') + '</div>' : '';
+  const inp = (k, lbl, v, ph) => '<label>' + lbl + '<input type="number" step="0.01" id="pm_' + k + '" value="' + (v === 0 || v ? v : '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + '></label>';
+  modal(r.nome + ' · ' + d.periodo, '<button class="btn sm" onclick="printReceipts([' + r.id + '])">' + t('pSlip') + '</button>',
+    '<div class="info"><div><small>' + t('pCompany') + '</small>' + esc(r.ent) + '</div><div><small>' + t('name') + '</small>' + esc(r.nome) + '</div><div><small>ID</small>' + r.id + '</div><div><small>' + t('dept') + '</small>' + esc(r.dept) + '</div>' +
+    '<div><small>' + t('period') + '</small>' + fmtDY(d.from) + ' → ' + fmtDY(d.to) + '</div><div><small>' + t('pEf') + '</small>' + r.ef + '</div></div>' +
+    '<div class="grid2" style="padding:0 14px"><div class="card"><h3>' + t('pEarn') + '</h3><table>' + earn + '<tr><th>' + t('pGross') + '</th><th class="n">' + money(r.bruto) + '</th></tr></table></div>' +
+    '<div class="card"><h3>' + t('pDeds') + '</h3><table>' + (deds ? deds + '<tr><th>' + t('pTotD') + '</th><th class="n">−' + money(r.descontos) + '</th></tr>' : '<tr><td class="muted">—</td><td></td></tr>') + '<tr><th>' + t('pNet') + '</th><th class="n" style="font-size:16px">' + money(r.liquido) + '</th></tr></table></div></div>' +
+    debt +
+    (r.nota ? '<div class="info"><div style="grid-column:1/-1"><small>' + t('notes') + '</small>' + esc(r.nota) + '</div></div>' : '') +
+    
+    (d.closed ? '' : '<div class="card noprint" style="margin:12px 14px"><h3>' + t('pManual') + '</h3><div class="form">' + inp('bonus', t('pBonus'), r.bonus) + inp('subs', t('pAllow'), r.subs) + inp('ef', t('pEf'), r.efMan, t('pEfH')) + inp('outros', t('pOth'), r.outros) + inp('inss', t('pInssM'), r.inssMan ? r.inss : '', money(r.inssAuto || 0) + ' · ' + t('pAutoW')) +
+    '<label class="full">' + t('notes') + '<input id="pm_nota" value="' + esc(r.nota) + '"></label><div class="act"><button class="btn" id="pm_b" onclick="paySave(' + r.id + ')">' + t('save') + '</button></div></div></div>') +
+    '<div class="sig"><div>' + t('signEmp') + '</div><div>' + t('pSigC') + '</div></div>');
+}
+async function paySave(id) {
+  const d = window._pay, r = d.rows.filter(x => x.id === id)[0];
+  document.getElementById('pm_b').disabled = true;
+  try {
+    await call('paySave', { periodo: d.periodo, id: id, nome: r.nome, bonus: val('pm_bonus'), subs: val('pm_subs'), ef: val('pm_ef'), outros: val('pm_outros'), nota: val('pm_nota'), inss: val('pm_inss') });
+    invalidate(); toast(t('saved')); await render(); payDetail(id);
+  } catch (e) { toast(t('error') + ': ' + e); document.getElementById('pm_b').disabled = false; }
+}
+async function payClose() {
+  const d = window._pay;
+  try {
+    const c = await call('payClose', { periodo: d.periodo, check: true });
+    if (c.hard.length) return alert(t('pCant') + '\n• ' + c.hard.map(payWarn).join('\n• '));
+    if (!confirm((c.soft.length ? t('pWarn') + '\n• ' + c.soft.map(payWarn).join('\n• ') + '\n\n' : '') + t('pCloseQ'))) return;
+    await call('payClose', { periodo: d.periodo }); invalidate(); PAYP = d.periodo; toast(t('saved')); render();
+  } catch (e) { toast(t('error') + ': ' + e); }
+}
+async function payReopen() {
+  const d = window._pay; if (!confirm(t('pReopenQ'))) return;
+  try { await call('payReopen', { periodo: d.periodo }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+async function payExport() {
+  const b = document.getElementById('pxb'); b.disabled = true; b.textContent = t('exporting');
+  try { const x = await call('payExport', { periodo: window._pay.periodo, ent: PAYE }); b.disabled = false; b.textContent = t('exportS'); toast(t('fileReady')); window.open(x.url, '_blank'); }
+  catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('exportS'); }
+}
+
+/* ---------- Payroll: Excel layout, INSS edit, company details, receipts (6 per A4) ---------- */
+let PAYDUP = true;
+Object.assign(T.pt, { cNo:'Nº', cSector:'Setor', cHE:'H.E', cVHE:'Valor H.E', cOut:'Outras rem.', cGross:'Salário bruto', cAbsD:'Dias faltas', cAbsV:'Valor faltas', cLateM:'Min atraso', cLateV:'Valor atrasos', cOth:'Outros', cPrev:'Saldo anterior', cNew:'Dívida contraída', cPaid:'Pagamento', cBal:'Saldo actual', cTotD:'Total descontos', cNet:'Líquido',
+  pRet:'Retribuições', pDesc:'Descontos', pDebt:'Dívida', pPrintR:'Imprimir recibos', pDup:'Duplicado (via do trabalhador + via da empresa)', pCoInfo:'Dados das empresas', pCoHint:'Aparece no topo de cada recibo e da folha exportada.', pCoName:'Nome no recibo', pCoAddr:'Morada',
+  pInssM:'INSS (manual)', pAutoW:'automático', pInssHint:'INSS: vazio = automático · 0 = isento este mês', pNone:'Nada para imprimir' });
+Object.assign(T.en, { cNo:'No.', cSector:'Sector', cHE:'OT h', cVHE:'OT pay', cOut:'Other pay', cGross:'Gross', cAbsD:'Absence days', cAbsV:'Absence amt', cLateM:'Late min', cLateV:'Late amt', cOth:'Other', cPrev:'Previous balance', cNew:'New advance', cPaid:'Instalment', cBal:'Current balance', cTotD:'Total deductions', cNet:'Net pay',
+  pRet:'Earnings', pDesc:'Deductions', pDebt:'Advances', pPrintR:'Print receipts', pDup:'Duplicate (worker copy + company copy)', pCoInfo:'Company details', pCoHint:'Shown at the top of every receipt and exported sheet.', pCoName:'Name on receipt', pCoAddr:'Address',
+  pInssM:'INSS (manual)', pAutoW:'automatic', pInssHint:'INSS: empty = automatic · 0 = exempt this month', pNone:'Nothing to print' });
+document.head.insertAdjacentHTML('beforeend', '<style>' +
+  '.ptab td,.ptab th{padding:6px 8px;font-size:12.5px}.ptab .pgh th{text-align:center;background:var(--infb);color:var(--pri)}.ptab td.pn{position:sticky;left:0;background:#fff;z-index:1}' +
+  '.ptab tr.pco td{background:var(--pri);color:#fff;font-weight:600}.ptab tr.pco .muted{color:#d6e0f5}.ptab tr.psub td{background:#f3f6fb;font-weight:600}.ptab tr.ptot td{background:var(--infb);font-weight:700}' +
+  '.pinss{width:96px;padding:3px 6px;text-align:right}.pinss.man{border-color:var(--inf);font-weight:700;color:var(--inf)}' +
+  '#rcp{display:none}@media print{body.rcpm>*:not(#rcp){display:none!important}body.rcpm #rcp{display:block!important}body.rcpm{background:#fff;margin:0;padding:0}}@page{size:A4 portrait;margin:7mm}' +
+  '.rp{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:3mm;height:275mm;break-after:page;page-break-after:always}.rp:last-child{break-after:auto;page-break-after:auto}' +
+  '.rc{border:1px solid #000;padding:2mm 2.5mm;font:8.3pt/1.3 Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid}' +
+  '.rh{display:flex;gap:6px;border-bottom:1.5px solid #000;padding-bottom:1.5mm;margin-bottom:1.5mm}.re{flex:1;font-size:6.5pt}.re b{font-size:7.5pt}' +
+  '.rw{text-align:right;display:flex;flex-direction:column}.rw b{font-size:10pt}.rw span{font-weight:600}.rw small{font-size:6.5pt}' +
+  '.rt{width:100%;border-collapse:collapse}.rt th{border:1px solid #000;padding:.6mm;font-size:7pt;background:#eee}.rt td{padding:.4mm 1mm;border-left:1px solid #000;border-right:1px solid #000;white-space:nowrap;font-size:8.2pt}' +
+  '.rt td.v{text-align:right}.rt i{font-size:6pt;color:#444}.rt tr.rs td{border-top:1px solid #000;border-bottom:1px solid #000;font-weight:700}.rt tr:last-child td{border-bottom:1px solid #000}' +
+  '.rt td.rl{text-align:center;vertical-align:middle;border:1px solid #000;font-size:7pt}.rt td.rl b{display:block;font-size:10pt}' +
+  '.rf{margin-top:1.2mm;font-size:6.8pt}.rsig{display:flex;gap:8mm;margin-top:auto;padding-top:5mm}.rsig div{flex:1;border-top:1px solid #000;text-align:center;font-size:6.8pt;padding-top:.5mm}' +
+  '</style>');
+
+function payRows() {
+  const d = window._pay;
+  return d.rows.filter(r => (PAYE === 'all' || (r.ent || '—') === PAYE) && byName(r.nome)).sort((a, b) => String(a.ent).localeCompare(b.ent) || String(a.nome).localeCompare(b.nome));
+}
+
+async function payInss(id, v) {
+  const d = window._pay, r = d.rows.filter(x => x.id === id)[0]; if (!r) return;
+  try {
+    await call('paySave', { periodo: d.periodo, id: id, nome: r.nome, bonus: r.bonus || '', subs: r.subs || '', ef: r.efMan === '' || r.efMan == null ? '' : r.efMan, outros: r.outros || '', nota: r.nota || '', inss: v });
+    invalidate(); toast(t('saved')); render();
+  } catch (e) { toast(t('error') + ': ' + e); }
+}
+
+function payCompanies() {
+  const emp = window._pay.empresas || {}, ents = Object.keys(emp).sort();
+  window._coEnts = ents;
+  modal(t('pCoInfo'), '', '<div style="padding:12px 14px" class="muted">' + t('pCoHint') + '</div>' + ents.map((e, i) =>
+    '<div class="card" style="margin:0 14px 10px"><h3>' + esc(e) + '</h3><div class="form"><label>' + t('pCoName') + '<input id="co_n' + i + '" value="' + esc(emp[e].nome) + '"></label><label>' + t('pCoAddr') + '<input id="co_a' + i + '" value="' + esc(emp[e].morada) + '"></label>' +
+    '<label>NUIT<input id="co_u' + i + '" value="' + esc(emp[e].nuit) + '"></label><div class="act"><button class="btn" id="co_b' + i + '" onclick="payCoSave(' + i + ')">' + t('save') + '</button></div></div></div>').join(''));
+}
+async function payCoSave(i) {
+  const e = window._coEnts[i], b = document.getElementById('co_b' + i); b.disabled = true;
+  try { const x = await call('payCompany', { ent: e, nome: val('co_n' + i), morada: val('co_a' + i), nuit: val('co_u' + i) }); window._pay.empresas = x.empresas; toast(t('saved')); }
+  catch (err) { toast(t('error') + ': ' + err); }
+  b.disabled = false;
+}
+
+const MES_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+function rcpHtml(r, via) {
+  const d = window._pay, e = (d.empresas || {})[r.ent || '—'] || { nome: r.ent || '', morada: '', nuit: '' };
+  const m = x => Number(x || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const q = s => '<i>' + s + '</i>';
+  const L = [['Sal. base', q(r.ef + ' dias'), Math.round(r.base / 30 * r.ef * 100) / 100], ['H. extra', q((r.heH || 0) + ' h'), r.vHE], ['Outras rem.', '', r.outras]];
+  if (r.vFP) L.push(['Férias pagas', q(r.fpDias + ' dias'), r.vFP]);
+  if (r.bonus) L.push(['Bónus', '', r.bonus]);
+  if (r.subs) L.push(['Subsídios', '', r.subs]);
+  const R = [['Faltas', q((r.faltas || 0) + ' dias'), r.vFaltas], ['Atrasos', q((r.lateMin || 0) + ' min'), r.vAtraso], ['INSS', q(((d.cfg && d.cfg.a) || 3) + '%'), r.inss], ['Desc. dívida', '', r.loans], ['Outros', '', r.outros]];
+  while (L.length < R.length) L.push(['', '', '']); while (R.length < L.length) R.push(['', '', '']);
+  const cell = x => '<td>' + x[0] + ' ' + x[1] + '</td><td class="v">' + (x[0] ? m(x[2]) : '') + '</td>';
+  const pk = d.periodo, mes = MES_PT[Number(pk.slice(5, 7)) - 1] + ' ' + pk.slice(0, 4);
+  return '<div class="rc"><div class="rh"><div class="re"><b>' + esc(e.nome) + '</b>' + (e.morada ? '<br>' + esc(e.morada) : '') + (e.nuit ? '<br>NUIT ' + esc(e.nuit) : '') + '</div>' +
+    '<div class="rw"><span>ID ' + r.id + '</span><b>' + esc(r.nome) + '</b><span>RECIBO DE SALÁRIO · ' + mes + '</span><small>' + fmtDY(d.from) + ' a ' + fmtDY(d.to) + (via ? ' · Via ' + via : '') + '</small></div></div>' +
+    '<table class="rt"><tr><th colspan="2">PROVEITOS</th><th colspan="2">DESCONTOS</th></tr>' + L.map((x, i) => '<tr>' + cell(x) + cell(R[i]) + '</tr>').join('') +
+    '<tr class="rs"><td>TOTAL BRUTO</td><td class="v">' + m(r.bruto) + '</td><td>TOTAL DESCONTOS</td><td class="v">' + m(r.descontos) + '</td></tr>' +
+    '<tr><td>Saldo anterior</td><td class="v">' + m(r.saldoAnt) + '</td><td rowspan="3" colspan="2" class="rl">LÍQUIDO A RECEBER<b>' + m(r.liquido) + ' MT</b></td></tr>' +
+    '<tr><td>Dívida contraída</td><td class="v">' + m(r.contraida) + '</td></tr><tr><td>Saldo actual</td><td class="v">' + m(r.saldoAtual) + '</td></tr></table>' +
+    '<div class="rf">Datas de faltas: ' + esc(r.datasFaltas || '—') + '</div><div class="rsig"><div>Entidade pagadora</div><div>Trabalhador(a)</div></div></div>';
+}
+function printReceipts(ids) {
+  const d = window._pay; if (!d) return;
+  const list = ids ? d.rows.filter(r => ids.indexOf(r.id) >= 0) : payRows();
+  if (!list.length) return toast(t('pNone'));
+  const items = [];
+  list.forEach(r => { if (PAYDUP) { items.push([r, 'do trabalhador']); items.push([r, 'da empresa']); } else items.push([r, '']); });
+  let html = '';
+  for (let i = 0; i < items.length; i += 6) html += '<div class="rp">' + items.slice(i, i + 6).map(x => rcpHtml(x[0], x[1])).join('') + '</div>';
+  let box = document.getElementById('rcp');
+  if (!box) { box = document.createElement('div'); box.id = 'rcp'; document.body.appendChild(box); }
+  box.innerHTML = html; document.body.classList.add('rcpm');
+  setTimeout(() => { window.print(); setTimeout(() => { document.body.classList.remove('rcpm'); box.innerHTML = ''; }, 800); }, 120);
+}
+
+
+/* ---------- Phase 7: lists, documents, day off, pay rule ---------- */
+const WD_PT = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
+Object.assign(T.pt, { wdNames: WD_PT, payRule:'Regra salarial', prAuto:'Automática (pela empresa)', prStd:'Padrão — base ÷ 180', prGal:'Gallery — base ÷ 192', contractEnd:'Fim de contrato',
+  manageLists:'Gerir listas', lists:'Listas', listsHint:'Estas listas alimentam os formulários. Mudar um nome atualiza todas as pessoas que o usam.', ls_ent:'Empresas', ls_dept:'Departamentos', ls_loc:'Localizações', ls_func:'Funções', ls_doc:'Tipos de documento',
+  rename:'Mudar nome', remove:'Remover', newItem:'Novo item…', updatedN:'atualizados', docs:'Documentos', addDoc:'+ Documento', docNo:'Número', expiry:'Validade', docFile:'Foto / PDF',
+  dExp:'Expirado', dSoon:'Expira em breve', dOk:'Válido', dNoExp:'Sem validade', noDocs:'Sem documentos', noLicence:'Motorista sem carta de condução válida registada', noLicShort:'Sem carta',
+  docAlerts:'Documentos e contratos a tratar', ctEnd:'Contrato termina', ctEnded:'Contrato terminou', dView:'Ver', delDocQ:'Apagar este documento? O ficheiro também é apagado.', pRecalc:'Recalcular', back:'← Voltar' });
+Object.assign(T.en, { wdNames: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'], payRule:'Pay rule', prAuto:'Automatic (by company)', prStd:'Standard — base ÷ 180', prGal:'Gallery — base ÷ 192', contractEnd:'Contract end',
+  manageLists:'Manage lists', lists:'Lists', listsHint:'These lists feed the forms. Renaming an item updates everyone who uses it.', ls_ent:'Companies', ls_dept:'Departments', ls_loc:'Locations', ls_func:'Roles', ls_doc:'Document types',
+  rename:'Rename', remove:'Remove', newItem:'New item…', updatedN:'updated', docs:'Documents', addDoc:'+ Document', docNo:'Number', expiry:'Expiry', docFile:'Photo / PDF',
+  dExp:'Expired', dSoon:'Expiring soon', dOk:'Valid', dNoExp:'No expiry', noDocs:'No documents', noLicence:'Driver without a valid driving licence on file', noLicShort:'No licence',
+  docAlerts:'Documents and contracts to handle', ctEnd:'Contract ends', ctEnded:'Contract ended', dView:'View', delDocQ:'Delete this document? The file is deleted too.', pRecalc:'Recalculate', back:'← Back' });
+document.head.insertAdjacentHTML('beforeend', '<style>.alist{margin:0;padding:8px 14px 12px 32px;columns:2;column-gap:28px}.alist li{padding:3px 0;break-inside:avoid}' +
+  '.lchips{display:flex;flex-wrap:wrap;gap:6px}.lchip{border:1px solid var(--line);border-radius:14px;padding:3px 10px;font-size:13px;background:#fff}.lchip a{color:var(--mut);text-decoration:none;margin-left:4px}.lchip a:hover{color:var(--pri)}' +
+  '@media(max-width:700px){.alist{columns:1}}</style>');
+
+const folgaName = v => { const i = WD_PT.indexOf(v); return i >= 0 ? T[LANG].wdNames[i] : (v || t('none')); };
+const prName = v => v === 'Padrão' ? t('prStd') : v === 'Gallery' ? t('prGal') : t('prAuto');
+const DOC_ST = { exp: ['bad', 'dExp'], soon: ['late', 'dSoon'], ok: ['ok', 'dOk'], none: ['off', 'dNoExp'] };
+const isDriverC = f => /^drv$|motor|driver|condutor/i.test(String(f || '').trim());
+const isLicenceC = tp => /carta|licen|driv/i.test(String(tp || ''));
+
+function docsCard(list) {
+  const noLic = isDriverC(CUR.p.func) && !list.some(d => isLicenceC(d.tipo) && d.st !== 'exp');
+  return '<div class="card" style="margin:0 14px 12px"><h3>' + t('docs') + '<span class="sp"></span><button class="btn sec sm" onclick="docForm()">' + t('addDoc') + '</button></h3><div id="dinl"></div>' +
+    (noLic ? '<div class="err" style="margin:10px 14px">⚠ ' + t('noLicence') + '</div>' : '') +
+    (list.length ? '<table><tr><th>' + t('type') + '</th><th>' + t('docNo') + '</th><th>' + t('expiry') + '</th><th></th><th></th></tr>' + list.map(d =>
+      '<tr><td>' + esc(d.tipo) + '</td><td>' + esc(d.num) + '</td><td>' + (d.val ? fmtDY(d.val) : '—') + '</td><td><span class="st s-' + DOC_ST[d.st][0] + '">' + t(DOC_ST[d.st][1]) + '</span></td><td style="text-align:right;white-space:nowrap">' +
+      (d.hasFile ? '<button class="btn sec sm" onclick="viewPDoc(' + d.n + ')">' + t('dView') + '</button> ' : '') + '<button class="btn sec sm" onclick="docForm(' + d.n + ')">' + t('edit') + '</button> <button class="btn sec sm" onclick="docDel(' + d.n + ')">×</button></td></tr>').join('') + '</table>'
+      : '<div class="muted" style="padding:12px 14px">' + t('noDocs') + '</div>') + '</div>';
+}
+async function docForm(n) {
+  const meta = CACHE.meta || (CACHE.meta = await call('meta'));
+  const d = n ? ((CUR.d.docs || []).filter(x => x.n === n)[0] || {}) : {};
+  const types = (meta.doc || []).slice(); if (d.tipo && types.indexOf(d.tipo) < 0) types.push(d.tipo);
+  const el = document.getElementById('dinl');
+  el.innerHTML = '<div class="inline"><b>' + (n ? t('edit') : t('addDoc').replace('+ ', '')) + '</b>' +
+    '<select id="dt">' + types.map(x => '<option' + (x === d.tipo ? ' selected' : '') + '>' + esc(x) + '</option>').join('') + '</select>' +
+    '<input id="dnum" placeholder="' + t('docNo') + '" value="' + esc(d.num || '') + '" style="width:150px">' +
+    '<label class="muted">' + t('expiry') + ' <input type="date" id="dval" value="' + esc(d.val || '') + '"></label>' +
+    '<label class="muted">' + t('docFile') + ' <input type="file" id="dfile" accept="image/*,application/pdf"></label>' +
+    '<input id="dnot" placeholder="' + t('note') + '" value="' + esc(d.notas || '') + '" style="flex:1;min-width:140px">' +
+    '<button class="btn" id="dbtn" onclick="docSave(' + (n || 0) + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'dinl\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+async function docSave(n) {
+  const b = document.getElementById('dbtn'); b.disabled = true; b.textContent = t('loading');
+  try {
+    const fi = document.getElementById('dfile'); let file = null;
+    if (fi.files && fi.files[0]) file = await readDoc(fi);
+    await call('docSave', { n: n || '', id: CUR.p.id, tipo: val('dt'), num: val('dnum'), val: val('dval'), notas: val('dnot'), file: file });
+    toast(t('saved')); delete CACHE.docs; refreshDocBadge(); openPerson(CUR.p.id);
+  } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('save'); }
+}
+async function docDel(n) {
+  if (!confirm(t('delDocQ'))) return;
+  try { await call('docDelete', { n: n }); toast(t('saved')); delete CACHE.docs; refreshDocBadge(); openPerson(CUR.p.id); } catch (e) { toast(t('error') + ': ' + e); }
+}
+async function refreshDocBadge() { try { const a = await call('docs'); window.NDOC = a.count; CACHE.docs = a; paintChrome(); } catch (e) {} }
+async function viewPDoc(n) {
+  const back = '<button class="btn sec sm" onclick="openPerson(' + CUR.p.id + ')">' + t('back') + '</button> ';
+  modal(t('loading'));
+  try {
+    const f = await call('docFile', { n: n }); const src = 'data:' + f.mime + ';base64,' + f.b64;
+    modal(f.name, back + '<a class="btn sec sm" href="' + f.url + '" target="_blank" rel="noopener">' + t('openDrive') + '</a>',
+      f.mime.indexOf('image') === 0 ? '<div style="padding:12px;text-align:center"><img src="' + src + '" style="max-width:100%;height:auto;border:1px solid var(--line);border-radius:6px"></div>' : '<iframe src="' + src + '" style="width:100%;height:75vh;border:0"></iframe>');
+  } catch (e) { modal(t('error'), back, '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+function docAlertsHtml(al) {
+  if (!al || !al.count) return '';
+  const li = (id, tag, txt) => '<li class="click" onclick="openPerson(' + id + ')">' + tag + ' ' + txt + '</li>';
+  const it = [];
+  al.drivers.forEach(x => it.push(li(x.id, '<span class="st s-bad">' + t('noLicShort') + '</span>', esc(x.nome))));
+  al.alerts.forEach(d => it.push(li(d.id, '<span class="st s-' + (d.st === 'exp' ? 'bad' : 'late') + '">' + t(d.st === 'exp' ? 'dExp' : 'dSoon') + ' ' + fmtDY(d.val) + '</span>', esc(d.nome) + ' · ' + esc(d.tipo))));
+  al.contracts.forEach(c => it.push(li(c.id, '<span class="st s-' + (c.st === 'exp' ? 'bad' : 'late') + '">' + t(c.st === 'exp' ? 'ctEnded' : 'ctEnd') + ' ' + fmtDY(c.fim) + '</span>', esc(c.nome))));
+  return '<div class="card" style="border-color:var(--late)"><h3>⚠ ' + t('docAlerts') + ' (' + al.count + ')</h3><ul class="alist">' + it.join('') + '</ul></div>';
+}
+
+/* ---------- Lists screen ---------- */
+async function listsModal() {
+  modal(t('lists'), '', '');
+  try { window._lists = await call('lists'); listsPaint(); } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
+}
+function listsPaint() {
+  const x = window._lists;
+  document.getElementById('mBody').innerHTML = '<div class="muted" style="padding:12px 14px">' + t('listsHint') + '</div>' + ['ent', 'dept', 'loc', 'func', 'doc'].map(k =>
+    '<div class="card" style="margin:0 14px 10px"><h3>' + t('ls_' + k) + ' <span class="muted">(' + x.lists[k].length + ')</span></h3><div style="padding:10px 14px" class="lchips">' +
+    x.lists[k].map((v, i) => '<span class="lchip">' + esc(v) + '<a href="#" title="' + t('rename') + '" onclick="listRen(\'' + k + '\',' + i + ');return false">✎</a><a href="#" title="' + t('remove') + '" onclick="listDel(\'' + k + '\',' + i + ');return false">×</a></span>').join('') +
+    '</div><div class="inline" style="margin:0 14px 12px"><input id="la_' + k + '" placeholder="' + t('newItem') + '" style="flex:1" onkeydown="if(event.key===\'Enter\')listAdd(\'' + k + '\')"><button class="btn sm" onclick="listAdd(\'' + k + '\')">' + t('add') + '</button></div></div>').join('');
+}
+async function listOp(k, action, value, newValue) {
+  try {
+    const r = await call('listSave', { key: k, action: action, value: value, newValue: newValue || '' });
+    window._lists.lists = r.lists; CACHE.meta = null; invalidate();
+    toast(t('saved') + (r.changed ? ' · ' + r.changed + ' ' + t('updatedN') : '')); listsPaint();
+  } catch (e) { toast(t('error') + ': ' + e); }
+}
+function listAdd(k) { const v = val('la_' + k).trim(); if (v) listOp(k, 'add', v); }
+function listRen(k, i) { const v = window._lists.lists[k][i]; const nv = prompt(t('rename') + ': ' + v, v); if (nv && nv.trim() && nv.trim() !== v) listOp(k, 'rename', v, nv.trim()); }
+function listDel(k, i) { const v = window._lists.lists[k][i]; if (confirm(t('remove') + ': ' + v + '?')) listOp(k, 'remove', v); }
+
+async function payFresh() {
+  loading();
+  try {
+    const d = await call('payroll', { periodo: window._pay.periodo, fresh: true });
+    CACHE = { meta: CACHE.meta }; CACHE['payroll' + (PAYP ? JSON.stringify({ periodo: PAYP }) : '')] = d; renderPay(d);
+  } catch (e) { showErr(e); }
+}
+
+paintChrome();
+document.getElementById('loading').textContent = t('loading');
+render();
+if (window.ROLE !== 'assistant') loadNewPeople();
+</script>
+</body>
+</html>
