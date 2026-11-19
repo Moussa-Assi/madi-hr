@@ -98,6 +98,8 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 .rep td{vertical-align:top}.sig{display:flex;gap:40px;padding:30px 14px 10px}.sig div{flex:1;border-top:1px solid #333;padding-top:6px;font-size:12px;text-align:center}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}header h1{font-size:14px}main{padding:12px}.hb .l{width:100px}}
 .ocrbox{margin-top:6px}.ocr{border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.55}.ocr.good{background:#e8f6ee;border:1px solid #9bd3b2}.ocr.bad{background:#fdecec;border:1px solid #f0a9a9}.ocr small{display:block;margin-top:4px}
+.dash .dsec h3{font-size:15px}.dash th.n{text-align:right}.dash .kpis{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}.dash .kpi{padding:10px 12px}.dash .kpi b{font-size:22px}.dash .how{padding:8px 14px;font-size:12px;color:var(--mut);background:#fafbfc;border-bottom:1px solid var(--line);line-height:1.5}.dash h4{margin:12px 14px 4px;font-size:13px}.dash h4.bad{color:var(--bad)}.dash h4.late{color:var(--late)}.dash h4.inf{color:var(--inf)}.dash h4.ok{color:var(--ok)}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.dash .hb .rk{width:18px;color:var(--mut);font-size:12px;text-align:right}.dash .hb .l{width:170px}.dash .hb .v{width:auto;min-width:60px;font-size:12px;white-space:nowrap}.hb .f.bad{background:var(--bad)}.hb .f.late{background:var(--late)}.hb .f.inf{background:var(--inf)}.dash table td,.dash table th{padding:6px 10px}.dash tr.flag td{background:#fff8ec}.cbad{color:var(--bad)}.clate{color:var(--late)}.warnline{margin:4px 14px 12px;padding:8px 10px;border-radius:8px;background:#fff8ec;color:#8a5a00;font-size:13px}.wk{display:flex;align-items:flex-end;gap:8px;height:150px;padding:10px 14px 4px}.wk div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.wk .wb{width:100%;background:var(--bad);border-radius:4px 4px 0 0;min-height:2px}.wk .wv{font-size:12px;font-weight:600;margin-bottom:2px}.wk .wl{font-size:11px;color:var(--mut);margin-top:4px}.kpi small{display:block;margin-top:2px}
+@media (max-width:820px){.grid3{grid-template-columns:1fr}.dash .hb .l{width:120px}}
 .colg{vertical-align:middle;margin-right:6px;object-fit:contain}.chip .colg{margin:-3px 6px -3px 0}
 </style>
 </head>
@@ -420,7 +422,7 @@ async function render() {
     if (VIEW === 'pending') return renderPending(await need('month'));
     if (VIEW === 'people') { const al = await need('docs'); return renderPeople(await need('people'), al); }
     if (VIEW === 'set') return renderSettings(await need('settings'));
-    if (VIEW === 'dash') return renderDash(DR.from ? await need('range', { from: DR.from, to: DR.to }) : await need('month'));
+    if (VIEW === 'dash') { const r = dashRange(); return renderDash2(await need('analytics', r)); }
   } catch (e) { showErr(e); }
 }
 
@@ -1244,6 +1246,132 @@ const retNote = (nota, ret) => { const n = String(nota || '').replace(/\s*·?\s*
 document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); if (/^(af|lf|lo)_(p|de|ate|m|d|dc)$/.test(id || '')) formSync(id.slice(0, 2), /_p$/.test(id)); });
 
 
+
+/* =========================== 📊 DASHBOARD (analytics) =========================== */
+let DA = { pre: 'cur', ent: '', dept: '', all: false, sort: 'unj' };
+function dashRange() {
+  const t0 = todayStr(), y = Number(t0.slice(0, 4)), m = Number(t0.slice(5, 7)), d = Number(t0.slice(8, 10)), sd = 26;
+  const ymd = (Y, M, D) => { const x = new Date(Y, M - 1, D, 12); return x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0'); };
+  const curFrom = d >= sd ? ymd(y, m, sd) : ymd(y, m - 1, sd);
+  if (DA.pre === 'prev') { const f = new Date(curFrom + 'T12:00:00'); return { from: ymd(f.getFullYear(), f.getMonth(), sd), to: ymd(f.getFullYear(), f.getMonth() + 1, sd - 1) }; }
+  if (DA.pre === 'q') return { from: ymd(y, m - 3, d), to: t0 };
+  if (DA.pre === 'year') return { from: y + '-01-01', to: t0 };
+  if (DA.pre === 'all') return { from: '2026-10-26', to: t0 };
+  if (DA.pre === 'custom' && DR.from) return { from: DR.from, to: DR.to || t0 };
+  return { from: curFrom, to: t0 };
+}
+const cfgMin = k => (window._dash && window._dash.cfg && window._dash.cfg[k]) || '';
+const pct = v => v === null || v === undefined ? '—' : String(v).replace('.', ',') + '%';
+const hmin = m => { m = Math.round(m || 0); return m < 60 ? m + ' min' : Math.floor(m / 60) + 'h' + (m % 60 ? String(m % 60).padStart(2, '0') : ''); };
+const pName = x => x.id ? '<a class="click" onclick="openPerson(' + x.id + ')">' + esc(x.nome) + '</a>' : esc(x.nome);
+function rankBars(list, key, fmt, cls) {
+  if (!list.length) return '<p class="muted" style="padding:10px 14px">' + LL('Ninguém — ótimo.', 'Nobody — great.') + '</p>';
+  const mx = Math.max(1, ...list.map(x => x[key]));
+  return list.map((x, i) => '<div class="hb"><span class="rk">' + (i + 1) + '</span><span class="l" title="' + esc(x.nome + ' · ' + (x.dept || '')) + '">' + pName(x) + '<small class="muted"> ' + esc(x.dept || '') + '</small></span><span class="t"><span class="f ' + (cls || '') + '" style="display:block;width:' + (x[key] / mx * 100) + '%"></span></span><span class="v">' + fmt(x[key], x) + '</span></div>').join('');
+}
+const sec = (title, how, body, id) => '<div class="card dsec"' + (id ? ' id="' + id + '"' : '') + '><h3>' + title + '</h3>' + (how ? '<div class="how">' + how + '</div>' : '') + body + '</div>';
+function renderDash2(d) {
+  window._dash = d;
+  const all = d.people.filter(x => (!DA.ent || x.ent === DA.ent) && (!DA.dept || x.dept === DA.dept));
+  const P = all.filter(x => x.ativo || x.due);
+  const sum = k => P.reduce((a, x) => a + (x[k] || 0), 0);
+  const due = sum('due'), eff = sum('eff'), worked = sum('worked');
+  const assid = eff ? Math.round((1 - (sum('unj') + sum('disp')) / eff) * 1000) / 10 : null, pont = worked ? Math.round((1 - sum('lateAdjN') / worked) * 1000) / 10 : null;
+  const elig = P.filter(x => x.eff >= 10 && !x.isento && x.score !== null);
+  const top = (arr, k, n) => arr.filter(x => x[k] > 0).sort((a, b) => b[k] - a[k] || (b.lateAdjMin || 0) - (a.lateAdjMin || 0)).slice(0, n || 10);
+  const depts = [...new Set(d.people.filter(x => !DA.ent || x.ent === DA.ent).map(x => x.dept).filter(Boolean))].sort();
+  const pres = [['cur', LL('Período atual', 'Current period')], ['prev', LL('Período anterior', 'Previous period')], ['q', LL('Últimos 3 meses', 'Last 3 months')], ['year', LL('Este ano', 'This year')], ['all', LL('Desde o início', 'Since start')], ['custom', LL('Datas…', 'Dates…')]];
+  let h = '<div class="bar"><b style="font-size:16px">' + t('dash') + '</b><span class="sp"></span><span class="muted">' + fmtD(d.from) + ' → ' + fmtD(d.to) + ' · ' + d.days + ' ' + LL('dias', 'days') + '</span></div>' +
+    '<div class="bar"><div class="chips">' + pres.map(p => '<span class="chip ' + (DA.pre === p[0] ? 'on' : '') + '" onclick="DA.pre=\'' + p[0] + '\';render()">' + p[1] + '</span>').join('') + '</div>' +
+    (DA.pre === 'custom' ? rangeInputs(d.from, d.to, 'dash') : '') + '<span class="sp"></span>' +
+    '<select onchange="DA.ent=this.value;DA.dept=\'\';renderDash2(window._dash)"><option value="">' + LL('Todas as empresas', 'All companies') + '</option>' + d.ents.map(e => '<option' + (DA.ent === e ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select>' +
+    '<select onchange="DA.dept=this.value;renderDash2(window._dash)"><option value="">' + LL('Todos os departamentos', 'All departments') + '</option>' + depts.map(e => '<option' + (DA.dept === e ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select></div>' +
+    (d.from < d.dataFrom ? '<p class="muted">' + LL('As presenças diárias existem desde 26/10/2026 — antes disso só há empréstimos.', 'Daily attendance exists since 26/10/2026 — before that only loans.') + '</p>' : '');
+  /* KPIs */
+  h += '<div class="kpis">' +
+    '<div class="kpi ok" title="' + LL('Dias trabalhados ÷ dias devidos (sem férias e licenças longas). Só faltas injustificadas e dispensas baixam este valor.', 'Worked ÷ due days (excluding leave). Only unjustified absences and dispensas lower it.') + '">' + LL('Assiduidade', 'Attendance') + '<b>' + pct(assid) + '</b></div>' +
+    '<div class="kpi ok" title="' + LL('Dias sem atraso ÷ dias trabalhados; atraso contado a partir da abertura da loja.', 'Days without lateness ÷ worked days; lateness counted from shop opening.') + '">' + LL('Pontualidade', 'Punctuality') + '<b>' + pct(pont) + '</b></div>' +
+    '<div class="kpi bad">' + LL('Faltas injustificadas', 'Unjustified absences') + '<b>' + sum('unj') + '</b><small class="muted">' + LL('dias', 'days') + '</small></div>' +
+    '<div class="kpi late">' + LL('Dispensas', 'Dispensas') + '<b>' + sum('disp') + '</b><small class="muted">' + LL('dias · descontadas', 'days · deducted') + '</small></div>' +
+    '<div class="kpi inf">' + LL('Faltas justificadas', 'Justified absences') + '<b>' + sum('just') + '</b><small class="muted">' + LL('dias', 'days') + '</small></div>' +
+    '<div class="kpi late">' + LL('Atrasos', 'Late arrivals') + '<b>' + sum('lateAdjN') + '</b><small class="muted">' + hmin(sum('lateAdjMin')) + ' ' + LL('perdidos', 'lost') + '</small></div>' +
+    '<div class="kpi bad">' + LL('Lojas abertas tarde', 'Shops opened late') + '<b>' + sum('openedLate') + '</b><small class="muted">' + LL('vezes', 'times') + '</small></div>' +
+    '<div class="kpi inf">' + LL('Horas extra', 'Overtime') + '<b>' + (Math.round(sum('he') * 10) / 10).toLocaleString('pt-PT') + ' h</b><small class="muted">' + LL('aprovadas: ', 'approved: ') + (Math.round(sum('heAppr') * 10) / 10).toLocaleString('pt-PT') + ' h</small></div>' +
+    '<div class="kpi chk">' + LL('Só uma picagem', 'Single punch') + '<b>' + P.filter(x => !x.isento).reduce((a, x) => a + x.onePunch, 0) + '</b><small class="muted">' + LL('dias', 'days') + '</small></div></div>';
+  /* 1. absences by type */
+  h += sec('1 · ' + LL('Quem falta mais — por tipo', 'Who is absent most — by type'), LL('Contam só dias de trabalho previstos (sem folgas, domingos e feriados). <b>Injustificada</b> = Falta. <b>Dispensa</b> = dispensa ou sem vencimento (descontada no salário). <b>Justificada</b> = falta justificada, baixa médica, luto, casamento, etc.', 'Only scheduled working days count. <b>Unjustified</b> = absence. <b>Dispensa</b> = dispensa or unpaid (deducted). <b>Justified</b> = justified absence, sick leave, bereavement, wedding, etc.'),
+    '<div class="grid3"><div><h4 class="bad">' + LL('Injustificadas', 'Unjustified') + '</h4>' + rankBars(top(P, 'unj'), 'unj', v => v + ' d', 'bad') + '</div>' +
+    '<div><h4 class="late">' + LL('Dispensas', 'Dispensas') + '</h4>' + rankBars(top(P, 'disp'), 'disp', v => v + ' d', 'late') + '</div>' +
+    '<div><h4 class="inf">' + LL('Justificadas', 'Justified') + '</h4>' + rankBars(top(P, 'just'), 'just', v => v + ' d', 'inf') + '</div></div>' + absTable(P));
+  /* 2. lateness from shop opening */
+  const lateTop = top(P.filter(x => !x.isento), 'lateAdjN');
+  h += sec('2 · ' + LL('Atrasos (contados a partir da abertura da loja)', 'Lateness (counted from shop opening)'), LL('Se a loja/departamento abriu depois da hora, quem chegou depois da abertura só tem atraso a partir da hora em que a loja abriu (tolerância ' + d.tol + ' min). Quem abriu a loja tarde fica com o atraso todo.', 'If the shop/department opened late, people arriving after the opener are only late from the opening time (tolerance ' + d.tol + ' min). Whoever opened late keeps the full lateness.'),
+    '<div class="grid2"><div><h4 class="late">' + LL('Mais atrasos', 'Most late arrivals') + '</h4>' + rankBars(lateTop, 'lateAdjN', (v, x) => v + '× · ' + hmin(x.lateAdjMin), 'late') + '</div>' +
+    '<div><h4 class="bad">' + LL('Quem abre a loja tarde', 'Who opens the shop late') + '</h4>' + rankBars(top(P, 'openedLate'), 'openedLate', (v, x) => v + '× · ' + hmin(x.openedLateMin), 'bad') +
+    '<h4 class="bad">' + LL('Lojas abertas tarde', 'Shops opened late') + '</h4>' + (d.depts.filter(x => !DA.dept || x.dept === DA.dept).length ? '<table><tr><th>' + LL('Departamento', 'Department') + '</th><th class="n">' + LL('Vezes', 'Times') + '</th><th class="n">' + LL('Atraso', 'Late') + '</th><th>' + LL('Quem abriu', 'Opened by') + '</th></tr>' +
+      d.depts.filter(x => !DA.dept || x.dept === DA.dept).sort((a, b) => b.lateDays - a.lateDays).map(x => '<tr><td><b>' + esc(x.dept) + '</b></td><td class="n">' + x.lateDays + '</td><td class="n">' + hmin(x.lateMin) + '</td><td>' + x.openers.map(o => '<a class="click" onclick="openPerson(' + o.id + ')">' + esc(o.nome) + '</a> ×' + o.n).join(', ') + '</td></tr>').join('') + '</table>' : '<p class="muted" style="padding:10px 14px">' + LL('Nenhuma abertura tardia.', 'No late openings.') + '</p>') +
+    '<p class="muted" style="padding:6px 14px">' + LL('Atrasos sem a regra da abertura: ', 'Lateness without the opening rule: ') + sum('lateN') + '× · ' + hmin(sum('lateMin')) + '</p></div></div>');
+  /* 3. overtime */
+  const heP = P.filter(x => x.he > 0 || x.heAppr > 0).map(x => Object.assign({ heGap: Math.max(0, Math.round((x.he - x.heAppr) * 10) / 10) }, x));
+  const hs = k => Math.round(heP.reduce((a, x) => a + (x[k] || 0), 0) * 10) / 10;
+  h += sec('3 · ' + LL('Horas extra', 'Overtime'), LL('<b>Detetadas</b> = tempo a mais depois da hora de saída (a partir de ', '<b>Detected</b> = time after end of shift (from ') + cfgMin('MIN_HORA_EXTRA') + LL(' min) segundo a máquina. <b>Aprovadas</b> = cartas de horas extra registadas — só estas são pagas (seg–sáb × ', ' min) according to the machine. <b>Approved</b> = registered overtime letters — only these are paid (Mon–Sat × ') + d.he.m1 + LL(', domingo × ', ', Sunday × ') + d.he.m2 + LL('). <b>Sem carta</b> = detetadas mas não aprovadas: confirme se foram pedidas pelo responsável.', '). <b>Without letter</b> = detected but not approved: check if the manager asked for them.'),
+    '<div class="kpis" style="padding:10px 14px 0"><div class="kpi inf">' + LL('Detetadas', 'Detected') + '<b>' + hs('he').toLocaleString('pt-PT') + ' h</b><small class="muted">' + heP.reduce((a, x) => a + x.heDays, 0) + ' ' + LL('dias', 'days') + ' · ' + LL('domingo ', 'Sunday ') + hs('heSunDet') + ' h</small></div>' +
+    '<div class="kpi ok">' + LL('Aprovadas (pagas)', 'Approved (paid)') + '<b>' + hs('heAppr').toLocaleString('pt-PT') + ' h</b><small class="muted">' + money(heP.reduce((a, x) => a + x.heCost, 0)) + ' MT</small></div>' +
+    '<div class="kpi late">' + LL('Sem carta', 'Without letter') + '<b>' + hs('heGap').toLocaleString('pt-PT') + ' h</b><small class="muted">' + LL('valeria ≈ ', 'worth ≈ ') + money(heP.reduce((a, x) => a + (x.he ? x.heDetCost * x.heGap / x.he : 0), 0)) + ' MT</small></div></div>' +
+    '<div class="grid2"><div><h4 class="inf">' + LL('Mais horas extra (máquina)', 'Most overtime (machine)') + '</h4>' + rankBars(top(heP, 'he'), 'he', (v, x) => String(v).replace('.', ',') + ' h · ' + x.heDays + 'd', 'inf') + '</div>' +
+    '<div><h4 class="ok">' + LL('Aprovadas e custo', 'Approved and cost') + '</h4>' + (heP.some(x => x.heAppr) ? '<table><tr><th>' + LL('Pessoa', 'Person') + '</th><th class="n">' + LL('Aprov.', 'Appr.') + '</th><th class="n">' + LL('Dom.', 'Sun.') + '</th><th class="n">' + LL('Custo', 'Cost') + '</th><th class="n">' + LL('Sem carta', 'No letter') + '</th></tr>' +
+      heP.filter(x => x.heAppr).sort((a, b) => b.heCost - a.heCost).slice(0, 12).map(x => '<tr><td>' + pName(x) + '<br><small class="muted">' + esc(x.dept) + '</small></td><td class="n">' + String(x.heAppr).replace('.', ',') + ' h</td><td class="n">' + (x.heApprSun ? x.heApprSun + ' h' : '·') + '</td><td class="n"><b>' + money(x.heCost) + '</b></td><td class="n">' + (x.heGap ? '<span class="clate">' + String(x.heGap).replace('.', ',') + ' h</span>' : '·') + '</td></tr>').join('') + '</table>'
+      : '<p class="muted" style="padding:10px 14px">' + LL('Nenhuma carta de horas extra registada neste período — nada foi pago como hora extra.', 'No overtime letters registered in this period — nothing was paid as overtime.') + '</p>') + '</div></div>');
+  /* 4. single punch */
+  const op = top(P.filter(x => !x.isento), 'onePunch');
+  h += sec('4 · ' + LL('Quem não pica duas vezes por dia', 'Who does not punch twice a day'), LL('Dias com uma só picagem (entrada sem saída, ou saída sem entrada). Sem as duas picagens não se consegue confirmar atraso, saída antecipada nem horas extra. Não contam isentos nem quem está configurado como “só entrada” (ex.: Mercado).', 'Days with a single punch (in without out, or out without in). Without both punches lateness, early leave and overtime cannot be confirmed. Exempt staff and people set as “entry only” (e.g. Market) are excluded.'),
+    '<div class="grid2"><div>' + rankBars(op, 'onePunch', v => v + ' ' + LL('dias', 'days'), 'bad') + '</div><div><h4>' + LL('Datas', 'Dates') + '</h4>' + (op.length ? '<table>' + op.slice(0, 8).map(x => '<tr><td>' + pName(x) + '</td><td>' + x.onePunchDates.slice(-8).map(dd => '<span class="st s-chk">' + fmtD(dd).slice(0, 5) + '</span>').join(' ') + (x.onePunchDates.length > 8 ? ' …' : '') + '</td></tr>').join('') + '</table>' : '') + '</div></div>');
+  /* 5. most committed */
+  const best = elig.slice().sort((a, b) => b.score - a.score || a.lateAdjMin - b.lateAdjMin || b.worked - a.worked).slice(0, 10);
+  const worst = elig.slice().sort((a, b) => a.score - b.score || b.unj - a.unj).filter(x => x.score < 90).slice(0, 10);
+  const scoreTab = list => list.length ? '<table><tr><th>#</th><th>' + LL('Pessoa', 'Person') + '</th><th class="n">' + LL('Nota', 'Score') + '</th><th class="n">' + LL('Assid.', 'Attend.') + '</th><th class="n">' + LL('Pont.', 'Punct.') + '</th><th class="n">' + LL('Faltas', 'Abs.') + '</th><th class="n">' + LL('Atrasos', 'Late') + '</th></tr>' +
+    list.map((x, i) => '<tr><td>' + (i + 1) + '</td><td>' + pName(x) + '<br><small class="muted">' + esc(x.dept) + '</small></td><td class="n"><span class="st s-' + (x.score >= 90 ? 'ok' : x.score >= 70 ? 'late' : 'bad') + '">' + String(x.score).replace('.', ',') + '</span></td><td class="n">' + pct(x.assid) + '</td><td class="n">' + pct(x.pont) + '</td><td class="n">' + (x.unj + x.disp) + '</td><td class="n">' + x.lateAdjN + '</td></tr>').join('') + '</table>' : '<p class="muted" style="padding:10px 14px">—</p>';
+  h += sec('5 · ' + LL('Os mais cumpridores', 'Most committed'), LL('Nota de 0 a 100 = 100 − penalizações por dia de trabalho: falta injustificada 3 · dispensa 1,5 · falta justificada 0,5 · atraso 1 · saída antecipada 0,5. Só entram pessoas com 10+ dias de trabalho no período e com picagem obrigatória.', 'Score 0–100 = 100 − penalties per working day: unjustified 3 · dispensa 1.5 · justified 0.5 · late 1 · early leave 0.5. Only people with 10+ working days and required clock-in.'),
+    '<div class="grid2"><div><h4 class="ok">🏆 ' + LL('Melhores', 'Best') + '</h4>' + scoreTab(best) + '</div><div><h4 class="bad">⚠ ' + LL('Precisam de atenção', 'Need attention') + '</h4>' + scoreTab(worst) + '</div></div>');
+  /* 4. patterns */
+  const dow = [0, 0, 0, 0, 0, 0, 0]; P.forEach(x => x.dowAbs.forEach((v, i) => dow[i] += v));
+  const dn = LANG === 'pt' ? ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'], mxw = Math.max(1, ...dow);
+  h += sec('6 · ' + LL('Padrões de faltas', 'Absence patterns'), LL('Faltas injustificadas + dispensas por dia da semana, e quem falta colado a folga, domingo ou feriado (fins de semana prolongados).', 'Unjustified absences + dispensas by weekday, and who is absent next to a day off, Sunday or holiday (long weekends).'),
+    '<div class="grid2"><div><h4>' + LL('Por dia da semana', 'By weekday') + '</h4><div class="wk">' + [1, 2, 3, 4, 5, 6, 0].map(i => '<div><span class="wv">' + dow[i] + '</span><span class="wb" style="height:' + Math.round(dow[i] / mxw * 100) + '%"></span><span class="wl">' + dn[i] + '</span></div>').join('') + '</div></div>' +
+    '<div><h4 class="late">' + LL('Faltas coladas a folga / feriado', 'Absences next to day off / holiday') + '</h4>' + rankBars(top(P, 'bridge', 8), 'bridge', v => v + '×', 'late') + '</div></div>');
+  /* 5. fragmented leave */
+  const fer = d.ferias.filter(f => (!DA.ent || f.ent === DA.ent) && (!DA.dept || f.dept === DA.dept)).sort((a, b) => (b.flag - a.flag) || b.short - a.short || b.n - a.n);
+  h += sec('7 · ' + LL('Férias em dias soltos', 'Leave taken in small pieces'), LL('Últimos 12 meses. ⚠ = 3 ou mais pedaços curtos (até 3 dias), ou dois pedaços curtos com menos de 5 semanas entre eles. Férias devem ser gozadas de forma contínua.', 'Last 12 months. ⚠ = 3+ short pieces (up to 3 days), or two short pieces less than 5 weeks apart. Leave should be taken continuously.'),
+    fer.length ? '<table><tr><th>' + LL('Pessoa', 'Person') + '</th><th class="n">' + LL('Pedaços', 'Pieces') + '</th><th class="n">' + LL('Curtos', 'Short') + '</th><th class="n">' + LL('Dias', 'Days') + '</th><th>' + LL('Datas', 'Dates') + '</th></tr>' +
+      fer.map(f => '<tr' + (f.flag ? ' class="flag"' : '') + '><td>' + (f.flag ? '⚠ ' : '') + pName(f) + '<br><small class="muted">' + esc(f.dept) + '</small></td><td class="n">' + f.n + '</td><td class="n">' + f.short + '</td><td class="n">' + f.total + '</td><td>' + f.blocks.map(b => '<span class="st s-' + (b.dias <= 3 ? 'late' : 'inf') + '">' + fmtD(b.de).slice(0, 5) + (b.ate && b.ate !== b.de ? '→' + fmtD(b.ate).slice(0, 5) : '') + ' · ' + b.dias + 'd</span>').join(' ') + '</td></tr>').join('') + '</table>' : '<p class="muted" style="padding:10px 14px">' + LL('Sem férias registadas.', 'No leave recorded.') + '</p>');
+  /* 6. advances / loans */
+  const Ls = d.loans.filter(l => !l.none && (!DA.ent || l.ent === DA.ent) && (!DA.dept || l.dept === DA.dept)), none = d.loans.find(l => l.none);
+  const payTab = Ls.filter(l => l.onTime !== null).sort((a, b) => a.onTime - b.onTime);
+  h += sec('8 · ' + LL('Adiantamentos e empréstimos — ', 'Advances & loans — ') + d.year, LL('Pedidos feitos em ' + d.year + ' (sem saldos transitados). <b>Em dia</b> = quanto já pagou ÷ quanto devia ter pago segundo as prestações (100% = em dia).', 'Requests made in ' + d.year + ' (excluding carried balances). <b>On time</b> = paid ÷ what should be paid by now according to instalments (100% = on schedule).'),
+    '<div class="grid3"><div><h4>' + LL('Mais pedidos', 'Most requests') + '</h4>' + rankBars(top(Ls, 'n'), 'n', (v, x) => v + '× · ' + money(x.total)) + '</div>' +
+    '<div><h4>' + LL('Maiores valores', 'Largest amounts') + '</h4>' + rankBars(top(Ls, 'total'), 'total', (v, x) => money(v)) + '</div>' +
+    '<div><h4>' + LL('Pagamento', 'Repayment') + '</h4>' + (payTab.length ? '<table><tr><th>' + LL('Pessoa', 'Person') + '</th><th class="n">' + LL('Em dívida', 'Owed') + '</th><th class="n">' + LL('Em dia', 'On time') + '</th></tr>' +
+      payTab.slice(0, 12).map(l => '<tr><td>' + pName(l) + '</td><td class="n">' + money(l.saldo) + '</td><td class="n"><span class="st s-' + (l.onTime >= 95 ? 'ok' : l.onTime >= 70 ? 'late' : 'bad') + '">' + l.onTime + '%</span></td></tr>').join('') + '</table>' : '<p class="muted" style="padding:10px 14px">' + LL('Sem prestações a vencer.', 'No instalments due.') + '</p>') + '</div></div>' +
+    '<div class="kpis" style="padding:0 14px 6px"><div class="kpi">' + LL('Pedidos em ', 'Requests in ') + d.year + '<b>' + Ls.reduce((a, l) => a + l.n, 0) + '</b></div><div class="kpi">' + LL('Valor emprestado', 'Amount lent') + '<b>' + money(Ls.reduce((a, l) => a + l.total, 0)) + '</b></div><div class="kpi late">' + LL('Em dívida hoje', 'Owed today') + '<b>' + money(Ls.reduce((a, l) => a + l.saldo, 0)) + '</b></div><div class="kpi">' + LL('Maior pedido', 'Largest request') + '<b>' + money(Math.max(0, ...Ls.map(l => l.max))) + '</b></div></div>' +
+    (none && !DA.ent && !DA.dept ? '<p class="warnline">⚠ ' + none.allN + LL(' empréstimos antigos (', ' old loans (') + money(none.all) + LL(') ainda sem pessoa atribuída — atribua-os em Adiantamentos para entrarem nesta análise.', ') still have no person assigned — assign them in Advances so they count here.') + '</p>' : ''));
+  /* 7. departments */
+  const dl = depts.filter(x => !DA.dept || x === DA.dept).map(dp => { const L2 = P.filter(x => x.dept === dp), s2 = k => L2.reduce((a, x) => a + (x[k] || 0), 0), e2 = s2('eff'), w2 = s2('worked');
+    return { dp: dp, n: L2.length, assid: e2 ? Math.round((1 - (s2('unj') + s2('disp')) / e2) * 1000) / 10 : null, pont: w2 ? Math.round((1 - s2('lateAdjN') / w2) * 1000) / 10 : null, unj: s2('unj'), disp: s2('disp'), just: s2('just'), late: s2('lateAdjN'), open: s2('openedLate'), he: Math.round(s2('he') * 10) / 10 }; });
+  h += sec('9 · ' + LL('Comparação por departamento', 'Department comparison'), '',
+    '<table><tr><th>' + LL('Departamento', 'Department') + '</th><th class="n">' + LL('Pessoas', 'People') + '</th><th class="n">' + LL('Assiduidade', 'Attendance') + '</th><th class="n">' + LL('Pontualidade', 'Punctuality') + '</th><th class="n">' + LL('Injust.', 'Unjust.') + '</th><th class="n">Disp.</th><th class="n">' + LL('Justif.', 'Justif.') + '</th><th class="n">' + LL('Atrasos', 'Late') + '</th><th class="n">' + LL('Abert. tarde', 'Late open') + '</th><th class="n">' + LL('H. extra', 'Overtime') + '</th></tr>' +
+    dl.map(x => '<tr><td><a class="click" onclick="DA.dept=\'' + esc(x.dp) + '\';renderDash2(window._dash)"><b>' + esc(x.dp) + '</b></a></td><td class="n">' + x.n + '</td><td class="n">' + pct(x.assid) + '</td><td class="n">' + pct(x.pont) + '</td><td class="n">' + x.unj + '</td><td class="n">' + x.disp + '</td><td class="n">' + x.just + '</td><td class="n">' + x.late + '</td><td class="n">' + x.open + '</td><td class="n">' + (x.he ? String(x.he).replace('.', ',') + ' h' : '·') + '</td></tr>').join('') + '</table>');
+  document.getElementById('main').innerHTML = '<div class="dash">' + h + '</div>';
+}
+function absTable(P) {
+  const cols = [['nome', LL('Pessoa', 'Person')], ['due', LL('Dias previstos', 'Due days')], ['unj', LL('Injustificadas', 'Unjustified')], ['disp', 'Dispensa'], ['just', LL('Justificadas', 'Justified')], ['fer', LL('Férias', 'Leave')], ['longL', LL('Lic. longa', 'Long leave')], ['chk', LL('Por verificar', 'To check')], ['tot', 'Total']];
+  const L = P.map(x => Object.assign({ tot: x.unj + x.disp + x.just }, x)).filter(x => x.tot || x.fer || x.longL || x.chk);
+  const k = DA.sort; L.sort((a, b) => k === 'nome' ? String(a.nome).localeCompare(b.nome) : (b[k] || 0) - (a[k] || 0) || b.tot - a.tot);
+  const shown = DA.all ? L : L.slice(0, 15);
+  const detail = x => Object.keys(x.types).filter(t2 => ['Falta', 'Dispensa', 'Férias', 'Férias pagas', 'Verificar', 'Licença de parto'].indexOf(t2) < 0).map(t2 => t2 + ': ' + x.types[t2]).join(' · ');
+  return '<h4 style="margin-top:6px">' + LL('Detalhe por pessoa e por tipo', 'Detail per person and type') + ' <small class="muted">(' + L.length + ')</small></h4><div class="tw"><table class="abs"><tr>' + cols.map(c => '<th class="' + (c[0] === 'nome' ? '' : 'n') + ' click" onclick="DA.sort=\'' + c[0] + '\';renderDash2(window._dash)">' + c[1] + (DA.sort === c[0] ? ' ▾' : '') + '</th>').join('') + '</tr>' +
+    shown.map(x => '<tr><td>' + pName(x) + '<br><small class="muted">' + esc(x.dept) + '</small></td><td class="n">' + x.due + '</td><td class="n">' + (x.unj ? '<b class="cbad">' + x.unj + '</b>' : '·') + '</td><td class="n">' + (x.disp ? '<b class="clate">' + x.disp + '</b>' : '·') + '</td><td class="n" title="' + esc(detail(x)) + '">' + (x.just ? x.just : '·') + '</td><td class="n">' + (x.fer || '·') + '</td><td class="n">' + (x.longL || '·') + '</td><td class="n">' + (x.chk || '·') + '</td><td class="n"><b>' + x.tot + '</b></td></tr>').join('') + '</table></div>' +
+    (L.length > 15 ? '<div class="act" style="padding:8px 14px"><button class="btn sec sm" onclick="DA.all=!DA.all;renderDash2(window._dash)">' + (DA.all ? LL('Mostrar menos', 'Show less') : LL('Mostrar todos', 'Show all') + ' (' + L.length + ')') + '</button></div>' : '');
+}
 /* =========================== ⚙ SETTINGS =========================== */
 let SETV = 'co';
 const SET_SECTIONS = () => [['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
