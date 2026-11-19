@@ -878,7 +878,7 @@ async function leaveForm(l, presetId) {
     '<label class="lf_r">' + t('fromD') + ' *<input type="date" id="lf_de" value="' + (l && !days ? l.de : '') + '"></label>' +
     '<label class="lf_r">' + t('toD') + '<input type="date" id="lf_ate" value="' + (l && !days ? l.ate : '') + '"></label>' +
     '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day" onchange="lfAdd()"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
-    ferFields('lf', l ? l.dias : '') +
+    ferFields('lf', l ? l.dias : '') + fpFields('lf', l) +
     '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="lf_ret" value="' + (l && /Regressa: (\d{2})\/(\d{2})\/(\d{4})/.test(l.notas || '') ? (l.notas.match(/Regressa: (\d{2})\/(\d{2})\/(\d{4})/).slice(1).reverse().join('-')) : '') + '"></label>' +
     refField('lf', 'FA', l ? l.ref : '', l ? l.notas : '') +
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
@@ -896,14 +896,18 @@ async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
   if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
   const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: tagNote(retNote(val('lf_note'), val('lf_ret')), 'Carta', isFer('lf') ? val('lf_dc') : ''), estado: val('lf_st') || 'Pendente' };
-  if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
-  if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
+  const fp = isFP('lf');
+  if (fp) { p.de = p.ate = val('lf_pp'); p.datas = ''; p.nota = fpNote('lf', p.nota); }
+  else if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
+  if (!id || (fp ? !p.de : (mode === 'd' ? !LDAYS.length : !p.de)) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
   document.getElementById('lf_btn').disabled = true;
   try {
     const sa = document.getElementById('lf_sa');
     if (window.ROLE !== 'assistant' && isFer('lf') && sa && sa.value !== '' && sa.value !== sa.dataset.sys) await call('balanceFix', { id: id, saldo: Number(sa.value), before: mode === 'd' ? LDAYS[0] : p.de, ref: p.ref });
     await call(window.ROLE === 'assistant' ? 'aSubmit' : 'leaveSave', p);
-    invalidate(); closeModal(); toast(window.ROLE === 'assistant' ? t('sent') : t('saved')); render();
+    let extra = '';
+    if (fp && !n && window.ROLE !== 'assistant' && (document.getElementById('lf_fd') || {}).checked) { const r = await call('fpDebt', { id: id, dias: p.dias, ref: p.ref }); extra = ' · ' + LL('pago à dívida: ', 'paid to debt: ') + money(r.pago); }
+    invalidate(); closeModal(); toast((window.ROLE === 'assistant' ? t('sent') : t('saved')) + extra); render();
   } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lf_btn').disabled = false; }
 }
 
@@ -1217,7 +1221,7 @@ function assistFields(meta) {
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
       '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
       '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
-      ferFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+      ferFields('af') + fpFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Adiantamento') {
     f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
       loanFields('af', 'af_tot', 'af_pre', '', '', '') +
@@ -1393,6 +1397,7 @@ const SET_NUMS = () => ({
     ['PAY_HE_MULT_DOM', LL('Hora extra (domingo)', 'Overtime (Sunday)'), '×', ''],
     ['PAY_INSS_TRAB', LL('INSS do trabalhador', 'INSS employee'), '%', LL('% do salário base descontado ao trabalhador.', '% of base salary deducted from the worker.')],
     ['PAY_INSS_EMP', LL('INSS da empresa', 'INSS employer'), '%', LL('% do salário base pago pela empresa.', '% of base salary paid by the company.')],
+    ['FP_INCLUI_OUTRAS', LL('Férias pagas incluem outras remunerações', 'Paid leave includes other pay'), '0/1', LL('1 = (salário base + outras remunerações) ÷ 30 × dias (como nas cartas); 0 = só salário base.', '1 = (base + other pay) ÷ 30 × days (as in the letters); 0 = base salary only.')],
     ['PAY_SAIDA_ANTECIPADA', LL('Descontar saída antecipada', 'Deduct early leave'), '0/1', LL('1 = os minutos de saída antecipada descontam como atraso; 0 = não.', '1 = early-leave minutes are deducted like lateness; 0 = no.')]],
   fer: [
     ['FERIAS_ANO1', LL('Dias de férias — 1º ano', 'Leave days — 1st year'), LL('dias', 'days'), ''],
@@ -1475,6 +1480,44 @@ async function setSync() {
   try { const r = await call('syncNow', {}); invalidate(); toast(LL('Sincronizado: ', 'Synced: ') + r.added + ' ' + LL('picagens novas', 'new punches')); render(); }
   catch (e) { toast(t('error') + ': ' + e); b.disabled = false; }
 }
+
+/* ---------- Férias pagas (paid out, no time off): payment month + value = monthly pay ÷ 30 × days; optional: use it to pay the debt ---------- */
+const isFP = P => val(P === 'af' ? 'af_lt' : 'lf_t') === 'Férias pagas';
+function payPeriods() {
+  const t0 = todayStr(), y = +t0.slice(0, 4), m = +t0.slice(5, 7), d = +t0.slice(8, 10), sd = 26, out = [];
+  const MES = LANG === 'pt' ? ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'] : ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+  const endM = d >= sd ? m + 1 : m;   // the period is named by the month it ends in
+  for (let k = -1; k <= 2; k++) { const e = new Date(y, endM - 1 + k, 1, 12), s0 = new Date(e.getFullYear(), e.getMonth() - 1, sd, 12);
+    const ymd = x => x.getFullYear() + '-' + String(x.getMonth() + 1).padStart(2, '0') + '-' + String(x.getDate()).padStart(2, '0');
+    out.push({ de: ymd(s0), label: MES[e.getMonth()] + ' ' + e.getFullYear() + ' (' + fmtD(ymd(s0)).slice(0, 5) + '–' + String(sd - 1) + '/' + String(e.getMonth() + 1).padStart(2, '0') + ')', cur: k === 0 }); }
+  return out;
+}
+function fpFields(P, l) {
+  const pp = payPeriods(), cur = l && l.tipo === 'Férias pagas' ? l.de : '';
+  return '<label class="' + P + '_fp">' + LL('Pago no salário de', 'Paid in the payroll of') + ' *<select id="' + P + '_pp">' + pp.map(x => '<option value="' + x.de + '"' + ((cur ? cur === x.de : x.cur) ? ' selected' : '') + '>' + x.label + '</option>').join('') + (cur && !pp.some(x => x.de === cur) ? '<option value="' + cur + '" selected>' + fmtD(cur) + '</option>' : '') + '</select></label>' +
+    '<label class="' + P + '_fp">' + LL('Valor a pagar', 'Amount to pay') + '<input id="' + P + '_fv" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"><small class="muted" id="' + P + '_fvi"></small></label>' +
+    '<label class="' + P + '_fp full" id="' + P + '_fdw" style="display:none;flex-direction:row;align-items:center;gap:8px"><input type="checkbox" id="' + P + '_fd" style="width:auto"' + (l && /\[dívida\]/.test(l.notas || '') ? ' checked disabled' : '') + '> ' + LL('Usar este valor para pagar a dívida', 'Use this amount to pay the debt') + ' <span class="muted" id="' + P + '_fdi"></span></label>';
+}
+function fpShow(P) {
+  const fp = isFP(P), hide = (el, h) => { if (el) el.style.display = h ? 'none' : ''; };
+  document.querySelectorAll('.' + P + '_fp').forEach(e => { if (e.id !== P + '_fdw') e.style.display = fp ? '' : 'none'; });
+  const lab = id => { const e = document.getElementById(id); return e && e.closest('label'); };
+  hide(lab(P + '_m'), fp); hide(lab(P + '_ret'), fp);
+  if (fp) { document.querySelectorAll('.' + P + '_r, .' + P + '_d').forEach(e => e.style.display = 'none'); }
+  else if (fpShow['_' + P]) { if (P === 'af') afMode(); else lfMode(); }
+  fpShow['_' + P] = fp; fpCalc(P);
+}
+function fpCalc(P) {
+  const fv = document.getElementById(P + '_fv'); if (!fv || !isFP(P)) return;
+  const inf = PINFO[pidOf(P)] || {}, dias = Number(val(P === 'af' ? 'af_nd' : 'lf_n')) || 0;
+  const v = inf.fpMes ? Math.round(inf.fpMes / 30 * dias * 100) / 100 : 0;
+  fv.value = v ? money(v) : ''; fv.dataset.v = v;
+  const fi = document.getElementById(P + '_fvi'); if (fi) fi.textContent = inf.fpMes ? LL('salário mensal ÷ 30 × ', 'monthly pay ÷ 30 × ') + dias + LL(' dias', ' days') : '';
+  const w = document.getElementById(P + '_fdw'), di = document.getElementById(P + '_fdi');
+  if (w) w.style.display = inf.divida > 0 ? 'flex' : 'none';
+  if (di) di.textContent = inf.divida > 0 ? '(' + LL('dívida atual: ', 'current debt: ') + money(inf.divida) + ')' : '';
+}
+function fpNote(P, nota) { const fd = document.getElementById(P + '_fd'); return fd && fd.checked && !fd.disabled ? (nota ? nota + ' · ' : '') + LL('Valor usado para pagar a dívida', 'Amount used to pay the debt') + ' [dívida]' : nota; }
 /* ---------- letter check (assistants): read the photo with OCR and compare it with the form ---------- */
 const OCR = { file: null, text: '', conf: 0, busy: null, err: '' };
 const TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/';
@@ -1523,7 +1566,7 @@ function ocrNums(t) {   /* every number / amount in a text: 10 000,00 · 10.000 
 function lev(a, b) { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
 function nameIn(name, t) { const words = nrm(t).split(/[^a-z]+/).filter(w => w.length > 1); return nrm(name).split(/[^a-z]+/).filter(w => w.length > 2).every(tok => words.some(w => w === tok || (tok.length >= 5 && lev(w, tok) <= 1))); }
 const compact = s => nrm(s).replace(/[^a-z0-9]/g, '').replace(/o/g, '0').replace(/[il]/g, '1');
-function saldoNums(t, maxV) { const x = nrm(t), out = []; let i = -1; while ((i = x.indexOf('saldo', i + 1)) >= 0) ocrNums(x.slice(i, i + 70).replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ')).forEach(v => { if (v <= maxV) out.push(v); }); return out; }
+function saldoNums(t, maxV) { const x = nrm(t), out = []; let i = -1; while ((i = x.indexOf('saldo', i + 1)) >= 0) { const v = ocrNums(x.slice(i, i + 45).replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' '))[0]; if (v !== undefined && v <= maxV) out.push(v); } return out; }   /* the first number after each 'saldo' */
 /* balances on the letter: every one must be the app's previous or new balance, and when the letter shows two, both must be there */
 function saldoOk(sn, app) { const eq = (a, b) => Math.abs(a - b) < 0.011, u = sn.filter((v, i) => sn.findIndex(x => eq(x, v)) === i);
   return u.every(v => app.some(a => eq(a, v))) && (u.length < 2 || app.every(a => u.some(v => eq(a, v)))); }
@@ -1537,8 +1580,20 @@ function letterCheck(show) {
     const dates = ocrDates(t), nums = ocrNums(String(t).replace(/[a-z]{2}\s*\/\s*[a-z]{2}\s*\/[\d\s\/]+/gi, ' ').replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ')), has = n => n !== '' && n != null && nums.some(v => Math.abs(v - Number(n)) < 0.011), fd = d => d ? d.split('-').reverse().join('/') : '—';
     add(LL('Nome', 'Name'), !!p && nameIn(p.nome, t), p ? p.nome : '—');
     add(LL('Data da carta', 'Letter date'), !!val('af_dc') && dates.has(val('af_dc')), fd(val('af_dc')));
-    const ref = getRef('af'); add(LL('Referência', 'Reference'), !!ref && compact(t).indexOf(compact(ref)) >= 0, ref || '—');
-    if (AF.tipo === 'Licença') {
+    const ref = getRef('af'), ct = compact(t);
+    let refOk = !!ref && ct.indexOf(compact(ref)) >= 0, refInf = ref || '—';
+    if (!refOk && ref) {   /* type, company, month and year read, but the number not (handwritten / corrected over print) → allowed, flagged for Moussa */
+      const m = ref.match(/^([A-Z]{2})\/([A-Z]{2})\/(\d{1,3})\/(\d{2})\/(\d{2})$/);
+      if (m && new RegExp(compact(m[1] + m[2]) + '[0-9a-z]{0,4}' + compact(m[4])).test(ct)) { refOk = 'warn'; refInf = ref + ' — ' + LL('o número não foi lido (escrito à mão?). Confirme na carta; o pedido vai marcado para o Moussa.', 'the number could not be read (handwritten?). Check the letter; the request is flagged for Moussa.'); }
+    }
+    add(LL('Referência', 'Reference'), refOk, refInf);
+    if (AF.tipo === 'Licença' && isFP('af')) {
+      const v = Number((document.getElementById('af_fv') || {}).dataset ? document.getElementById('af_fv').dataset.v : 0) || 0;
+      add(LL('Valor', 'Amount'), v > 0 && nums.some(n => Math.abs(n - v) <= 1), v ? money(v) : '—');
+      add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
+      const sn = saldoNums(t, 400), sa = val('af_sa'), nw = val('af_sn');
+      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, [Number(sa), Number(nw)]), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + sa + ' → ' + nw);
+    } else if (AF.tipo === 'Licença') {
       const md = val('af_m') === 'd', days = md ? AF.days : [val('af_de'), val('af_ate') || val('af_de')];
       add(LL('Período', 'Period'), days.length > 0 && days.every(d => d && dates.has(d)), md ? days.map(fd).join(', ') : fd(days[0]) + ' → ' + fd(days[1]));
       add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
@@ -1558,7 +1613,7 @@ function letterCheck(show) {
   if (show && box) box.innerHTML = unreadable
     ? '<div class="ocr bad"><b>✗ ' + LL('Foto ilegível', 'Photo unreadable') + '</b><br>' + LL('Tire outra foto: carta inteira, boa luz, sem sombra, de frente.', 'Take another photo: whole letter, good light, no shadow, straight on.') + '</div>'
     : '<div class="ocr ' + (ok ? 'good' : 'bad') + '"><b>' + (ok ? '✓ ' + LL('A carta corresponde ao pedido', 'The letter matches the request') : '✗ ' + LL('A carta não corresponde — não pode enviar', 'The letter does not match — cannot submit')) + '</b>' +
-      C.map(c => '<div>' + (c.ok === true ? '✓' : c.ok === false ? '✗' : '–') + ' ' + c.label + ': <span class="muted">' + esc(c.info) + '</span></div>').join('') +
+      C.map(c => '<div>' + (c.ok === true ? '✓' : c.ok === false ? '✗' : c.ok === 'warn' ? '⚠' : '–') + ' ' + c.label + ': <span class="muted">' + esc(c.info) + '</span></div>').join('') +
       (ok ? '' : '<small class="muted">' + LL('Corrija o formulário para ficar igual à carta, ou tire uma foto mais nítida. Saldo diferente: escreva na nota e fale com o Moussa.', 'Fix the form to match the letter, or take a sharper photo. Different balance: note it and talk to Moussa.') + '</small>') + '</div>';
   return { ok: ok, unreadable: unreadable, checks: C };
 }
@@ -1592,8 +1647,9 @@ function loanFields(P, tot, pre, vt, vp, vn) {
     '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
 }
 const isFer = P => /^Férias/.test(val(P === 'af' ? 'af_lt' : 'lf_t'));
-function ferShow(P) { const f = isFer(P); document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = f ? '' : 'none'); if (P !== 'lo' && !(P === 'af' && AF.tipo === 'Adiantamento')) document.querySelectorAll('.' + P + '_refw').forEach(e => e.style.display = f ? '' : 'none'); balCalc(P); }
+function ferShow(P) { fpShow(P); const f = isFer(P); document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = f ? '' : 'none'); if (P !== 'lo' && !(P === 'af' && AF.tipo === 'Adiantamento')) document.querySelectorAll('.' + P + '_refw').forEach(e => e.style.display = f ? '' : 'none'); balCalc(P); }
 function balCalc(P) {
+  fpCalc(P);
   const sa = document.getElementById(P + '_sa'), sn = document.getElementById(P + '_sn'); if (!sa || !sn) return;
   const nd = val(P === 'af' ? 'af_nd' : 'lf_n');
   sn.value = sa.value === '' ? '' : String(Math.round((Number(sa.value) - Number(nd || 0)) * 10) / 10);
@@ -1648,6 +1704,7 @@ async function formSync(P, newPerson) {
   } else loanCalc('lo', 'lo_v', 'lo_i');
   if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
   refLoad(P);
+  fpCalc(P);
   if (P === 'af' && OCR.text) letterCheck(true);
 }
 function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
@@ -1658,7 +1715,8 @@ async function assistSubmit() {
   let dados = {};
   if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
   if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: tagNote(retNote(val('af_n'), val('af_ret')), 'Carta', isFer('af') ? val('af_dc') : '') };
-    if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
+    if (isFP('af')) { dados.de = dados.ate = val('af_pp'); dados.datas = []; dados.regresso = ''; dados.nota = fpNote('af', dados.nota); }
+    if (isFP('af') ? !dados.de : (md ? !dados.datas.length : !dados.de)) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
   if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: tagNote(val('af_n'), 'Carta', val('af_dc')) }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (!id) return toast(t('required'));
@@ -1673,6 +1731,7 @@ async function assistSubmit() {
     if (OCR.err) return toast(LL('A carta não pôde ser lida — tire outra foto', 'The letter could not be read — take another photo'));
     if (!OCR.text) { toast('⏳ ' + LL('A ler a carta… aguarde', 'Reading the letter… please wait')); try { await OCR.busy; } catch (e) {} }
     const chk = letterCheck(true);
+    if (chk.ok && chk.checks.some(c => c.ok === 'warn')) dados.nota = (dados.nota ? dados.nota + ' · ' : '') + LL('⚠ Nº da referência não lido na carta — confirmar', '⚠ Reference number not read on the letter — check');
     if (!chk.ok) { document.getElementById('af_ocr').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast(chk.unreadable ? LL('Foto ilegível — tire outra foto da carta', 'Photo unreadable — take another photo') : LL('A carta não corresponde ao pedido — corrija os pontos a vermelho', 'The letter does not match the request — fix the points in red')); }
   }
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
