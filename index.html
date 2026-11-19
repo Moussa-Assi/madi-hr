@@ -849,7 +849,7 @@ async function leaveForm(l, presetId) {
     '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day" onchange="lfAdd()"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
     ferFields('lf', l ? l.dias : '') +
     '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="lf_ret" value="' + (l && /Regressa: (\d{2})\/(\d{2})\/(\d{4})/.test(l.notas || '') ? (l.notas.match(/Regressa: (\d{2})\/(\d{2})\/(\d{4})/).slice(1).reverse().join('-')) : '') + '"></label>' +
-    refField('lf', 'FA', l ? l.ref : '') +
+    refField('lf', 'FA', l ? l.ref : '', l ? l.notas : '') +
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
     '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? l.notas : '') + '"></label>' +
@@ -864,7 +864,7 @@ function lfShow() { const el = document.getElementById('lf_days'); if (el) el.in
 async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
   if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
-  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: retNote(val('lf_note'), val('lf_ret')), estado: val('lf_st') || 'Pendente' };
+  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: tagNote(retNote(val('lf_note'), val('lf_ret')), 'Carta', isFer('lf') ? val('lf_dc') : ''), estado: val('lf_st') || 'Pendente' };
   if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
   if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
   document.getElementById('lf_btn').disabled = true;
@@ -999,7 +999,7 @@ async function loanForm(x, presetId) {
     '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
     '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
     '<label>' + t('entity') + '<input id="lo_e" list="dl_lent" value="' + v2('ent', '') + '"></label>' +
-    refField('lo', 'CR', x ? x.ref : '') +
+    refField('lo', 'CR', x ? x.ref : '', x ? x.notas : '') +
     '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
@@ -1008,7 +1008,7 @@ async function loanForm(x, presetId) {
 }
 async function saveLoan(n) {
   const id = pid(val('lo_p'));
-  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: val('lo_n') };
+  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: tagNote(val('lo_n'), 'Carta', val('lo_dc')) };
   if (!id || !p.total) return toast(t('required'));
   document.getElementById('lo_btn').disabled = true;
   try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
@@ -1209,16 +1209,19 @@ async function retCalc(P) {
   if (!id || !last) return;
   try { const r = await call(window.ROLE === 'assistant' ? 'aReturn' : 'returnDate', { id: id, last: last }); if (r && r.date) el.value = r.date; } catch (e) {}
 }
+const tagNote = (nota, key, ymd) => { const re = new RegExp('\\s*·?\\s*' + key + ': \\d{2}/\\d{2}/\\d{4}', 'g'), n = String(nota || '').replace(re, '').trim(); return ymd ? (n ? n + ' · ' : '') + key + ': ' + ymd.split('-').reverse().join('/') : n; };
 const retNote = (nota, ret) => { const n = String(nota || '').replace(/\s*·?\s*Regressa: \d{2}\/\d{2}\/\d{4}/g, '').trim(); return ret ? (n ? n + ' · ' : '') + 'Regressa: ' + ret.split('-').reverse().join('/') : n; };
-document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); if (/^(af|lf|lo)_(p|de|ate|m|d)$/.test(id || '')) formSync(id.slice(0, 2), /_p$/.test(id)); });
+document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); if (/^(af|lf|lo)_(p|de|ate|m|d|dc)$/.test(id || '')) formSync(id.slice(0, 2), /_p$/.test(id)); });
 /* ---------- references (FA/TS/01/11/26), leave balance and loan instalments ---------- */
 const LL = (pt, en) => LANG === 'pt' ? pt : en;
 const REFCO = { CP: 'CPCM', KI: 'K Import', TS: 'Tsutsuma', GM: 'Galerie Madi', AM: 'Ali Madi (Casa)' };
 const PINFO = {}, FS = {};
 const isA = () => window.ROLE === 'assistant';
 const pidOf = P => Number(String(val(P + '_p')).replace(/\D.*$/, '')) || 0;
-function refField(P, kind, cur) {
-  return '<label class="full ' + P + '_refw">' + LL('Referência', 'Reference') + ' *<select id="' + P + '_refs" data-kind="' + kind + '" data-cur="' + esc(cur || '') + '">' + (cur ? '<option selected>' + esc(cur) + '</option>' : '<option value="">' + LL('Escolha a pessoa primeiro', 'Choose the person first') + '</option>') + '</select><small class="muted" id="' + P + '_refi"></small></label>' +
+function refField(P, kind, cur, notas) {
+  const m = String(notas || '').match(/Carta: (\d{2})\/(\d{2})\/(\d{4})/), dc = m ? m[3] + '-' + m[2] + '-' + m[1] : '';
+  return '<label class="' + P + '_refw">' + LL('Data da carta', 'Letter date') + ' *<input type="date" id="' + P + '_dc" value="' + dc + '"><small class="muted">' + LL('quando a carta foi feita — define a lista de referências', 'when the letter was written — sets the reference list') + '</small></label>' +
+    '<label class="full ' + P + '_refw">' + LL('Referência', 'Reference') + ' *<select id="' + P + '_refs" data-kind="' + kind + '" data-cur="' + esc(cur || '') + '">' + (cur ? '<option selected>' + esc(cur) + '</option>' : '<option value="">' + LL('Escolha a pessoa e a data da carta', 'Choose the person and the letter date') + '</option>') + '</select><small class="muted" id="' + P + '_refi"></small></label>' +
     '<label class="full ' + P + '_refw">' + LL('Referência — exceção (opcional)', 'Reference — exception (optional)') + '<input id="' + P + '_refx" autocomplete="off" placeholder="' + LL('só para uma exceção — substitui a lista', 'only for an exception — replaces the list') + '"></label>';
 }
 const getRef = P => (val(P + '_refx') || '').trim().toUpperCase() || val(P + '_refs');
@@ -1252,17 +1255,13 @@ function loanCalc(P, tot, pre) {
   const sd = document.getElementById(P + '_sd'), ns = document.getElementById(P + '_ns');
   if (ns && sd) ns.value = sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money((Number(sd.dataset.v) || 0) + (FS[P] && FS[P].edit ? 0 : v));
 }
-function refDate(P) {
-  if (P === 'lo') return val('lo_d') || todayStr();
-  if (P === 'af' && AF.tipo !== 'Licença') return todayStr();
-  const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
-  return (md ? days[0] : val(P + '_de')) || todayStr();
-}
+const refDate = P => val(P + '_dc');   /* the letter date (when it was written) decides the month of the reference */
 /* reference list: next free numbers for the person's company and the letter's month (continues after the last one used, also for a closed month) */
 async function refLoad(P) {
   const s = document.getElementById(P + '_refs'); if (!s) return;
   const id = pidOf(P); if (!id) return;
   const kind = s.dataset.kind, date = refDate(P), cur = s.dataset.cur, prev = s.value;
+  if (!date) { if (!cur) { s.innerHTML = '<option value="">' + LL('Escreva a data da carta', 'Enter the letter date') + '</option>'; s.dataset.key = ''; } return; }
   const key = id + '|' + kind + '|' + date.slice(0, 7); if (s.dataset.key === key) return; s.dataset.key = key;
   try {
     const r = await call(isA() ? 'aRefList' : 'refList', { id: id, tipo: kind, date: date });
@@ -1305,13 +1304,14 @@ async function assistSubmit() {
   const id = Number(val('af_p')); AF.id = id;
   let dados = {};
   if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
-  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: retNote(val('af_n'), val('af_ret')) };
+  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: tagNote(retNote(val('af_n'), val('af_ret')), 'Carta', isFer('af') ? val('af_dc') : '') };
     if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
-  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
+  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: tagNote(val('af_n'), 'Carta', val('af_dc')) }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (!id) return toast(t('required'));
   const needRef = AF.tipo === 'Adiantamento' || (AF.tipo === 'Licença' && isFer('af'));
   const ref = needRef ? getRef('af') : AF.tipo === 'Licença' ? '' : val('af_ref');
+  if (needRef && !val('af_dc')) return toast(LL('Escreva a data da carta', 'Enter the letter date'));
   if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
   try {
@@ -1341,7 +1341,8 @@ function renderApprovals(d) {
     if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
       info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
-      '<div class="row"><span>' + reqSummary(r) + '</span></div>' + (info ? '<div class="row muted">' + info + '</div>' : '') +
+      '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
+      (x.nota ? '<div class="row">' + (/saldo|balan/i.test(x.nota) ? '<span class="st s-bad">⚠ ' + LL('Verificar saldo', 'Check balance') + '</span> ' : '') + '<span class="muted">' + LL('Nota', 'Note') + ': ' + esc(x.nota) + '</span></div>' : '') + (info ? '<div class="row muted">' + info + '</div>' : '') +
       '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + edit + '</div>' +
       '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
   };
