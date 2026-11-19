@@ -285,7 +285,7 @@ const NOT_DUE = ['Domingo','Folga','Feriado','Tolerância','Férias','Licença d
 const RESOLVE = ['Presente','Confirmado','Falta justificada','Baixa médica','Falta','Dispensa','Serviço externo','Mercado','Máquina','Energia','Folga','Férias','Licença','Isento'];
 
 let LANG = 'en';
-try { LANG = localStorage.getItem('rh_lang') || 'en'; } catch (e) {}
+try { LANG = window.ROLE === 'assistant' ? (localStorage.getItem('rh_lang_a') || 'pt') : (localStorage.getItem('rh_lang') || 'en'); } catch (e) { if (window.ROLE === 'assistant') LANG = 'pt'; }
 const t = k => T[LANG][k];
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const stName = s => LANG === 'pt' ? s : ((ST[s] || {}).en || s);
@@ -349,7 +349,7 @@ async function sbUrl(u) {
   document.addEventListener('click', e => { const a = e.target.closest && e.target.closest('a[href^="sbfile:"]'); if (!a) return; e.preventDefault(); window.open(a.getAttribute('href'), '_blank'); }, true);
 })();
 function toast(m) { const el = document.getElementById('toast'); el.textContent = m; el.style.display = 'block'; setTimeout(() => el.style.display = 'none', 2600); }
-function setLang(l) { LANG = l; try { localStorage.setItem('rh_lang', l); } catch (e) {} paintChrome(); render(); }
+function setLang(l) { LANG = l; try { localStorage.setItem(window.ROLE === 'assistant' ? 'rh_lang_a' : 'rh_lang', l); } catch (e) {} paintChrome(); render(); }
 document.getElementById('lang-pt').onclick = () => setLang('pt');
 document.getElementById('lang-en').onclick = () => setLang('en');
 
@@ -846,8 +846,9 @@ async function leaveForm(l, presetId) {
     '<label>' + t('mode') + '<select id="lf_m" onchange="lfMode()"><option value="r"' + (days ? '' : ' selected') + '>' + t('modeRange') + '</option><option value="d"' + (days ? ' selected' : '') + '>' + t('modeDays') + '</option></select></label>' +
     '<label class="lf_r">' + t('fromD') + ' *<input type="date" id="lf_de" value="' + (l && !days ? l.de : '') + '"></label>' +
     '<label class="lf_r">' + t('toD') + '<input type="date" id="lf_ate" value="' + (l && !days ? l.ate : '') + '"></label>' +
-    '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
+    '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day" onchange="lfAdd()"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
     '<label>' + t('nDays') + '<input type="number" id="lf_n" value="' + (l ? l.dias : '') + '" placeholder="' + t('nDaysHint') + '"></label>' +
+    '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="lf_ret" value="' + (l && /Regressa: (\d{2})\/(\d{2})\/(\d{4})/.test(l.notas || '') ? (l.notas.match(/Regressa: (\d{2})\/(\d{2})\/(\d{4})/).slice(1).reverse().join('-')) : '') + '"></label>' +
     '<label>' + t('ref') + '<input id="lf_ref" value="' + esc(l ? l.ref : '') + '"></label>' +
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
@@ -859,10 +860,11 @@ async function leaveForm(l, presetId) {
 function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 function lfAdd() { const x = val('lf_day'); if (x && LDAYS.indexOf(x) < 0) { LDAYS.push(x); LDAYS.sort(); } lfShow(); }
 function lfDel(i) { LDAYS.splice(i, 1); lfShow(); }
-function lfShow() { const el = document.getElementById('lf_days'); if (el) el.innerHTML = LDAYS.map((d, i) => '<span class="chip on" onclick="lfDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); }
+function lfShow() { const el = document.getElementById('lf_days'); if (el) el.innerHTML = LDAYS.map((d, i) => '<span class="chip on" onclick="lfDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); if (!(document.getElementById('lf_ret') || {}).value) retCalc('lf'); }
 async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
-  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: val('lf_ref'), doc: val('lf_doc'), nota: val('lf_note'), estado: val('lf_st') || 'Pendente' };
+  if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
+  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: val('lf_ref'), doc: val('lf_doc'), nota: retNote(val('lf_note'), val('lf_ret')), estado: val('lf_st') || 'Pendente' };
   if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
   if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
   document.getElementById('lf_btn').disabled = true;
@@ -1015,7 +1017,7 @@ async function saveLoan(n) {
 async function renderAssist() {
   try {
     const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
-    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : '') + (p.saldo !== '' && p.saldo != null ? ' (' + t('bal') + ' ' + p.saldo + ')' : ''), nome: p.nome }));
+    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : '') + (p.saldo !== '' && p.saldo != null ? ' (' + t('bal') + ' ' + p.saldo + ')' : ''), nome: p.nome, ent: p.ent }));
     CACHE.leaves = { types: meta.types, rows: [] };
     const mine = await call('aList');
     document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><span class="muted">' + t('reqHint') + '</span><span class="sp"></span><button class="btn" onclick="leaveForm(null)">' + t('newLv') + '</button></div>' +
@@ -1028,9 +1030,24 @@ async function renderAssist() {
 function personSelect(idAttr, sel) {
   const list = (PEOPLE_DL || []).slice().sort((a, b) => a.id - b.id);
   const has = list.some(p => p.id === Number(sel));
-  return '<select id="' + idAttr + '" style="min-width:240px"><option value="">— ' + t('choose') + ' —</option>' +
+  const ents = [...new Set(list.map(p => p.ent).filter(Boolean))].sort();
+  const pt = LANG === 'pt';
+  return '<div style="display:flex;gap:6px;margin:4px 0 6px;flex-wrap:wrap">' +
+    (ents.length > 1 ? '<select id="' + idAttr + '_e" onchange="ppF(\'' + idAttr + '\')" style="flex:1;min-width:140px"><option value="">' + (pt ? 'Todas as empresas' : 'All companies') + '</option>' + ents.map(e => '<option>' + esc(e) + '</option>').join('') + '</select>' : '') +
+    '<input id="' + idAttr + '_q" type="search" autocomplete="off" placeholder="🔍 ' + (pt ? 'Procurar nome ou ID' : 'Search name or ID') + '" oninput="ppF(\'' + idAttr + '\')" style="flex:2;min-width:150px"></div>' +
+    '<select id="' + idAttr + '" style="min-width:240px"><option value="">— ' + t('choose') + ' —</option>' +
     (sel && !has ? '<option value="' + Number(sel) + '" selected>' + Number(sel) + '</option>' : '') +
     list.map(p => '<option value="' + p.id + '"' + (Number(sel) === p.id ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('') + '</select>';
+}
+/* filter a person list by company + typed text (accents ignored); picks the match when only one is left */
+function ppF(idAttr) {
+  const s = document.getElementById(idAttr); if (!s) return;
+  const norm = x => String(x || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const e = val(idAttr + '_e'), q = norm(val(idAttr + '_q')), cur = s.value;
+  const list = (PEOPLE_DL || []).slice().sort((a, b) => a.id - b.id).filter(p => (!e || p.ent === e) && (!q || norm(p.label).indexOf(q) >= 0));
+  s.innerHTML = '<option value="">— ' + t('choose') + ' (' + list.length + ') —</option>' + list.map(p => '<option value="' + p.id + '"' + (String(p.id) === cur ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('');
+  if (list.length === 1) s.value = String(list[0].id);
+  if (s.value !== cur) s.dispatchEvent(new Event('change', { bubbles: true }));
 }
 
 async function reportForm(id) {
@@ -1131,7 +1148,7 @@ async function renderAssist() {
   }
   try {
     const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
-    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome }));
+    PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome, ent: p.ent }));
     const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + [['new', t('newReq')], ['mine', t('myReq')]].map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
     if (AV === 'mine') {
       const mine = await call('aMine');
@@ -1154,7 +1171,7 @@ async function assistLogin() {
 function assistLogout() { window.ASSIST = null; try { sessionStorage.removeItem('rh_assist'); } catch (e) {} CACHE = {}; render(); }
 function assistFields(meta) {
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
-  const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
+  const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
   const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"></label>' +
     '<label>' + t('ref') + '<input id="af_ref"></label>';
   const btn = '<div class="act"><button class="btn" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div>';
@@ -1166,8 +1183,8 @@ function assistFields(meta) {
     f = per + '<label>' + t('type') + '<select id="af_lt">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
       '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
-      '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
-      '<label>' + t('nDays') + '<input type="number" id="af_nd" placeholder="' + t('nDaysHint') + '"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+      '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
+      '<label>' + t('nDays') + '<input type="number" id="af_nd" placeholder="' + t('nDaysHint') + '"></label><label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Adiantamento') {
     f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
       '<label>' + t('total') + ' *<input type="number" step="0.01" id="af_tot"></label><label>' + t('inst') + '<input type="number" step="0.01" id="af_pre"></label>' +
@@ -1181,13 +1198,24 @@ function assistFields(meta) {
 }
 function afAdd() { const x = val('af_day'); if (x && AF.days.indexOf(x) < 0) { AF.days.push(x); AF.days.sort(); } afShow(); }
 function afDel(i) { AF.days.splice(i, 1); afShow(); }
-function afShow() { const el = document.getElementById('af_days'); if (el) el.innerHTML = AF.days.map((d, i) => '<span class="chip on" onclick="afDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); }
+function afShow() { const el = document.getElementById('af_days'); if (el) el.innerHTML = AF.days.map((d, i) => '<span class="chip on" onclick="afDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); retCalc('af'); }
+/* "Back to work" = first working day after the leave (skips fixed day off, non-working days of the schedule and holidays) */
+async function retCalc(P) {
+  const el = document.getElementById(P + '_ret'); if (!el) return;
+  const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
+  const last = md ? days[days.length - 1] : (val(P + '_ate') || val(P + '_de'));
+  const id = Number(String(val(P + '_p')).replace(/\D.*$/, ''));
+  if (!id || !last) return;
+  try { const r = await call(window.ROLE === 'assistant' ? 'aReturn' : 'returnDate', { id: id, last: last }); if (r && r.date) el.value = r.date; } catch (e) {}
+}
+const retNote = (nota, ret) => { const n = String(nota || '').replace(/\s*·?\s*Regressa: \d{2}\/\d{2}\/\d{4}/g, '').trim(); return ret ? (n ? n + ' · ' : '') + 'Regressa: ' + ret.split('-').reverse().join('/') : n; };
+document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); });
 function afMode() { const d = val('af_m') === 'd'; document.querySelectorAll('.af_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.af_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 async function assistSubmit() {
   const id = Number(val('af_p')); AF.id = id;
   let dados = {};
-  if (AF.tipo === 'Justificação') { dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
-  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), nota: val('af_n') }; if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
+  if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
+  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: retNote(val('af_n'), val('af_ret')) }; if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
   if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (!id) return toast(t('required'));
