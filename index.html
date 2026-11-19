@@ -919,9 +919,9 @@ function renderBalances(head, d) {
   document.getElementById('main').innerHTML = head +
     '<div class="bar">' + t('year') + ' ' + yearSel() + '<span class="muted">' + t('rule').replace('{1}', d.rule.y1).replace('{2}', d.rule.y2) + '</span><span class="sp"></span>' + searchBox() + '</div>' +
     '<div class="bar">' + deptChips(d.rows.map(b => [0, 0, 0, b.dept]), 3) + '</div>' +
-    '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + t('bal') + '</th><th>' + t('notes') + '</th></tr>' +
+    '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + LL('Faltas inj.', 'Unjust. abs.') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + t('bal') + '</th><th>' + t('notes') + '</th></tr>' +
     rows.map(b => '<tr class="click" onclick="balForm(' + b.id + ')"><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
-      '</td><td class="n">' + (b.usados || '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
+      '</td><td class="n">' + (b.usados || '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
   window._bal = d;
 }
 function balForm(id) {
@@ -1735,7 +1735,7 @@ async function formSync(P, newPerson) {
     const nd = document.getElementById(P === 'af' ? 'af_nd' : 'lf_n');
     const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
     const de = md ? days[0] : val(P + '_de'), ate = md ? days[days.length - 1] : (val(P + '_ate') || val(P + '_de'));
-    if (nd && !nd.dataset.man && de) { try { const r = await call(isA() ? 'aLeaveDays' : 'leaveDays', { id: id, de: de, ate: ate, datas: md ? days : [], tipo: val(P === 'af' ? 'af_lt' : 'lf_t') }); if (!nd.dataset.man) nd.value = r.dias; } catch (e) {} }
+    if (nd && !nd.dataset.man && de) { try { const r = await call(isA() ? 'aLeaveDays' : 'leaveDays', { id: id, de: de, ate: ate, datas: md ? days : [], tipo: val(P === 'af' ? 'af_lt' : 'lf_t') }); if (!nd.dataset.man) nd.value = r.dias; FS[P] = FS[P] || {}; FS[P].ld = r.datas || []; } catch (e) {} }
     ferShow(P);
   } else loanCalc('lo', 'lo_v', 'lo_i');
   if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
@@ -1806,7 +1806,10 @@ function cartaBuild(c) {
   const city = /maputo|matola|nampula|beira/i.test(pe.loc || '') ? String(pe.loc).replace(/^./, x => x.toUpperCase()) : 'Maputo';
   const dateL = (c.needRef && val('af_dc')) || todayStr();
   let t0 = '', p = [], k = [], s = ['O(A) Trabalhador(a)', 'A Direcção'];
-  const per = () => { const ds = d.datas && d.datas.length ? d.datas : null;
+  const per = () => { const ld = (FS.af && FS.af.ld) || [];
+    if (/^Férias/.test(d.tipo || '') && ld.length) { const cont = ld.every((x, i) => !i || (new Date(x) - new Date(ld[i - 1])) / 864e5 <= 2);   /* holidays may sit inside */
+      return cont ? (ld.length === 1 ? 'no dia ' + fd(ld[0]) : 'no período de ' + fd(ld[0]) + ' a ' + fd(ld[ld.length - 1])) : 'nos dias ' + eList(ld.map(fd)); }
+    const ds = d.datas && d.datas.length ? d.datas : null;
     return ds && ds.length > 1 ? 'nos dias ' + eList(ds.map(fd)) : (ds ? 'no dia ' + fd(ds[0]) : d.de === d.ate || !d.ate ? 'no dia ' + fd(d.de) : 'no período de ' + fd(d.de) + ' a ' + fd(d.ate)); };
   const ret = () => { const r = val('af_ret'); if (r) p.push('Regressarei ao trabalho no dia ' + fd(r) + '.'); };
   const mot = () => { if (motivo) p.push('Motivo: ' + motivo + (/[.!?]$/.test(motivo) ? '' : '.')); };
