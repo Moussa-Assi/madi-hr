@@ -884,6 +884,7 @@ async function saveLeaveForm(n) {
   try {
     const sa = document.getElementById('lf_sa');
     if (window.ROLE !== 'assistant' && isFer('lf') && sa && sa.value !== '' && sa.value !== sa.dataset.sys) await call('balanceFix', { id: id, saldo: Number(sa.value), before: mode === 'd' ? LDAYS[0] : p.de, ref: p.ref });
+    await call(window.ROLE === 'assistant' ? 'aSubmit' : 'leaveSave', p);
     invalidate(); closeModal(); toast(window.ROLE === 'assistant' ? t('sent') : t('saved')); render();
   } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lf_btn').disabled = false; }
 }
