@@ -1009,7 +1009,7 @@ function loanFormN(n) { loanForm(CACHE.loans.rows.filter(r => r.n === n)[0]); }
 async function loanForm(x, presetId) {
   modal(x ? t('edit') + ' · ' + esc(x.ref || x.n) : t('newLoan').replace('+ ', ''), '', '');
   const dl = await peopleDL();
-  const ents = [...new Set((CACHE.loans ? CACHE.loans.rows : []).map(r => r.ent).filter(Boolean))].sort();
+  const ents = [...new Set((PEOPLE_DL || []).map(p => p.ent).filter(Boolean))].sort();   /* one official name per company (from the people list) */
   const v2 = (k, d) => esc(x && x[k] != null ? x[k] : d);
   document.getElementById('mBody').innerHTML = '<div class="form">' +
     '<label>' + t('person') + ' *' + personSelect('lo_p', x ? x.id : presetId) + '</label>' +
@@ -1018,7 +1018,7 @@ async function loanForm(x, presetId) {
     loanFields('lo', 'lo_v', 'lo_i', v2('total', ''), v2('prest', ''), v2('nprest', '')) +
     '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
     '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
-    '<label>' + t('entity') + '<input id="lo_e" list="dl_lent" value="' + v2('ent', '') + '"></label>' +
+    '<label>' + t('entity') + '<select id="lo_e"><option value="">' + LL('— a da pessoa —', '— the person\'s company —') + '</option>' + ents.concat(x && x.ent && ents.indexOf(x.ent) < 0 ? [x.ent] : []).map(e => '<option' + (x && x.ent === e ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select></label>' +
     refField('lo', 'CR', x ? x.ref : '', x ? x.notas : '') +
     '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
@@ -1515,15 +1515,18 @@ document.head.insertAdjacentHTML('beforeend', '<style>' +
   '.ptab td,.ptab th{padding:6px 8px;font-size:12.5px}.ptab .pgh th{text-align:center;background:var(--infb);color:var(--pri)}.ptab td.pn{position:sticky;left:0;background:#fff;z-index:1}' +
   '.ptab tr.pco td{background:var(--pri);color:#fff;font-weight:600}.ptab tr.pco .muted{color:#d6e0f5}.ptab tr.psub td{background:#f3f6fb;font-weight:600}.ptab tr.ptot td{background:var(--infb);font-weight:700}' +
   '.pinss{width:96px;padding:3px 6px;text-align:right}.pinss.man{border-color:var(--inf);font-weight:700;color:var(--inf)}' +
-  '#rcp{display:none}@media print{body.rcpm>*:not(#rcp){display:none!important}body.rcpm #rcp{display:block!important}body.rcpm{background:#fff;margin:0;padding:0}}@page{size:A4 portrait;margin:7mm}' +
-  '.rp{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:repeat(3,1fr);gap:3mm;height:275mm;break-after:page;page-break-after:always}.rp:last-child{break-after:auto;page-break-after:auto}' +
-  '.rc{border:1px solid #000;padding:2mm 2.5mm;font:8.3pt/1.3 Arial,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid}' +
-  '.rh{display:flex;gap:6px;border-bottom:1.5px solid #000;padding-bottom:1.5mm;margin-bottom:1.5mm}.re{flex:1;font-size:6.5pt}.rlg{height:11mm;width:auto;align-self:center;margin-right:1mm}.re b{font-size:7.5pt}' +
-  '.rw{text-align:right;display:flex;flex-direction:column}.rw b{font-size:10pt}.rw span{font-weight:600}.rw small{font-size:6.5pt}' +
-  '.rt{width:100%;border-collapse:collapse}.rt th{border:1px solid #000;padding:.6mm;font-size:7pt;background:#eee}.rt td{padding:.4mm 1mm;border-left:1px solid #000;border-right:1px solid #000;white-space:nowrap;font-size:8.2pt}' +
-  '.rt td.v{text-align:right}.rt i{font-size:6pt;color:#444}.rt tr.rs td{border-top:1px solid #000;border-bottom:1px solid #000;font-weight:700}.rt tr:last-child td{border-bottom:1px solid #000}' +
-  '.rt td.rl{text-align:center;vertical-align:middle;border:1px solid #000;font-size:7pt}.rt td.rl b{display:block;font-size:10pt}' +
-  '.rf{margin-top:1.2mm;font-size:6.8pt}.rsig{display:flex;gap:8mm;margin-top:auto;padding-top:5mm}.rsig div{flex:1;border-top:1px solid #000;text-align:center;font-size:6.8pt;padding-top:.5mm}' +
+  '#rcp{display:none}@media print{body.rcpm>*:not(#rcp){display:none!important}body.rcpm #rcp{display:block!important}body.rcpm{background:#fff;margin:0;padding:0}}@page{size:A4 portrait;margin:8mm}' +
+  '.rp{display:grid;grid-template-columns:90mm 90mm;grid-auto-rows:80mm;gap:4mm;justify-content:center;break-after:page;page-break-after:always}.rp:last-child{break-after:auto;page-break-after:auto}' +
+  '.rc{box-sizing:border-box;width:90mm;height:80mm;border:.3mm solid #000;padding:2mm;font:6.6pt/1.25 Arial,Helvetica,sans-serif;color:#000;display:flex;flex-direction:column;overflow:hidden;break-inside:avoid;page-break-inside:avoid;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+  '.rh{display:flex;align-items:center;gap:2mm;border-bottom:.4mm solid #000;padding-bottom:1.2mm;margin-bottom:1.2mm;min-height:12mm}' +
+  '.rlg{flex:0 0 auto;height:10mm;max-width:16mm;object-fit:contain}' +
+  '.re{flex:1 1 0;min-width:0;font-size:5.4pt;line-height:1.2;overflow:hidden}.re b{display:block;font-size:6.4pt;line-height:1.15}' +
+  '.rw{flex:0 0 40mm;text-align:right;line-height:1.2}.rw span{display:block;font-weight:700;font-size:6pt}.rw b{display:block;font-size:8.2pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.rw small{display:block;font-size:5.3pt;color:#333}' +
+  '.rt{width:100%;table-layout:fixed;border-collapse:collapse}.rt th{border:.3mm solid #000;padding:.5mm 1mm;font-size:5.8pt;background:#e8e8e8;text-align:left}' +
+  '.rt td{padding:.35mm 1mm;border-left:.3mm solid #000;border-right:.3mm solid #000;font-size:6.4pt;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+  '.rt td.v{text-align:right}.rt i{font-size:5pt;color:#444;font-style:italic}.rt tr.rs td{border-top:.3mm solid #000;border-bottom:.3mm solid #000;font-weight:700}.rt tr:last-child td{border-bottom:.3mm solid #000}' +
+  '.rt td.rl{text-align:center;vertical-align:middle;border:.3mm solid #000;font-size:5.8pt;white-space:normal}.rt td.rl b{display:block;font-size:9pt;margin-top:.5mm}' +
+  '.rf{margin-top:1mm;font-size:5.4pt;max-height:2.6em;overflow:hidden}.rsig{display:flex;gap:6mm;margin-top:auto;padding-top:3mm}.rsig div{flex:1;border-top:.3mm solid #000;text-align:center;font-size:5.6pt;padding-top:.4mm}' +
   '</style>');
 
 function payRows() {
@@ -1569,7 +1572,7 @@ function rcpHtml(r, via) {
   const lg = coCode(r.ent);
   return '<div class="rc"><div class="rh">' + (lg ? '<img class="rlg" src="' + LOGO[lg] + '" alt="">' : '') + '<div class="re"><b>' + esc(e.nome) + '</b>' + (e.morada ? '<br>' + esc(e.morada) : '') + (e.nuit ? '<br>NUIT ' + esc(e.nuit) : '') + '</div>' +
     '<div class="rw"><span>ID ' + r.id + '</span><b>' + esc(r.nome) + '</b><span>RECIBO DE SALÁRIO · ' + mes + '</span><small>' + fmtDY(d.from) + ' a ' + fmtDY(d.to) + (via ? ' · Via ' + via : '') + '</small></div></div>' +
-    '<table class="rt"><tr><th colspan="2">PROVEITOS</th><th colspan="2">DESCONTOS</th></tr>' + L.map((x, i) => '<tr>' + cell(x) + cell(R[i]) + '</tr>').join('') +
+    '<table class="rt"><colgroup><col style="width:30%"><col style="width:20%"><col style="width:30%"><col style="width:20%"></colgroup><tr><th colspan="2">PROVEITOS</th><th colspan="2">DESCONTOS</th></tr>' + L.map((x, i) => '<tr>' + cell(x) + cell(R[i]) + '</tr>').join('') +
     '<tr class="rs"><td>TOTAL BRUTO</td><td class="v">' + m(r.bruto) + '</td><td>TOTAL DESCONTOS</td><td class="v">' + m(r.descontos) + '</td></tr>' +
     '<tr><td>Saldo anterior</td><td class="v">' + m(r.saldoAnt) + '</td><td rowspan="3" colspan="2" class="rl">LÍQUIDO A RECEBER<b>' + m(r.liquido) + ' MT</b></td></tr>' +
     '<tr><td>Dívida contraída</td><td class="v">' + m(r.contraida) + '</td></tr><tr><td>Saldo actual</td><td class="v">' + m(r.saldoAtual) + '</td></tr></table>' +
