@@ -101,8 +101,10 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 <div class="modal" id="modal"><div class="mbox"><div class="mh"><h2 id="mTitle"></h2><span id="mActs"></span><button class="x" onclick="closeModal()">×</button></div><div id="mBody"></div></div></div>
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
-<style>#login{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}#login .box{background:#fff;padding:28px 24px;border-radius:12px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}#login h2{margin:0 0 4px;color:var(--pri,#23365e);font-size:20px}#login label{display:block;font-size:13px;color:#374151}#login input{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}#login button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--pri,#23365e);color:#fff;font-weight:600;font-size:15px;cursor:pointer}#login button:disabled{opacity:.6}#login .e{color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:8px}#login .s{color:#6b7280;font-size:13px;margin-bottom:18px}</style>
-<div id="login" style="display:none"><form class="box" onsubmit="return doLogin(event)"><h2>Madi HR</h2><div class="s">Entrar · Sign in</div><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form></div>
+<style>#login{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}#login .box{background:#fff;padding:28px 24px;border-radius:12px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}#login h2{margin:0 0 4px;color:var(--pri,#23365e);font-size:20px}#login label{display:block;font-size:13px;color:#374151}#login input{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}#login button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--pri,#23365e);color:#fff;font-weight:600;font-size:15px;cursor:pointer}#login button:disabled{opacity:.6}#login .e{color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:8px}#login .s{color:#6b7280;font-size:13px;margin-bottom:18px}#login .tabs{display:flex;gap:6px;margin:10px 0 18px}#login .tabs button{flex:1;background:#eef0f4;color:#374151;font-weight:600;font-size:13px;padding:9px}#login .tabs button.on{background:var(--pri,#23365e);color:#fff}#login select{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}</style>
+<div id="login" style="display:none"><div class="box"><h2>Madi HR</h2><div class="tabs"><button type="button" id="lt_m" class="on" onclick="lmode('m')">Gestor · Manager</button><button type="button" id="lt_a" onclick="lmode('a')">Assistente · Assistant</button></div>
+<form id="lf_m" onsubmit="return doLogin(event)"><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form>
+<form id="lf_a" style="display:none" onsubmit="return doAssist(event)"><label>Nome · Name<select id="la_n"></select></label><label>PIN<input id="la_p" type="password" inputmode="numeric" autocomplete="off" required></label><div class="e" id="la_err"></div><button id="la_b">Entrar · Sign in</button></form></div></div>
 <script>
 /* Login with Supabase (email + password). After login the app below starts with a short-lived pass that renews itself. */
 const SB_URL = 'https://erxlksuoplobtfbsvypg.supabase.co', SB_PK = 'sb_publishable_M5dLHCm5GFfgzP0g0Ol9lQ_3vjLme_l', FN_URL = SB_URL + '/functions/v1/rh-api';
@@ -133,7 +135,41 @@ async function doLogin(e) {
   if (error) return showLogin(/invalid/i.test(error.message) ? 'Email ou palavra-passe errados · Wrong email or password' : error.message);
   startApp(data.session); return false;
 }
-sbc.auth.getSession().then(({ data }) => data.session ? startApp(data.session) : showLogin());
+function lmode(m) {
+  document.getElementById('lt_m').classList.toggle('on', m === 'm'); document.getElementById('lt_a').classList.toggle('on', m === 'a');
+  document.getElementById('lf_m').style.display = m === 'm' ? '' : 'none'; document.getElementById('lf_a').style.display = m === 'a' ? '' : 'none';
+  try { localStorage.setItem('rh_lmode', m); } catch (e) {}
+  if (m === 'a' && !document.getElementById('la_n').options.length) fetch(FN_URL + '?a=names', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: '__assistNames' }) }).then(r => r.json()).then(j => {
+    document.getElementById('la_n').innerHTML = (j.names || []).map(n => '<option>' + n.replace(/</g, '&lt;') + '</option>').join('');
+    try { const last = localStorage.getItem('rh_lname'); if (last) document.getElementById('la_n').value = last; } catch (e) {}
+  });
+}
+function startAssist(tok, nome) {
+  window.ROLE = 'assistant'; window.KEY = ''; window.V2 = { url: FN_URL, token: tok }; window.ASSIST = { user: nome, pin: '' };
+  try { sessionStorage.removeItem('rh_assist'); } catch (e) {}
+  document.getElementById('login').style.display = 'none'; STARTED = true;
+  const s = document.createElement('script'); s.textContent = document.getElementById('appsrc').textContent; document.body.appendChild(s);
+  window.ASSIST = { user: nome, pin: '' };
+  window.assistLogout = () => { try { localStorage.removeItem('rh_atok'); } catch (e) {} location.reload(); };
+}
+async function doAssist(e) {
+  e.preventDefault();
+  const b = document.getElementById('la_b'), nome = document.getElementById('la_n').value; b.disabled = true; document.getElementById('la_err').textContent = '';
+  try {
+    const j = await fetch(FN_URL + '?a=alogin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: '__assistLogin', user: nome, pin: document.getElementById('la_p').value }) }).then(r => r.json());
+    if (j.error) throw j.error;
+    try { localStorage.setItem('rh_atok', JSON.stringify({ t: j.token, n: j.nome, e: Date.now() + 11.5 * 3600e3 })); localStorage.setItem('rh_lname', nome); } catch (x) {}
+    startAssist(j.token, j.nome);
+  } catch (x) { document.getElementById('la_err').textContent = String(x); b.disabled = false; }
+  return false;
+}
+(function boot() {
+  try { const a = JSON.parse(localStorage.getItem('rh_atok') || 'null'); if (a && a.e > Date.now()) return startAssist(a.t, a.n); } catch (e) {}
+  sbc.auth.getSession().then(({ data }) => {
+    if (data.session) return startApp(data.session);
+    showLogin(); let m = 'm'; try { m = localStorage.getItem('rh_lmode') || 'm'; } catch (e) {} lmode(m);
+  });
+})();
 </script>
 <script type="text/plain" id="appsrc">
 const T = {
@@ -275,25 +311,7 @@ function call(action, p) {
 /* login password for the new (non-Google) address · 🔑 button in the header */
 function pwForm() {
   const pt = LANG === 'pt';
-  modal(pt ? 'Acessos' : 'Logins', '', '<h3 style="margin:4px 0 8px">' + (pt ? 'A minha palavra-passe' : 'My password') + '</h3><div class="form"><label class="full">' + (pt ? 'Nova palavra-passe (mín. 8)' : 'New password (min. 8)') + '<input id="pw1" type="password" autocomplete="new-password"></label><label class="full">' + (pt ? 'Repetir' : 'Repeat') + '<input id="pw2" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="pwb" onclick="pwSave()">' + t('save') + '</button></div></div>' +
-    '<h3 style="margin:18px 0 6px">' + (pt ? 'Acessos das assistentes' : 'Assistant logins') + '</h3><div class="mut" style="font-size:12px;margin-bottom:8px">' + (pt ? 'Cada assistente entra no novo link com o seu email e palavra-passe (sem PIN). Deixe a palavra-passe vazia para só mudar o email.' : 'Each assistant signs in on the new link with her own email and password (no PIN). Leave the password empty to change only the email.') + '</div><div id="usrs"><div class="load">' + t('loading') + '</div></div>');
-  pwUsers();
-}
-async function apiV2(action, extra) {
-  const r = await fetch(window.V2.url + '?a=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ token: window.V2.token, action: action }, extra || {})) }).then(x => x.json());
-  if (r.error) throw r.error; return r;
-}
-async function pwUsers() {
-  const pt = LANG === 'pt', el = document.getElementById('usrs'); if (!el) return;
-  let rows = []; try { rows = (await apiV2('__users')).rows || []; } catch (e) { el.innerHTML = '<div class="err">' + esc(e) + '</div>'; return; }
-  el.innerHTML = ['Juvência', 'Yorna'].map((n, i) => { const u = rows.filter(r => r.nome === n && r.role === 'assistant')[0];
-    return '<div class="form" style="border:1px solid var(--lin,#e5e7eb);border-radius:8px;padding:10px;margin-bottom:10px"><div class="full"><b>' + esc(n) + '</b> <span class="mut" style="font-size:12px">' + (u ? (pt ? 'ativo' : 'active') + (u.last_sign_in_at ? ' · ' + (pt ? 'última entrada ' : 'last sign-in ') + String(u.last_sign_in_at).slice(0, 16).replace('T', ' ') : '') : (pt ? 'sem acesso' : 'no login yet')) + '</span></div>' +
-      '<label class="full">Email<input id="ue' + i + '" type="email" value="' + esc(u ? u.email : '') + '"></label><label class="full">' + (pt ? 'Palavra-passe (mín. 8)' : 'Password (min. 8)') + '<input id="up' + i + '" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="ub' + i + '" onclick="pwUserSave(' + i + ',\'' + n + '\')">' + t('save') + '</button></div></div>'; }).join('');
-}
-async function pwUserSave(i, n) {
-  const b = document.getElementById('ub' + i); b.disabled = true;
-  try { const r = await apiV2('__setUser', { nome: n, email: val('ue' + i), password: val('up' + i) }); toast((LANG === 'pt' ? 'Acesso guardado: ' : 'Login saved: ') + n + ' · ' + r.email); pwUsers(); }
-  catch (e) { toast(String(e)); b.disabled = false; }
+  modal(pt ? 'Palavra-passe de acesso' : 'Login password', '', '<div class="form"><label class="full">' + (pt ? 'Nova palavra-passe (mín. 8)' : 'New password (min. 8)') + '<input id="pw1" type="password" autocomplete="new-password"></label><label class="full">' + (pt ? 'Repetir' : 'Repeat') + '<input id="pw2" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="pwb" onclick="pwSave()">' + t('save') + '</button></div></div>');
 }
 async function pwSave() {
   const pt = LANG === 'pt', a = val('pw1'), b = val('pw2');
@@ -309,7 +327,7 @@ async function pwSave() {
 (function () {
   if (window.ROLE !== 'owner' || !window.V2) return;
   const h = document.querySelector('header .lang'); if (!h) return;
-  const b = document.createElement('button'); b.textContent = '🔑'; b.title = 'Logins'; b.onclick = pwForm;
+  const b = document.createElement('button'); b.textContent = '🔑'; b.title = 'Login password'; b.onclick = pwForm;
   b.style.cssText = 'margin-left:auto;background:none;border:1px solid rgba(255,255,255,.5);color:#fff;border-radius:6px;padding:4px 10px;cursor:pointer';
   h.parentNode.insertBefore(b, h);
 })();
