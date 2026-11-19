@@ -379,6 +379,19 @@ async function need(key, p) {
   return CACHE[ck];
 }
 
+/* data changed elsewhere (another window, phone, assistant approval, nightly sync)? refresh the screen on its own */
+let DVER = null;
+async function verCheck() {
+  if (window.ROLE === 'assistant' || document.hidden) return;
+  try {
+    const r = await call('ver', {});
+    if (DVER !== null && r.v !== DVER) { invalidate(); const m = document.getElementById('modal'); if (!(m && m.classList.contains('on'))) render(); }
+    DVER = r.v;
+  } catch (e) {}
+}
+document.addEventListener('visibilitychange', () => { if (!document.hidden) verCheck(); });
+window.addEventListener('focus', () => verCheck());
+setInterval(verCheck, 60000); setTimeout(verCheck, 3000);
 async function render() {
   try {
     if (VIEW === 'today') return (DAY2 && DAY2 > DAY) ? renderRange(await need('range', { from: DAY, to: DAY2 })) : renderDay(await need('day', { date: DAY }));
