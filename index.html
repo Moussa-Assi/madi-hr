@@ -855,7 +855,7 @@ async function leaveForm(l, presetId) {
     '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? l.notas : '') + '"></label>' +
     '<div class="full muted">ⓘ ' + t('paidHint') + '</div>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
-  FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, estado: l.estado } : null }; lfMode(); lfShow(); formSync('lf', true);
+  FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, estado: l.estado, ref: l.ref || '' } : null }; lfMode(); lfShow(); formSync('lf', true);
 }
 function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 function lfAdd() { const x = val('lf_day'); if (x && LDAYS.indexOf(x) < 0) { LDAYS.push(x); LDAYS.sort(); } lfShow(); }
@@ -864,7 +864,7 @@ function lfShow() { const el = document.getElementById('lf_days'); if (el) el.in
 async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
   if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
-  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: val('lf_ref'), doc: val('lf_doc'), nota: retNote(val('lf_note'), val('lf_ret')), estado: val('lf_st') || 'Pendente' };
+  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: retNote(val('lf_note'), val('lf_ret')), estado: val('lf_st') || 'Pendente' };
   if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
   if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
   document.getElementById('lf_btn').disabled = true;
@@ -1008,7 +1008,7 @@ async function loanForm(x, presetId) {
 }
 async function saveLoan(n) {
   const id = pid(val('lo_p'));
-  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: val('lo_ref'), nprest: val('lo_np'), estado: val('lo_st'), notas: val('lo_n') };
+  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: val('lo_n') };
   if (!id || !p.total) return toast(t('required'));
   document.getElementById('lo_btn').disabled = true;
   try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
@@ -1218,11 +1218,10 @@ const PINFO = {}, FS = {};
 const isA = () => window.ROLE === 'assistant';
 const pidOf = P => Number(String(val(P + '_p')).replace(/\D.*$/, '')) || 0;
 function refField(P, kind, cur) {
-  return '<label class="full">' + LL('Referência', 'Reference') + '<span style="display:flex;gap:6px;flex-wrap:wrap">' +
-    '<select id="' + P + '_rt" onchange="refGen(\'' + P + '\',1)" style="width:auto">' + ['FA', 'CR'].map(x => '<option value="' + x + '"' + (x === kind ? ' selected' : '') + '>' + x + ' · ' + (x === 'FA' ? LL('Férias', 'Leave') : LL('Crédito', 'Credit')) + '</option>').join('') + '</select>' +
-    '<select id="' + P + '_rc" onchange="refGen(\'' + P + '\',1)" style="width:auto"><option value="">' + LL('Empresa', 'Company') + '</option>' + Object.keys(REFCO).map(k => '<option value="' + k + '">' + k + ' · ' + REFCO[k] + '</option>').join('') + '</select>' +
-    '<input id="' + P + '_ref" value="' + esc(cur || '') + '" data-auto="' + (cur ? '' : '1') + '" oninput="this.dataset.auto=\'\'" placeholder="FA/TS/01/11/26" style="flex:1;min-width:150px"></span></label>';
+  return '<label class="full ' + P + '_refw">' + LL('Referência', 'Reference') + ' *<select id="' + P + '_refs" data-kind="' + kind + '" data-cur="' + esc(cur || '') + '">' + (cur ? '<option selected>' + esc(cur) + '</option>' : '<option value="">' + LL('Escolha a pessoa primeiro', 'Choose the person first') + '</option>') + '</select><small class="muted" id="' + P + '_refi"></small></label>' +
+    '<label class="full ' + P + '_refw">' + LL('Referência — exceção (opcional)', 'Reference — exception (optional)') + '<input id="' + P + '_refx" autocomplete="off" placeholder="' + LL('só para uma exceção — substitui a lista', 'only for an exception — replaces the list') + '"></label>';
 }
+const getRef = P => (val(P + '_refx') || '').trim().toUpperCase() || val(P + '_refs');
 function ferFields(P, dias) {
   const nd = P === 'af' ? 'af_nd' : 'lf_n';
   return '<label>' + LL('Dias a usar', 'Days used') + '<input type="number" step="0.5" id="' + nd + '" value="' + esc(dias == null ? '' : dias) + '"' + (dias !== '' && dias != null ? ' data-man="1"' : '') + ' oninput="this.dataset.man=1;balCalc(\'' + P + '\')" placeholder="' + t('nDaysHint') + '"></label>' +
@@ -1238,7 +1237,7 @@ function loanFields(P, tot, pre, vt, vp, vn) {
     '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
 }
 const isFer = P => /^Férias/.test(val(P === 'af' ? 'af_lt' : 'lf_t'));
-function ferShow(P) { document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = isFer(P) ? '' : 'none'); balCalc(P); }
+function ferShow(P) { const f = isFer(P); document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = f ? '' : 'none'); if (P !== 'lo' && !(P === 'af' && AF.tipo === 'Adiantamento')) document.querySelectorAll('.' + P + '_refw').forEach(e => e.style.display = f ? '' : 'none'); balCalc(P); }
 function balCalc(P) {
   const sa = document.getElementById(P + '_sa'), sn = document.getElementById(P + '_sn'); if (!sa || !sn) return;
   const nd = val(P === 'af' ? 'af_nd' : 'lf_n');
@@ -1258,12 +1257,19 @@ function refDate(P) {
   const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
   return (md ? days[0] : val(P + '_de')) || todayStr();
 }
-async function refGen(P, force) {
-  const el = document.getElementById(P + '_ref'); if (!el) return;
-  if (!force && !el.dataset.auto) return;
-  const co = val(P + '_rc'), tp = val(P + '_rt'); if (!co) return;
-  const d = refDate(P);
-  try { const r = await call(isA() ? 'aNextRef' : 'nextRef', { tipo: tp, co: co, mm: d.slice(5, 7), yy: d.slice(2, 4) }); el.value = r.ref; el.dataset.auto = '1'; } catch (e) {}
+/* reference list: next free numbers for the person's company and the letter's month (continues after the last one used, also for a closed month) */
+async function refLoad(P) {
+  const s = document.getElementById(P + '_refs'); if (!s) return;
+  const id = pidOf(P); if (!id) return;
+  const kind = s.dataset.kind, date = refDate(P), cur = s.dataset.cur, prev = s.value;
+  const key = id + '|' + kind + '|' + date.slice(0, 7); if (s.dataset.key === key) return; s.dataset.key = key;
+  try {
+    const r = await call(isA() ? 'aRefList' : 'refList', { id: id, tipo: kind, date: date });
+    const opts = (cur ? [cur] : []).concat(r.opts.filter(o => o !== cur)), pick = opts.indexOf(prev) >= 0 ? prev : opts[0];
+    s.innerHTML = opts.length ? opts.map(o => '<option' + (o === pick ? ' selected' : '') + '>' + esc(o) + '</option>').join('') : '<option value="">' + LL('Empresa sem código — use a exceção', 'Company has no code — use the exception') + '</option>';
+    const inf = document.getElementById(P + '_refi');
+    if (inf) inf.textContent = !r.co ? '' : r.last ? LL('Última usada: ', 'Last used: ') + r.last : LL('Primeira deste mês', 'First one this month');
+  } catch (e) {}
 }
 /* fills company code, balances, working days and the next reference after the person / dates change */
 async function formSync(P, newPerson) {
@@ -1289,7 +1295,7 @@ async function formSync(P, newPerson) {
     ferShow(P);
   } else loanCalc('lo', 'lo_v', 'lo_i');
   if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
-  refGen(P);
+  refLoad(P);
 }
 function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
 function apLoan(n) { const v = Number(val('ap_tot' + n)) || 0, np = Number(val('ap_np' + n)) || 0, pe = document.getElementById('ap_pre' + n); if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2); }
@@ -1303,10 +1309,13 @@ async function assistSubmit() {
   if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (!id) return toast(t('required'));
+  const needRef = AF.tipo === 'Adiantamento' || (AF.tipo === 'Licença' && isFer('af'));
+  const ref = needRef ? getRef('af') : AF.tipo === 'Licença' ? '' : val('af_ref');
+  if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
   try {
     const file = await readDoc(document.getElementById('af_f'));
-    const res = await call('aSubmit2', { tipo: AF.tipo, id: id, ref: val('af_ref'), dados: dados, file: file });
+    const res = await call('aSubmit2', { tipo: AF.tipo, id: id, ref: ref, dados: dados, file: file });
     toast(t('sent') + ' · Nº ' + res.n); AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
   } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('submit'); }
 }
