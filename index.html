@@ -842,25 +842,25 @@ async function leaveForm(l, presetId) {
   const days = !!(l && l.datas && l.datas.length);
   document.getElementById('mBody').innerHTML = '<div class="form">' +
     '<label>' + t('person') + ' *' + personSelect('lf_p', l ? l.id : presetId) + '</label>' +
-    '<label>' + t('type') + ' *<select id="lf_t">' + stOpts(types, l ? l.tipo : 'Férias') + '</select></label>' +
+    '<label>' + t('type') + ' *<select id="lf_t" onchange="ferShow(\'lf\')">' + stOpts(types, l ? l.tipo : 'Férias') + '</select></label>' +
     '<label>' + t('mode') + '<select id="lf_m" onchange="lfMode()"><option value="r"' + (days ? '' : ' selected') + '>' + t('modeRange') + '</option><option value="d"' + (days ? ' selected' : '') + '>' + t('modeDays') + '</option></select></label>' +
     '<label class="lf_r">' + t('fromD') + ' *<input type="date" id="lf_de" value="' + (l && !days ? l.de : '') + '"></label>' +
     '<label class="lf_r">' + t('toD') + '<input type="date" id="lf_ate" value="' + (l && !days ? l.ate : '') + '"></label>' +
     '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day" onchange="lfAdd()"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
-    '<label>' + t('nDays') + '<input type="number" id="lf_n" value="' + (l ? l.dias : '') + '" placeholder="' + t('nDaysHint') + '"></label>' +
+    ferFields('lf', l ? l.dias : '') +
     '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="lf_ret" value="' + (l && /Regressa: (\d{2})\/(\d{2})\/(\d{4})/.test(l.notas || '') ? (l.notas.match(/Regressa: (\d{2})\/(\d{2})\/(\d{4})/).slice(1).reverse().join('-')) : '') + '"></label>' +
-    '<label>' + t('ref') + '<input id="lf_ref" value="' + esc(l ? l.ref : '') + '"></label>' +
+    refField('lf', 'FA', l ? l.ref : '') +
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
     '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? l.notas : '') + '"></label>' +
     '<div class="full muted">ⓘ ' + t('paidHint') + '</div>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
-  lfMode(); lfShow();
+  FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, estado: l.estado } : null }; lfMode(); lfShow(); formSync('lf', true);
 }
 function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 function lfAdd() { const x = val('lf_day'); if (x && LDAYS.indexOf(x) < 0) { LDAYS.push(x); LDAYS.sort(); } lfShow(); }
 function lfDel(i) { LDAYS.splice(i, 1); lfShow(); }
-function lfShow() { const el = document.getElementById('lf_days'); if (el) el.innerHTML = LDAYS.map((d, i) => '<span class="chip on" onclick="lfDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); if (!(document.getElementById('lf_ret') || {}).value) retCalc('lf'); }
+function lfShow() { const el = document.getElementById('lf_days'); if (el) el.innerHTML = LDAYS.map((d, i) => '<span class="chip on" onclick="lfDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); if (!(document.getElementById('lf_ret') || {}).value) retCalc('lf'); formSync('lf'); }
 async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
   if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
@@ -869,7 +869,8 @@ async function saveLeaveForm(n) {
   if (!id || (mode === 'd' ? !LDAYS.length : !p.de) || (p.tipo === 'Férias pagas' && !p.dias)) return toast(t('required'));
   document.getElementById('lf_btn').disabled = true;
   try {
-    await call(window.ROLE === 'assistant' ? 'aSubmit' : 'leaveSave', p);
+    const sa = document.getElementById('lf_sa');
+    if (window.ROLE !== 'assistant' && isFer('lf') && sa && sa.value !== '' && sa.value !== sa.dataset.sys) await call('balanceFix', { id: id, saldo: Number(sa.value), before: mode === 'd' ? LDAYS[0] : p.de, ref: p.ref });
     invalidate(); closeModal(); toast(window.ROLE === 'assistant' ? t('sent') : t('saved')); render();
   } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lf_btn').disabled = false; }
 }
@@ -994,20 +995,20 @@ async function loanForm(x, presetId) {
     '<label>' + t('person') + ' *' + personSelect('lo_p', x ? x.id : presetId) + '</label>' +
     '<label>' + t('loanType') + '<select id="lo_t"><option value="Adiantamento"' + (x && x.tipo === 'Adiantamento' ? ' selected' : '') + '>' + t('advance') + '</option><option value="Empréstimo"' + (!x || x.tipo !== 'Adiantamento' ? ' selected' : '') + '>' + t('loan') + '</option></select></label>' +
     '<label>' + t('date') + '<input type="date" id="lo_d" value="' + v2('data', todayStr()) + '"></label>' +
-    '<label>' + t('total') + ' *<input type="number" step="0.01" id="lo_v" value="' + v2('total', '') + '"></label>' +
-    '<label>' + t('inst') + '<input type="number" step="0.01" id="lo_i" value="' + v2('prest', '') + '"></label>' +
+    loanFields('lo', 'lo_v', 'lo_i', v2('total', ''), v2('prest', ''), v2('nprest', '')) +
     '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
     '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
     '<label>' + t('entity') + '<input id="lo_e" list="dl_lent" value="' + v2('ent', '') + '"></label>' +
-    '<label>' + t('ref') + '<input id="lo_r" value="' + v2('ref', '') + '"></label>' +
+    refField('lo', 'CR', x ? x.ref : '') +
     '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
     '<datalist id="dl_lent">' + ents.map(e => '<option value="' + esc(e) + '">').join('') + '</datalist>';
+  FS.lo = { edit: x || null }; formSync('lo', true);
 }
 async function saveLoan(n) {
   const id = pid(val('lo_p'));
-  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: val('lo_r'), estado: val('lo_st'), notas: val('lo_n') };
+  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: val('lo_ref'), nprest: val('lo_np'), estado: val('lo_st'), notas: val('lo_n') };
   if (!id || !p.total) return toast(t('required'));
   document.getElementById('lo_btn').disabled = true;
   try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
@@ -1107,8 +1108,8 @@ const rtTag = x => '<span class="st s-' + ({ 'Justificação': 'chk', 'Licença'
 function reqSummary(r) {
   const d = r.dados || {};
   if (r.tipo === 'Justificação') return (d.datas || []).map(fmtD).join(', ') + ' → ' + (d.estado ? esc(stName(d.estado)) : '') + (d.min !== '' && d.min != null ? ' · ' + t('late') + ' ' + d.min + ' min' : '');
-  if (r.tipo === 'Licença') return esc(stName(d.tipo)) + ' · ' + (d.datas && d.datas.length > 1 ? d.datas.map(fmtD).join(', ') : fmtD(d.de) + (d.ate && d.ate !== d.de ? ' → ' + fmtD(d.ate) : '')) + ' · ' + d.dias + ' ' + t('nDays').toLowerCase();
-  if (r.tipo === 'Adiantamento') return (d.tipo === 'Empréstimo' ? t('loan') : t('advance')) + ' ' + money(d.total) + ' · ' + t('inst') + ' ' + money(d.prest) + ' · ' + esc(d.inicio);
+  if (r.tipo === 'Licença') return esc(stName(d.tipo)) + ' · ' + (d.datas && d.datas.length > 1 ? d.datas.map(fmtD).join(', ') : fmtD(d.de) + (d.ate && d.ate !== d.de ? ' → ' + fmtD(d.ate) : '')) + ' · ' + d.dias + ' ' + t('nDays').toLowerCase() + (d.saldoAnt !== undefined && d.saldoAnt !== '' ? ' · ' + LL('saldo', 'balance') + ' ' + d.saldoAnt + ' → ' + (d.saldoAnt - Number(d.dias || 0)) : '');
+  if (r.tipo === 'Adiantamento') return (d.tipo === 'Empréstimo' ? t('loan') : t('advance')) + ' ' + money(d.total) + ' · ' + (d.nprest ? d.nprest + ' × ' : t('inst') + ' ') + money(d.prest) + ' · ' + esc(d.inicio);
   if (r.tipo === 'Horas extra') return fmtD(d.data) + ' · <b>' + d.horas + ' h</b>' + (d.inicio ? ' (' + esc(d.inicio) + '–' + esc(d.fim) + ')' : '') + (d.responsavel ? ' · ' + esc(d.responsavel) : '') + (d.motivo ? ' · ' + esc(d.motivo) : '');
   return '';
 }
@@ -1173,21 +1174,21 @@ function assistFields(meta) {
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
   const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
   const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"></label>' +
-    '<label>' + t('ref') + '<input id="af_ref"></label>';
+    (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '<label>' + t('ref') + '<input id="af_ref"></label>');
   const btn = '<div class="act"><button class="btn" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div>';
   let f = '';
   if (AF.tipo === 'Justificação') {
     f = per + '<label>' + t('newStatus') + '<select id="af_st"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
       '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Licença') {
-    f = per + '<label>' + t('type') + '<select id="af_lt">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
+    f = per + '<label>' + t('type') + '<select id="af_lt" onchange="ferShow(\'af\')">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
       '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
       '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
-      '<label>' + t('nDays') + '<input type="number" id="af_nd" placeholder="' + t('nDaysHint') + '"></label><label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+      ferFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Adiantamento') {
     f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
-      '<label>' + t('total') + ' *<input type="number" step="0.01" id="af_tot"></label><label>' + t('inst') + '<input type="number" step="0.01" id="af_pre"></label>' +
+      loanFields('af', 'af_tot', 'af_pre', '', '', '') +
       '<label>' + t('firstDed') + '<input type="month" id="af_ini" value="' + esc(meta.periodo) + '"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Horas extra') {
     f = per + '<label>' + t('date') + ' *<input type="date" id="af_d"></label><label>' + t('hours') + ' *<input type="number" step="0.25" min="0" id="af_h"></label>' +
@@ -1198,7 +1199,7 @@ function assistFields(meta) {
 }
 function afAdd() { const x = val('af_day'); if (x && AF.days.indexOf(x) < 0) { AF.days.push(x); AF.days.sort(); } afShow(); }
 function afDel(i) { AF.days.splice(i, 1); afShow(); }
-function afShow() { const el = document.getElementById('af_days'); if (el) el.innerHTML = AF.days.map((d, i) => '<span class="chip on" onclick="afDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); retCalc('af'); }
+function afShow() { const el = document.getElementById('af_days'); if (el) el.innerHTML = AF.days.map((d, i) => '<span class="chip on" onclick="afDel(' + i + ')">' + dow(d) + ' ' + fmtD(d) + ' ×</span>').join(' '); retCalc('af'); formSync('af'); }
 /* "Back to work" = first working day after the leave (skips fixed day off, non-working days of the schedule and holidays) */
 async function retCalc(P) {
   const el = document.getElementById(P + '_ret'); if (!el) return;
@@ -1209,14 +1210,97 @@ async function retCalc(P) {
   try { const r = await call(window.ROLE === 'assistant' ? 'aReturn' : 'returnDate', { id: id, last: last }); if (r && r.date) el.value = r.date; } catch (e) {}
 }
 const retNote = (nota, ret) => { const n = String(nota || '').replace(/\s*·?\s*Regressa: \d{2}\/\d{2}\/\d{4}/g, '').trim(); return ret ? (n ? n + ' · ' : '') + 'Regressa: ' + ret.split('-').reverse().join('/') : n; };
-document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); });
+document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); if (/^(af|lf|lo)_(p|de|ate|m|d)$/.test(id || '')) formSync(id.slice(0, 2), /_p$/.test(id)); });
+/* ---------- references (FA/TS/01/11/26), leave balance and loan instalments ---------- */
+const LL = (pt, en) => LANG === 'pt' ? pt : en;
+const REFCO = { CP: 'CPCM', KI: 'K Import', TS: 'Tsutsuma', GM: 'Galerie Madi', AM: 'Ali Madi (Casa)' };
+const PINFO = {}, FS = {};
+const isA = () => window.ROLE === 'assistant';
+const pidOf = P => Number(String(val(P + '_p')).replace(/\D.*$/, '')) || 0;
+function refField(P, kind, cur) {
+  return '<label class="full">' + LL('Referência', 'Reference') + '<span style="display:flex;gap:6px;flex-wrap:wrap">' +
+    '<select id="' + P + '_rt" onchange="refGen(\'' + P + '\',1)" style="width:auto">' + ['FA', 'CR'].map(x => '<option value="' + x + '"' + (x === kind ? ' selected' : '') + '>' + x + ' · ' + (x === 'FA' ? LL('Férias', 'Leave') : LL('Crédito', 'Credit')) + '</option>').join('') + '</select>' +
+    '<select id="' + P + '_rc" onchange="refGen(\'' + P + '\',1)" style="width:auto"><option value="">' + LL('Empresa', 'Company') + '</option>' + Object.keys(REFCO).map(k => '<option value="' + k + '">' + k + ' · ' + REFCO[k] + '</option>').join('') + '</select>' +
+    '<input id="' + P + '_ref" value="' + esc(cur || '') + '" data-auto="' + (cur ? '' : '1') + '" oninput="this.dataset.auto=\'\'" placeholder="FA/TS/01/11/26" style="flex:1;min-width:150px"></span></label>';
+}
+function ferFields(P, dias) {
+  const nd = P === 'af' ? 'af_nd' : 'lf_n';
+  return '<label>' + LL('Dias a usar', 'Days used') + '<input type="number" step="0.5" id="' + nd + '" value="' + esc(dias == null ? '' : dias) + '"' + (dias !== '' && dias != null ? ' data-man="1"' : '') + ' oninput="this.dataset.man=1;balCalc(\'' + P + '\')" placeholder="' + t('nDaysHint') + '"></label>' +
+    '<label class="' + P + '_fer">' + LL('Saldo anterior de férias', 'Previous leave balance') + '<input type="number" step="0.5" id="' + P + '_sa" data-sys="" oninput="balCalc(\'' + P + '\')"><small class="muted" id="' + P + '_sys"></small></label>' +
+    '<label class="' + P + '_fer">' + LL('Novo saldo de férias', 'New leave balance') + '<input id="' + P + '_sn" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
+}
+function loanFields(P, tot, pre, vt, vp, vn) {
+  const f = 'loanCalc(\'' + P + '\',\'' + tot + '\',\'' + pre + '\')';
+  return '<label>' + LL('Saldo anterior (dívida)', 'Previous balance (debt)') + '<input id="' + P + '_sd" readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"></label>' +
+    '<label>' + LL('Valor a creditar', 'Amount credited') + ' *<input type="number" step="0.01" id="' + tot + '" value="' + vt + '" oninput="' + f + '"></label>' +
+    '<label>' + LL('Nº de prestações', 'Nº of instalments') + '<input type="number" min="1" step="1" id="' + P + '_np" value="' + vn + '" oninput="' + f + '"></label>' +
+    '<label>' + LL('Prestação (valor ÷ prestações)', 'Instalment (amount ÷ instalments)') + '<input type="number" step="0.01" id="' + pre + '" value="' + vp + '"></label>' +
+    '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
+}
+const isFer = P => /^Férias/.test(val(P === 'af' ? 'af_lt' : 'lf_t'));
+function ferShow(P) { document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = isFer(P) ? '' : 'none'); balCalc(P); }
+function balCalc(P) {
+  const sa = document.getElementById(P + '_sa'), sn = document.getElementById(P + '_sn'); if (!sa || !sn) return;
+  const nd = val(P === 'af' ? 'af_nd' : 'lf_n');
+  sn.value = sa.value === '' ? '' : String(Math.round((Number(sa.value) - Number(nd || 0)) * 10) / 10);
+  const sys = document.getElementById(P + '_sys');
+  if (sys) sys.innerHTML = sa.dataset.sys === '' ? '' : sa.value !== sa.dataset.sys ? '<span class="st s-chk">' + LL('corrigido · sistema: ', 'corrected · system: ') + sa.dataset.sys + '</span>' : LL('do sistema', 'from the system');
+}
+function loanCalc(P, tot, pre) {
+  const v = Number(val(tot)) || 0, np = Number(val(P + '_np')) || 0, pe = document.getElementById(pre);
+  if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2);
+  const sd = document.getElementById(P + '_sd'), ns = document.getElementById(P + '_ns');
+  if (ns && sd) ns.value = sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money((Number(sd.dataset.v) || 0) + (FS[P] && FS[P].edit ? 0 : v));
+}
+function refDate(P) {
+  if (P === 'lo') return val('lo_d') || todayStr();
+  if (P === 'af' && AF.tipo !== 'Licença') return todayStr();
+  const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
+  return (md ? days[0] : val(P + '_de')) || todayStr();
+}
+async function refGen(P, force) {
+  const el = document.getElementById(P + '_ref'); if (!el) return;
+  if (!force && !el.dataset.auto) return;
+  const co = val(P + '_rc'), tp = val(P + '_rt'); if (!co) return;
+  const d = refDate(P);
+  try { const r = await call(isA() ? 'aNextRef' : 'nextRef', { tipo: tp, co: co, mm: d.slice(5, 7), yy: d.slice(2, 4) }); el.value = r.ref; el.dataset.auto = '1'; } catch (e) {}
+}
+/* fills company code, balances, working days and the next reference after the person / dates change */
+async function formSync(P, newPerson) {
+  const id = pidOf(P); if (!id) return;
+  if (P === 'af' && AF.tipo !== 'Licença' && AF.tipo !== 'Adiantamento') return;
+  if (!PINFO[id]) { try { PINFO[id] = await call(isA() ? 'aRefInfo' : 'refInfo', { id: id }); } catch (e) { return; } }
+  const inf = PINFO[id], ed = FS[P] && FS[P].edit;
+  const rc = document.getElementById(P + '_rc');
+  if (rc && (newPerson || !rc.value) && inf.co && (!ed || !val(P + '_ref'))) rc.value = inf.co;
+  const sa = document.getElementById(P + '_sa');
+  if (sa && (newPerson || sa.dataset.sys === '')) {
+    let s = inf.saldo === '' || inf.saldo == null ? '' : Number(inf.saldo);
+    if (s !== '' && ed && /^Férias/.test(ed.tipo || '') && ed.estado === 'Aprovado') s += ed.dias;   /* editing an approved leave: balance before it */
+    sa.dataset.sys = String(s); sa.value = String(s);
+  }
+  const sd = document.getElementById(P + '_sd');
+  if (sd) { sd.dataset.v = String(inf.divida || 0); sd.value = money(inf.divida || 0); }
+  if (P !== 'lo') {
+    const nd = document.getElementById(P === 'af' ? 'af_nd' : 'lf_n');
+    const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
+    const de = md ? days[0] : val(P + '_de'), ate = md ? days[days.length - 1] : (val(P + '_ate') || val(P + '_de'));
+    if (nd && !nd.dataset.man && de) { try { const r = await call(isA() ? 'aLeaveDays' : 'leaveDays', { id: id, de: de, ate: ate, datas: md ? days : [] }); if (!nd.dataset.man) nd.value = r.dias; } catch (e) {} }
+    ferShow(P);
+  } else loanCalc('lo', 'lo_v', 'lo_i');
+  if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
+  refGen(P);
+}
+function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
+function apLoan(n) { const v = Number(val('ap_tot' + n)) || 0, np = Number(val('ap_np' + n)) || 0, pe = document.getElementById('ap_pre' + n); if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2); }
 function afMode() { const d = val('af_m') === 'd'; document.querySelectorAll('.af_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.af_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 async function assistSubmit() {
   const id = Number(val('af_p')); AF.id = id;
   let dados = {};
   if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
-  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: retNote(val('af_n'), val('af_ret')) }; if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
-  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
+  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: retNote(val('af_n'), val('af_ret')) };
+    { const sa = document.getElementById('af_sa'); if (isFer('af') && sa && sa.value !== '' && sa.value !== sa.dataset.sys) { dados.saldoAnt = Number(sa.value); dados.saldoSis = sa.dataset.sys; } } if (md ? !dados.datas.length : !dados.de) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
+  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: val('af_n') }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (!id) return toast(t('required'));
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
@@ -1235,10 +1319,13 @@ function renderApprovals(d) {
   const card = r => {
     const c = d.ctx[r.n] || {}, x = r.dados || {};
     let edit = '', info = '';
-    if (r.tipo === 'Licença') { edit = '<label class="muted">' + t('nDays') + ' <input type="number" id="ap_dias' + r.n + '" value="' + esc(x.dias) + '" style="width:70px"></label>';
-      if (x.tipo === 'Férias' || x.tipo === 'Férias pagas') info = t('bal') + ': <b>' + c.saldo + '</b> → ' + t('after') + ': <b>' + (c.saldo === '' || c.saldo == null ? '?' : c.saldo - Number(x.dias || 0)) + '</b>'; }
-    if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
-      info = t('debtNow') + ': <b>' + money(c.divida) + '</b>'; }
+    if (r.tipo === 'Licença') { edit = '<label class="muted">' + t('nDays') + ' <input type="number" id="ap_dias' + r.n + '" value="' + esc(x.dias) + '" style="width:70px" oninput="apBal(' + r.n + ')"></label>';
+      if (x.tipo === 'Férias' || x.tipo === 'Férias pagas') { const sa = x.saldoAnt !== undefined && x.saldoAnt !== '' ? x.saldoAnt : c.saldo;
+        info = LL('Saldo anterior', 'Previous balance') + ': <input type="number" step="0.5" id="ap_sa' + r.n + '" value="' + esc(sa) + '" data-sys="' + esc(c.saldo) + '" style="width:70px" oninput="apBal(' + r.n + ')"> ' +
+          (String(sa) !== String(c.saldo) ? '<span class="st s-chk">' + LL('sistema', 'system') + ': ' + (c.saldo === '' || c.saldo == null ? '—' : c.saldo) + '</span> ' : '') +
+          '→ ' + LL('Novo saldo', 'New balance') + ': <b id="ap_sn' + r.n + '">' + (sa === '' || sa == null ? '?' : sa - Number(x.dias || 0)) + '</b>'; } }
+    if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + LL('Nº prestações', 'Nº instalments') + ' <input type="number" min="1" step="1" id="ap_np' + r.n + '" value="' + esc(x.nprest || (x.prest ? Math.ceil(Math.round(x.total / x.prest * 100) / 100) : 1)) + '" style="width:60px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
+      info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> + ' + money(x.total) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money((Number(c.divida) || 0) + (Number(x.total) || 0)) + '</b>'; }
     if (r.tipo === 'Horas extra') { edit = '<label class="muted">' + t('hours') + ' <input type="number" step="0.25" id="ap_h' + r.n + '" value="' + esc(x.horas) + '" style="width:80px"></label>';
       const mq = c.maquina; info = t('machine') + ': ' + (mq ? t('in') + ' ' + hm(mq.ent) + ' · ' + t('out') + ' ' + hm(mq.sai) + ' · ' + stTag(mq.st) + (mq.extra ? ' · ' + mq.extra + ' h' : '') : '—'); }
     if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
@@ -1256,11 +1343,14 @@ function renderApprovals(d) {
 async function decideReq(n, dec) {
   const r = window._req.rows.filter(x => x.n === n)[0]; const dados = {};
   if (r.tipo === 'Licença') dados.dias = val('ap_dias' + n);
-  if (r.tipo === 'Adiantamento') { dados.total = val('ap_tot' + n); dados.prest = val('ap_pre' + n); dados.inicio = val('ap_ini' + n); }
+  if (r.tipo === 'Adiantamento') { dados.total = val('ap_tot' + n); dados.prest = val('ap_pre' + n); dados.nprest = val('ap_np' + n); dados.inicio = val('ap_ini' + n); }
+  const apSa = document.getElementById('ap_sa' + n);
   if (r.tipo === 'Horas extra') dados.horas = val('ap_h' + n);
   if (r.tipo === 'Justificação') { dados.estado = val('ap_st' + n); dados.min = val('ap_min' + n); }
   document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
-  try { await call('requestDecide', { n: n, decision: dec, nota: val('ap_note' + n), dados: dados }); invalidate(); toast(t('saved')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); paintChrome(); render(); }
+  try {
+    if (dec === 'Aprovado' && apSa && apSa.value !== '' && apSa.value !== apSa.dataset.sys) { const x = r.dados || {}; await call('balanceFix', { id: r.id, saldo: Number(apSa.value), before: x.de || (x.datas || [])[0], ref: x.ref }); dados.saldoAnt = Number(apSa.value); }
+    await call('requestDecide', { n: n, decision: dec, nota: val('ap_note' + n), dados: dados }); invalidate(); toast(t('saved')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); paintChrome(); render(); }
   catch (e) { toast(t('error') + ': ' + e); render(); }
 }
 async function viewDoc(n) {
