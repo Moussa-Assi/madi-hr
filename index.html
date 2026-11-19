@@ -813,7 +813,7 @@ async function ignoreNew(i) {
 }
 
 /* ======================= Phase 4 screens ======================= */
-const money = n => Number(n || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const money = n => { const v = Number(n || 0), x = Math.abs(Math.round(v * 100) / 100).toFixed(2).split('.'); return (v < -0.004 ? '−' : '') + x[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + x[1]; };
 const STW = s => ({ 'Aprovado': t('stApproved'), 'Pendente': t('stPending'), 'Rejeitado': t('stRejected'), 'Rascunho': LANG === 'pt' ? 'Aguarda carta assinada' : 'Waiting for signed letter', 'Anulado': LANG === 'pt' ? 'Anulado' : 'Cancelled' }[s] || s);
 const stwTag = s => '<span class="st s-' + ({ 'Aprovado': 'ok', 'Pendente': 'chk', 'Rejeitado': 'bad', 'Rascunho': 'late' }[s] || 'off') + '">' + esc(STW(s)) + '</span>';
 const LSTW = s => ({ 'Ativo': t('lActive'), 'Suspenso': t('lPaused'), 'Liquidado': t('lDone') }[s] || s);
@@ -906,7 +906,7 @@ async function saveLeaveForm(n) {
     if (window.ROLE !== 'assistant' && isFer('lf') && sa && sa.value !== '' && sa.value !== sa.dataset.sys) await call('balanceFix', { id: id, saldo: Number(sa.value), before: mode === 'd' ? LDAYS[0] : p.de, ref: p.ref });
     await call(window.ROLE === 'assistant' ? 'aSubmit' : 'leaveSave', p);
     let extra = '';
-    if (fp && !n && window.ROLE !== 'assistant' && (document.getElementById('lf_fd') || {}).checked) { const r = await call('fpDebt', { id: id, dias: p.dias, ref: p.ref }); extra = ' · ' + LL('pago à dívida: ', 'paid to debt: ') + money(r.pago); }
+    if (fp && (!n || !/\[dívida\]/.test((FS.lf && FS.lf.edit && FS.lf.edit.notas) || '')) && window.ROLE !== 'assistant' && (document.getElementById('lf_fd') || {}).checked) { const r = await call('fpDebt', { id: id, dias: p.dias, ref: p.ref }); extra = ' · ' + LL('pago à dívida: ', 'paid to debt: ') + money(r.pago); }
     invalidate(); closeModal(); toast((window.ROLE === 'assistant' ? t('sent') : t('saved')) + extra); render();
   } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lf_btn').disabled = false; }
 }
@@ -1114,7 +1114,17 @@ async function showReport(id) {
       '<div class="sig"><div>' + t('signEmp') + '</div><div>' + t('signHR') + '</div></div><div class="muted" style="padding:0 14px">' + t('printedOn') + ' ' + esc(d.printed) + '</div>');
   } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
 }
-function printModal() { document.body.classList.add('pm'); setTimeout(() => { window.print(); setTimeout(() => document.body.classList.remove('pm'), 500); }, 50); }
+/* iPhone/iPad (and the installed app) prepare the print AFTER window.print() returns, so the print view must stay until the print sheet is closed */
+const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+function printWith(cls, cleanup) {
+  document.body.classList.add(cls);
+  let done = false, t0 = 0;
+  const end = () => { if (done) return; done = true; document.body.classList.remove(cls); window.removeEventListener('afterprint', end); document.removeEventListener('pointerdown', late, true); if (cleanup) cleanup(); };
+  const late = () => { if (Date.now() - t0 > 1200) end(); };
+  if (!IOS) window.addEventListener('afterprint', end);
+  setTimeout(() => { t0 = Date.now(); window.print(); document.addEventListener('pointerdown', late, true); if (!IOS) setTimeout(end, 60000); }, 150);
+}
+function printModal() { printWith('pm'); }
 
 async function transferForm() {
   const p = CUR.p; const meta = CACHE.meta || (CACHE.meta = await call('meta'));
@@ -1852,8 +1862,7 @@ async function printLetter(c, n) {
   catch (e) { toast(String(e.message || e)); }
   let box = document.getElementById('ltr');
   if (!box) { box = document.createElement('div'); box.id = 'ltr'; document.body.appendChild(box); }
-  box.innerHTML = ltrHtml(c, n, qr); document.body.classList.add('ltrm');
-  setTimeout(() => { window.print(); setTimeout(() => { document.body.classList.remove('ltrm'); }, 800); }, 150);
+  box.innerHTML = ltrHtml(c, n, qr); printWith('ltrm');
 }
 let LTR_NEW = 0;
 async function assistDraft() {
@@ -1887,6 +1896,12 @@ async function qrScan(file) {
   } finally { URL.revokeObjectURL(url); }
   return '';
 }
+const cnorm = x => compact(x).replace(/g/g, '6').replace(/[dq]/g, '0').replace(/s/g, '5').replace(/b/g, '8').replace(/z/g, '2');
+function codeIn(text, n, h) {   /* RH-00002-ZAW6WB in the OCR text: number exact, check code with at most one misread character */
+  const x = cnorm(text), want = cnorm(h), num = String(n).padStart(5, '0');
+  for (const m of x.matchAll(/rh(\d{5})([a-z0-9]{6})/g)) if (m[1] === num && lev(m[2], want) <= 1) return true;
+  return false;
+}
 async function ltrAttach(n, input) {
   const r = (window._mine || []).find(x => x.n === n), file = input.files && input.files[0], box = document.getElementById('ltv' + n);
   if (!r || !file) return;
@@ -1900,7 +1915,7 @@ async function ltrAttach(n, input) {
     if (q) { const m = q.split('|'); if (Number(m[1]) !== n) { input.value = ''; return say(false, '✗ ' + LL('Esta foto é da carta Nº ' + m[1] + ', não da Nº ' + n + '.', 'This photo is of letter Nº ' + m[1] + ', not Nº ' + n + '.')); }
       if (!c || m[2] !== c.h) { input.value = ''; return say(false, '✗ ' + LL('O código não corresponde a esta carta — imprima-a de novo.', 'The code does not match this letter — print it again.')); }
       verif = 'qr'; }
-    else { say(true, '⏳ ' + LL('QR não encontrado — a ler o código impresso…', 'QR not found — reading the printed code…')); const o = await ocrRead(file); if (code && compact(o.text).indexOf(compact(code)) >= 0) verif = 'cod'; }
+    else { say(true, '⏳ ' + LL('QR não encontrado — a ler o código impresso…', 'QR not found — reading the printed code…')); const o = await ocrRead(file); if (code && codeIn(o.text, n, c.h)) verif = 'cod'; }
   } catch (e) { input.value = ''; return say(false, '✗ ' + esc(e.message || e)); }
   if (!verif) { input.value = ''; return say(false, '✗ ' + LL('Não encontrei o código desta carta (' + code + ') na foto. Tire outra foto: carta inteira, de frente, boa luz.', 'Could not find this letter\'s code (' + code + ') in the photo. Take another photo: whole letter, straight on, good light.')); }
   say(true, '✓ ' + LL('Carta confirmada', 'Letter confirmed') + (verif === 'qr' ? ' (QR)' : ' (' + LL('código', 'code') + ')') + ' — ' + LL('a enviar…', 'sending…'));
@@ -1923,6 +1938,7 @@ function renderApprovals(d) {
           '→ ' + LL('Novo saldo', 'New balance') + ': <b id="ap_sn' + r.n + '">' + (sa === '' || sa == null ? '?' : sa - Number(x.dias || 0)) + '</b>'; } }
     if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + LL('Nº prestações', 'Nº instalments') + ' <input type="number" min="1" step="1" id="ap_np' + r.n + '" value="' + esc(x.nprest || (x.prest ? Math.ceil(Math.round(x.total / x.prest * 100) / 100) : 1)) + '" style="width:60px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
       info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> + ' + money(x.total) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money((Number(c.divida) || 0) + (Number(x.total) || 0)) + '</b>'; }
+    if (r.tipo === 'Licença' && x.tipo === 'Férias pagas' && Number(c.divida) > 0) edit += '<label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ap_fd' + r.n + '" style="width:auto"' + (/\[dívida\]/.test(x.nota || '') ? ' checked' : '') + '> ' + LL('Usar para pagar a dívida', 'Use to pay the debt') + ' (' + money(c.divida) + ')</label>';
     if (r.tipo === 'Pagamento') { edit = '<label class="muted">' + LL('Valor pago', 'Amount paid') + ' <input type="number" step="0.01" id="ap_v' + r.n + '" value="' + esc(x.valor) + '" style="width:110px"></label>';
       info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> − ' + money(x.valor) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money(Math.max(0, (Number(c.divida) || 0) - (Number(x.valor) || 0))) + '</b>'; }
     if (r.tipo === 'Horas extra') { edit = '<label class="muted">' + t('hours') + ' <input type="number" step="0.25" id="ap_h' + r.n + '" value="' + esc(x.horas) + '" style="width:80px"></label>';
@@ -1943,6 +1959,9 @@ function renderApprovals(d) {
 async function decideReq(n, dec) {
   const r = window._req.rows.filter(x => x.n === n)[0]; const dados = {};
   if (r.tipo === 'Licença') dados.dias = val('ap_dias' + n);
+  { const fd = document.getElementById('ap_fd' + n), nt = String((r.dados || {}).nota || ''), has = /\[dívida\]/.test(nt);
+    if (fd && fd.checked && !has) dados.nota = (nt ? nt + ' · ' : '') + 'Valor usado para pagar a dívida [dívida]';
+    if (fd && !fd.checked && has) dados.nota = nt.replace(/\s*·?\s*[^·]*\[dívida\]/, '').trim(); }
   if (r.tipo === 'Adiantamento') { dados.total = val('ap_tot' + n); dados.prest = val('ap_pre' + n); dados.nprest = val('ap_np' + n); dados.inicio = val('ap_ini' + n); }
   const apSa = document.getElementById('ap_sa' + n);
   if (r.tipo === 'Horas extra') dados.horas = val('ap_h' + n);
@@ -2032,7 +2051,8 @@ function payDetail(id) {
   const earn = line(t('pBase'), vBase, r.ef !== 30 ? money(r.base) + ' ÷ 30 × ' + r.ef + ' ' + t('pDays') : '') + line(t('pOT'), r.vHE, r.heH ? r.heH + ' h' + (r.heDom ? ' (' + r.heDom + ' h ' + t('pSun') + ')' : '') : '') + line(t('pOther'), r.outras, '') +
     line(t('pLP'), r.vFP, r.fpDias ? r.fpDias + ' ' + t('pDays') : '') + line(t('pBonus'), r.bonus, '') + line(t('pAllow'), r.subs, '');
   const deds = line(t('pAbs'), r.vFaltas, r.faltas ? r.faltas + ' ' + t('pDays') : '', true) + line(t('pLate'), r.vAtraso, r.lateMin ? r.lateMin + ' min' : '', true) + line(t('pInss'), r.inss, '', true) + line(t('pAdv'), r.loans, '', true) + line(t('pOth'), r.outros, '', true);
-  const debt = r.saldoAnt || r.contraida || r.loans || r.saldoAtual ? '<div class="info">' + [[t('pPrev'), r.saldoAnt], [t('pNewD'), r.contraida], [t('pAdv'), r.loans], [t('pBal'), r.saldoAtual]].map(x => '<div><small>' + x[0] + '</small>' + money(x[1]) + '</div>').join('') + '</div>' : '';
+  const xp = payExtra(r);
+  const debt = r.saldoAnt || r.contraida || r.loans || r.saldoAtual ? '<div class="info">' + [[t('pPrev'), r.saldoAnt], [t('pNewD'), r.contraida], [t('pAdv'), r.loans]].concat(xp.map(x => [LL(x[0], x[1]), x[2]])).concat([[t('pBal'), r.saldoAtual]]).map(x => '<div><small>' + x[0] + '</small>' + money(x[1]) + '</div>').join('') + '</div>' : '';
   const inp = (k, lbl, v, ph) => '<label>' + lbl + '<input type="number" step="0.01" id="pm_' + k + '" value="' + (v === 0 || v ? v : '') + '"' + (ph ? ' placeholder="' + ph + '"' : '') + '></label>';
   modal(r.nome + ' · ' + d.periodo, '<button class="btn sm" onclick="printReceipts([' + r.id + '])">' + t('pSlip') + '</button>',
     '<div class="info"><div><small>' + t('pCompany') + '</small>' + coLogo(r.ent, 22) + esc(r.ent) + '</div><div><small>' + t('name') + '</small>' + esc(r.nome) + '</div><div><small>ID</small>' + r.id + '</div><div><small>' + t('dept') + '</small>' + esc(r.dept) + '</div>' +
@@ -2129,7 +2149,7 @@ async function payCoSave(i) {
 const MES_PT = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 function rcpHtml(r, via) {
   const d = window._pay, e = (d.empresas || {})[r.ent || '—'] || { nome: r.ent || '', morada: '', nuit: '' };
-  const m = x => Number(x || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const m = x => money(x);
   const q = s => '<i>' + s + '</i>';
   const L = [['Sal. base', q(r.ef + ' dias'), Math.round(r.base / 30 * r.ef * 100) / 100], ['H. extra', q((r.heH || 0) + ' h'), r.vHE], ['Outras rem.', '', r.outras]];
   if (r.vFP) L.push(['Férias pagas', q(r.fpDias + ' dias'), r.vFP]);
@@ -2139,14 +2159,22 @@ function rcpHtml(r, via) {
   while (L.length < R.length) L.push(['', '', '']); while (R.length < L.length) R.push(['', '', '']);
   const cell = x => '<td>' + x[0] + ' ' + x[1] + '</td><td class="v">' + (x[0] ? m(x[2]) : '') + '</td>';
   const pk = d.periodo, mes = MES_PT[Number(pk.slice(5, 7)) - 1] + ' ' + pk.slice(0, 4);
-  const lg = coCode(r.ent);
+  const lg = coCode(r.ent), xp = payExtra(r);
   return '<div class="rc"><div class="rh">' + (lg ? '<img class="rlg" src="' + LOGO[lg] + '" alt="">' : '') + '<div class="re"><b>' + esc(e.nome) + '</b>' + (e.morada ? '<br>' + esc(e.morada) : '') + (e.nuit ? '<br>NUIT ' + esc(e.nuit) : '') + '</div>' +
     '<div class="rw"><span>ID ' + r.id + '</span><b>' + esc(r.nome) + '</b><span>RECIBO DE SALÁRIO · ' + mes + '</span><small>' + fmtDY(d.from) + ' a ' + fmtDY(d.to) + (via ? ' · Via ' + via : '') + '</small></div></div>' +
     '<table class="rt"><colgroup><col style="width:30%"><col style="width:20%"><col style="width:30%"><col style="width:20%"></colgroup><tr><th colspan="2">PROVEITOS</th><th colspan="2">DESCONTOS</th></tr>' + L.map((x, i) => '<tr>' + cell(x) + cell(R[i]) + '</tr>').join('') +
     '<tr class="rs"><td>TOTAL BRUTO</td><td class="v">' + m(r.bruto) + '</td><td>TOTAL DESCONTOS</td><td class="v">' + m(r.descontos) + '</td></tr>' +
-    '<tr><td>Saldo anterior</td><td class="v">' + m(r.saldoAnt) + '</td><td rowspan="3" colspan="2" class="rl">LÍQUIDO A RECEBER<b>' + m(r.liquido) + ' MT</b></td></tr>' +
-    '<tr><td>Dívida contraída</td><td class="v">' + m(r.contraida) + '</td></tr><tr><td>Saldo actual</td><td class="v">' + m(r.saldoAtual) + '</td></tr></table>' +
+    '<tr><td>Saldo anterior</td><td class="v">' + m(r.saldoAnt) + '</td><td rowspan="' + (3 + xp.length) + '" colspan="2" class="rl">LÍQUIDO A RECEBER<b>' + m(r.liquido) + ' MT</b></td></tr>' +
+    '<tr><td>Dívida contraída</td><td class="v">' + m(r.contraida) + '</td></tr>' + xp.map(x => '<tr><td>' + x[0] + '</td><td class="v">' + m(x[2]) + '</td></tr>').join('') + '<tr><td>Saldo actual</td><td class="v">' + m(r.saldoAtual) + '</td></tr></table>' +
     '<div class="rf">Datas de faltas: ' + esc(r.datasFaltas || '—') + '</div><div class="rsig"><div>Entidade pagadora</div><div>Trabalhador(a)</div></div></div>';
+}
+/* debt paid outside the salary this period: [label pt, label en, value] */
+function payExtra(r) {
+  const fp = Number(r.pagoFP) || 0, dir = Number(r.pagoDir) || 0, out = [];
+  if (r.pagoFP !== undefined || r.pagoDir !== undefined) { if (fp > 0.004) out.push(['Pago com férias pagas', 'Paid with leave pay-out', fp]); if (dir > 0.004) out.push(['Pagamento direto', 'Direct payment', dir]); return out; }
+  const gap = Math.round(((Number(r.saldoAnt) || 0) + (Number(r.contraida) || 0) - (Number(r.loans) || 0) - (Number(r.saldoAtual) || 0)) * 100) / 100;   // closed periods: derived
+  if (gap > 0.5) out.push(['Outros pagamentos', 'Other payments', gap]);
+  return out;
 }
 function printReceipts(ids) {
   const d = window._pay; if (!d) return;
@@ -2158,8 +2186,7 @@ function printReceipts(ids) {
   for (let i = 0; i < items.length; i += 6) html += '<div class="rp">' + items.slice(i, i + 6).map(x => rcpHtml(x[0], x[1])).join('') + '</div>';
   let box = document.getElementById('rcp');
   if (!box) { box = document.createElement('div'); box.id = 'rcp'; document.body.appendChild(box); }
-  box.innerHTML = html; document.body.classList.add('rcpm');
-  setTimeout(() => { window.print(); setTimeout(() => { document.body.classList.remove('rcpm'); box.innerHTML = ''; }, 800); }, 120);
+  box.innerHTML = html; printWith('rcpm', () => { box.innerHTML = ''; });
 }
 
 
