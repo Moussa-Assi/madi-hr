@@ -97,7 +97,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 @media print{body.pm main,body.pm header,body.pm nav,body.pm #alert{display:none!important}body.pm .modal{position:static;display:block;background:#fff;padding:0;overflow:visible}body.pm .mbox{max-width:none;border-radius:0}body.pm .mh .x,body.pm .mh #mActs,body.pm .noprint{display:none!important}body.pm .rep td,body.pm .rep th{font-size:10px;padding:3px 5px}}
 .rep td{vertical-align:top}.sig{display:flex;gap:40px;padding:30px 14px 10px}.sig div{flex:1;border-top:1px solid #333;padding-top:6px;font-size:12px;text-align:center}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}header h1{font-size:14px}main{padding:12px}.hb .l{width:100px}}
-.ocrbox{margin-top:6px}.ocr{border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.55}.ocr.good{background:#e8f6ee;border:1px solid #9bd3b2}.ocr.bad{background:#fdecec;border:1px solid #f0a9a9}.ocr small{display:block;margin-top:4px}
+#ltr{display:none}@media print{body.ltrm>*:not(#ltr){display:none!important}body.ltrm #ltr{display:block!important}body.ltrm{background:#fff;margin:0;padding:0}}.lt{width:182mm;min-height:268mm;margin:0 auto;padding:4mm 6mm;box-sizing:border-box;font-family:Georgia,"Times New Roman",serif;color:#111;font-size:12.5pt;line-height:1.55;position:relative;page-break-after:always;background:#fff}.lt .lh{display:flex;align-items:center;gap:14px;border-bottom:2px solid #1F3864;padding-bottom:8px}.lt .lh img{height:20mm;max-width:45mm;object-fit:contain}.lt .lh .le{font-family:Arial,sans-serif;font-size:9.5pt;line-height:1.35;color:#333}.lt .lh .le b{font-size:12pt;color:#111}.lt .lr{display:flex;justify-content:space-between;margin:9mm 0 6mm;font-family:Arial,sans-serif;font-size:11pt}.lt .lr b{font-family:"Courier New",monospace;font-size:13pt;letter-spacing:.5px}.lt h2{font-size:15pt;letter-spacing:.5px;margin:0 0 6mm;text-align:center}.lt p{margin:0 0 4mm;text-align:justify}.lt table{border-collapse:collapse;margin:3mm 0 6mm;min-width:95mm}.lt td{border:1px solid #888;padding:2mm 4mm;font-size:11.5pt}.lt td.v{text-align:right;font-weight:700;font-family:Arial,sans-serif}.lt .ld{margin:8mm 0 18mm}.lt .ls{display:flex;gap:16mm}.lt .ls div{flex:1;border-top:1px solid #111;padding-top:2mm;text-align:center;font-size:10.5pt;font-family:Arial,sans-serif}.lt .lq{position:absolute;right:6mm;bottom:4mm;text-align:center;font-family:"Courier New",monospace;font-size:10pt}.lt .lq svg,.lt .lq img{width:26mm;height:26mm;display:block;margin:0 auto 1mm}.lt .lf{position:absolute;left:6mm;bottom:5mm;font-family:Arial,sans-serif;font-size:8pt;color:#666;max-width:120mm}.ltrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.ltrow label.btn{cursor:pointer}.ltrow input[type=file]{display:none}.ocrbox{margin-top:6px}.ocr{border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.55}.ocr.good{background:#e8f6ee;border:1px solid #9bd3b2}.ocr.bad{background:#fdecec;border:1px solid #f0a9a9}.ocr small{display:block;margin-top:4px}
 .dash .dsec h3{font-size:15px}.dash th.n{text-align:right}.dash .kpis{grid-template-columns:repeat(auto-fit,minmax(118px,1fr))}.dash .kpi{padding:10px 12px}.dash .kpi b{font-size:22px}.dash .how{padding:8px 14px;font-size:12px;color:var(--mut);background:#fafbfc;border-bottom:1px solid var(--line);line-height:1.5}.dash h4{margin:12px 14px 4px;font-size:13px}.dash h4.bad{color:var(--bad)}.dash h4.late{color:var(--late)}.dash h4.inf{color:var(--inf)}.dash h4.ok{color:var(--ok)}.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:4px}.dash .hb .rk{width:18px;color:var(--mut);font-size:12px;text-align:right}.dash .hb .l{width:170px}.dash .hb .v{width:auto;min-width:60px;font-size:12px;white-space:nowrap}.hb .f.bad{background:var(--bad)}.hb .f.late{background:var(--late)}.hb .f.inf{background:var(--inf)}.dash table td,.dash table th{padding:6px 10px}.dash tr.flag td{background:#fff8ec}.cbad{color:var(--bad)}.clate{color:var(--late)}.warnline{margin:4px 14px 12px;padding:8px 10px;border-radius:8px;background:#fff8ec;color:#8a5a00;font-size:13px}.wk{display:flex;align-items:flex-end;gap:8px;height:150px;padding:10px 14px 4px}.wk div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%}.wk .wb{width:100%;background:var(--bad);border-radius:4px 4px 0 0;min-height:2px}.wk .wv{font-size:12px;font-weight:600;margin-bottom:2px}.wk .wl{font-size:11px;color:var(--mut);margin-top:4px}.kpi small{display:block;margin-top:2px}
 @media (max-width:820px){.grid3{grid-template-columns:1fr}.dash .hb .l{width:120px}}
 .colg{vertical-align:middle;margin-right:6px;object-fit:contain}.chip .colg{margin:-3px 6px -3px 0}
@@ -224,7 +224,7 @@ const T = {
     approvals:'Aprovações', login:'Entrar', who:'Quem é?', logout:'Sair', notReady:'Há perfis sem PIN — peça ao Moussa para definir.', newReq:'Novo pedido', machine:'Máquina neste dia (só informação)', viewDoc:'📄 Ver documento', openDrive:'Abrir ficheiro',
     subBy:'Submetido por', recent:'Decididos recentemente', noApprovals:'Nada para aprovar 🎉', assistants:'👤 Assistentes e PINs', newPin:'Novo PIN (4–8 dígitos)', canSubmit:'Pode submeter', pinOk:'PIN definido', pinNo:'Sem PIN', sending:'A enviar…',
     photo:'Foto do documento assinado *', startT:'Início', endT:'Fim', respSig:'Responsável que assinou', debtNow:'Dívida atual', onlyMin:'— só alterar minutos de atraso —', link:'Link', copy:'Copiar', decNote:'Nota da decisão',
-    rtJust:'Justificação de falta', rtLeave:'Licença / férias', rtAdv:'Adiantamento / empréstimo', rtOT:'Horas extra', reqOwnerHint:'Os pedidos das assistentes (com foto) estão em Aprovações.',
+    rtJust:'Justificação de falta', rtLeave:'Licença / férias', rtAdv:'Adiantamento / empréstimo', rtOT:'Horas extra', rtPay:'Pagamento de dívida', reqOwnerHint:'Os pedidos das assistentes (com foto) estão em Aprovações.',
     pay:'Salários', pDraft:'Rascunho', pClosedOn:'Fechado em', pUpTo:'Presenças contadas até', pBase:'Salário base', pOther:'Outras remunerações', pOT:'Horas extra', pLP:'Férias pagas', pBonus:'Bónus', pAllow:'Subsídios',
     pAbs:'Faltas', pLate:'Atrasos', pPro:'Dias fora do contrato', pGross:'Salário bruto', pInss:'INSS', pEf:'Dias efetivos', pPrev:'Saldo anterior', pNewD:'Dívida contraída', pBal:'Saldo atual', pTotD:'Total descontos', pSun:'domingo', pEfH:'vazio = automático', inssBase:'Base INSS', inssBaseH:'vazio = salário base · 0 = isento', efDays:'Dias pagos por mês', efDaysH:'vazio = 30', pAdv:'Pagamento adiantamento', pOth:'Outros descontos', pNet:'Salário líquido', pInssE:'INSS empresa',
     pAdd:'Acréscimos', pDed:'Faltas e atrasos', pOthD:'Outros', pClose:'Fechar período', pReopen:'Reabrir', pSlip:'🖨 Recibo', pEarn:'Remunerações', pDeds:'Descontos', pManual:'Valores manuais (este período)', pDays:'dias', pSigC:'Empresa',
@@ -271,7 +271,7 @@ const T = {
     approvals:'Approvals', login:'Sign in', who:'Who are you?', logout:'Sign out', notReady:'Some profiles have no PIN yet — ask Moussa to set it.', newReq:'New request', machine:'Machine that day (info only)', viewDoc:'📄 View document', openDrive:'Open file',
     subBy:'Submitted by', recent:'Recently decided', noApprovals:'Nothing to approve 🎉', assistants:'👤 Assistants & PINs', newPin:'New PIN (4–8 digits)', canSubmit:'Can submit', pinOk:'PIN set', pinNo:'No PIN', sending:'Sending…',
     photo:'Photo of the signed document *', startT:'Start', endT:'End', respSig:'Signed by (manager)', debtNow:'Current debt', onlyMin:'— only change late minutes —', link:'Link', copy:'Copy', decNote:'Decision note',
-    rtJust:'Absence justification', rtLeave:'Leave', rtAdv:'Advance / loan', rtOT:'Overtime', reqOwnerHint:'Assistants’ requests (with photo) are in Approvals.',
+    rtJust:'Absence justification', rtLeave:'Leave', rtAdv:'Advance / loan', rtOT:'Overtime', rtPay:'Debt payment', reqOwnerHint:'Assistants’ requests (with photo) are in Approvals.',
     pay:'Payroll', pDraft:'Draft', pClosedOn:'Closed on', pUpTo:'Attendance counted up to', pBase:'Base salary', pOther:'Other pay', pOT:'Overtime', pLP:'Leave paid out', pBonus:'Bonus', pAllow:'Allowances',
     pAbs:'Absences', pLate:'Late', pPro:'Days outside contract', pGross:'Gross pay', pInss:'INSS', pEf:'Effective days', pPrev:'Previous balance', pNewD:'New advance', pBal:'Closing balance', pTotD:'Total deductions', pSun:'Sunday', pEfH:'empty = automatic', inssBase:'INSS base', inssBaseH:'empty = base salary · 0 = exempt', efDays:'Paid days per month', efDaysH:'empty = 30', pAdv:'Advance payment', pOth:'Other deductions', pNet:'Net pay', pInssE:'INSS (company)',
     pAdd:'Additions', pDed:'Absences & late', pOthD:'Other', pClose:'Close period', pReopen:'Reopen', pSlip:'🖨 Payslip', pEarn:'Earnings', pDeds:'Deductions', pManual:'Manual amounts (this period)', pDays:'days', pSigC:'Company',
@@ -814,8 +814,8 @@ async function ignoreNew(i) {
 
 /* ======================= Phase 4 screens ======================= */
 const money = n => Number(n || 0).toLocaleString('pt-PT', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const STW = s => ({ 'Aprovado': t('stApproved'), 'Pendente': t('stPending'), 'Rejeitado': t('stRejected') }[s] || s);
-const stwTag = s => '<span class="st s-' + ({ 'Aprovado': 'ok', 'Pendente': 'chk', 'Rejeitado': 'bad' }[s] || 'off') + '">' + esc(STW(s)) + '</span>';
+const STW = s => ({ 'Aprovado': t('stApproved'), 'Pendente': t('stPending'), 'Rejeitado': t('stRejected'), 'Rascunho': LANG === 'pt' ? 'Aguarda carta assinada' : 'Waiting for signed letter', 'Anulado': LANG === 'pt' ? 'Anulado' : 'Cancelled' }[s] || s);
+const stwTag = s => '<span class="st s-' + ({ 'Aprovado': 'ok', 'Pendente': 'chk', 'Rejeitado': 'bad', 'Rascunho': 'late' }[s] || 'off') + '">' + esc(STW(s)) + '</span>';
 const LSTW = s => ({ 'Ativo': t('lActive'), 'Suspenso': t('lPaused'), 'Liquidado': t('lDone') }[s] || s);
 const fmtDates = l => l.datas && l.datas.length ? l.datas.map(fmtD).join(', ') : (fmtD(l.de) + (l.ate && l.ate !== l.de ? ' → ' + fmtD(l.ate) : ''));
 let LV = 'req', LVY = String(new Date().getFullYear()), LF = { st: '', tp: '' };
@@ -1138,14 +1138,15 @@ async function doTransfer() {
 }
 
 /* ======================= Phase 5: requests with document photo ======================= */
-const RT = { 'Justificação': 'rtJust', 'Licença': 'rtLeave', 'Adiantamento': 'rtAdv', 'Horas extra': 'rtOT' };
+const RT = { 'Justificação': 'rtJust', 'Licença': 'rtLeave', 'Adiantamento': 'rtAdv', 'Horas extra': 'rtOT', 'Pagamento': 'rtPay' };
 const rtName = x => t(RT[x] || '') || x;
-const rtTag = x => '<span class="st s-' + ({ 'Justificação': 'chk', 'Licença': 'inf', 'Adiantamento': 'late', 'Horas extra': 'ok' }[x] || 'off') + '">' + esc(rtName(x)) + '</span>';
+const rtTag = x => '<span class="st s-' + ({ 'Justificação': 'chk', 'Licença': 'inf', 'Adiantamento': 'late', 'Horas extra': 'ok', 'Pagamento': 'ok' }[x] || 'off') + '">' + esc(rtName(x)) + '</span>';
 function reqSummary(r) {
   const d = r.dados || {};
   if (r.tipo === 'Justificação') return (d.datas || []).map(fmtD).join(', ') + ' → ' + (d.estado ? esc(stName(d.estado)) : '') + (d.min !== '' && d.min != null ? ' · ' + t('late') + ' ' + d.min + ' min' : '');
   if (r.tipo === 'Licença') return esc(stName(d.tipo)) + ' · ' + (d.datas && d.datas.length > 1 ? d.datas.map(fmtD).join(', ') : fmtD(d.de) + (d.ate && d.ate !== d.de ? ' → ' + fmtD(d.ate) : '')) + ' · ' + d.dias + ' ' + t('nDays').toLowerCase() + (d.saldoAnt !== undefined && d.saldoAnt !== '' ? ' · ' + LL('saldo', 'balance') + ' ' + d.saldoAnt + ' → ' + (d.saldoAnt - Number(d.dias || 0)) : '');
   if (r.tipo === 'Adiantamento') return (d.tipo === 'Empréstimo' ? t('loan') : t('advance')) + ' ' + money(d.total) + ' · ' + (d.nprest ? d.nprest + ' × ' : t('inst') + ' ') + money(d.prest) + ' · ' + esc(d.inicio);
+  if (r.tipo === 'Pagamento') return '<b>' + money(d.valor) + '</b> MT · ' + esc(d.forma || '');
   if (r.tipo === 'Horas extra') return fmtD(d.data) + ' · <b>' + d.horas + ' h</b>' + (d.inicio ? ' (' + esc(d.inicio) + '–' + esc(d.fim) + ')' : '') + (d.responsavel ? ' · ' + esc(d.responsavel) : '') + (d.motivo ? ' · ' + esc(d.motivo) : '');
   return '';
 }
@@ -1188,9 +1189,18 @@ async function renderAssist() {
     PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome, ent: p.ent }));
     const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + [['new', t('newReq')], ['mine', t('myReq')]].map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
     if (AV === 'mine') {
-      const mine = await call('aMine');
-      main.innerHTML = head + '<div class="card tw"><table><tr><th>Nº</th><th>' + t('date') + '</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('decNote') + '</th></tr>' +
-        mine.map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.em) + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.decNota) + '</td></tr>').join('') + '</table></div>';
+      const mine = window._mine = await call('aMine');
+      const drafts = mine.filter(r => r.estado === 'Rascunho');
+      const dcard = r => '<div class="pc"' + (r.n === LTR_NEW ? ' style="border:2px solid #2e7d32"' : '') + '><div class="row">' + rtTag(r.tipo) + '<b>' + esc(r.nome) + '</b><span class="muted">Nº ' + r.n + ' · ' + esc(r.em) + ((r.dados || {}).ref ? ' · ' + esc(r.dados.ref) : '') + '</span></div>' +
+        '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
+        (r.n === LTR_NEW ? '<div class="row"><b style="color:#2e7d32">✓ ' + LL('Carta criada. 1) Imprimir  2) O trabalhador assina  3) Enviar a foto da carta assinada', 'Letter created. 1) Print  2) Employee signs  3) Send the photo of the signed letter') + '</b></div>' : '') +
+        '<div class="row ltrow"><button class="btn" onclick="ltrPrint(' + r.n + ')">🖨 ' + LL('Imprimir', 'Print') + '</button>' +
+        '<label class="btn sec">📷 ' + LL('Enviar carta assinada', 'Send signed letter') + '<input type="file" accept="image/*" capture="environment" onchange="ltrAttach(' + r.n + ',this)"></label>' +
+        '<button class="btn sec sm" onclick="ltrCancel(' + r.n + ')">✕ ' + LL('Anular', 'Cancel') + '</button></div><div id="ltv' + r.n + '" class="ocrbox"></div></div>';
+      main.innerHTML = head + (drafts.length ? '<div class="card"><h3>' + LL('Cartas por assinar', 'Letters to be signed') + ' (' + drafts.length + ')</h3><div class="pend" style="padding:10px">' + drafts.map(dcard).join('') + '</div></div>' : '') +
+        '<div class="card tw" style="margin-top:14px"><table><tr><th>Nº</th><th>' + t('date') + '</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('decNote') + '</th></tr>' +
+        mine.filter(r => r.estado !== 'Rascunho').map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.em) + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.decNota) + '</td></tr>').join('') + '</table></div>';
+      if (LTR_NEW && drafts.some(r => r.n === LTR_NEW)) setTimeout(() => ltrPrint(LTR_NEW), 300);
       return;
     }
     if (!AF.tipo || meta.types.indexOf(AF.tipo) < 0) AF.tipo = meta.types[0];
@@ -1209,23 +1219,32 @@ function assistLogout() { window.ASSIST = null; try { sessionStorage.removeItem(
 function assistFields(meta) {
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
   const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
-  const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"' + (AF.tipo === 'Licença' || AF.tipo === 'Adiantamento' ? ' onchange="afOcr()"' : '') + '><div id="af_ocr" class="ocrbox"></div></label>' +
-    (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '<label>' + t('ref') + '<input id="af_ref"></label>');
-  const btn = '<div class="act"><button class="btn" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div>';
+  const doc = (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '');
+  const btn = '<div class="act full" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn" id="af_g" onclick="assistDraft()">🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign') + '</button>' +
+    '<small class="muted">' + LL('A app faz a carta com todos os dados e um código QR. Imprima, o trabalhador assina, e envie a foto em «Os meus pedidos».', 'The app makes the letter with all the data and a QR code. Print it, the employee signs, then send the photo in «My requests».') + '</small>' +
+    '<details class="ltx"><summary class="muted" style="cursor:pointer">' + LL('Exceção: a carta já foi feita fora da app', 'Exception: the letter was made outside the app') + '</summary>' +
+    '<label class="full" style="margin-top:8px">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"' + (AF.tipo === 'Licença' || AF.tipo === 'Adiantamento' ? ' onchange="afOcr()"' : '') + '><div id="af_ocr" class="ocrbox"></div></label>' +
+    (AF.tipo === 'Licença' || AF.tipo === 'Adiantamento' ? '' : '<label>' + t('ref') + '<input id="af_ref"></label>') +
+    '<div class="act"><button class="btn sec" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div></details></div>';
   let f = '';
   if (AF.tipo === 'Justificação') {
     f = per + '<label>' + t('newStatus') + '<select id="af_st"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
-      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + '<label class="full">' + t('note') + '<input id="af_n"></label>';
+      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Licença') {
-    f = per + '<label>' + t('type') + '<select id="af_lt" onchange="ferShow(\'af\');formSync(\'af\')">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
+    f = per + '<label>' + t('type') + '<select id="af_lt" onchange="const nd=document.getElementById(\'af_nd\');if(nd)delete nd.dataset.man;ferShow(\'af\');formSync(\'af\')">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
       '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
       '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
-      ferFields('af') + fpFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+      ferFields('af') + fpFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret"></label>' + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Adiantamento') {
     f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
       loanFields('af', 'af_tot', 'af_pre', '', '', '') +
       '<label>' + t('firstDed') + '<input type="month" id="af_ini" value="' + esc(meta.periodo) + '"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
+  } else if (AF.tipo === 'Pagamento') {
+    f = per + '<label>' + LL('Saldo anterior (dívida)', 'Previous balance (debt)') + '<input id="af_sd" readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"></label>' +
+      '<label>' + LL('Valor pago', 'Amount paid') + ' *<input type="number" step="0.01" min="0" id="af_pv" oninput="pgCalc()"></label>' +
+      '<label>' + LL('Forma', 'Method') + '<select id="af_pf"><option>Numerário</option><option>Transferência</option><option>Depósito</option></select></label>' +
+      '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="af_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label><label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Horas extra') {
     f = per + '<label>' + t('date') + ' *<input type="date" id="af_d"></label><label>' + t('hours') + ' *<input type="number" step="0.25" min="0" id="af_h"></label>' +
       '<label>' + t('startT') + '<input type="time" id="af_hi"></label><label>' + t('endT') + '<input type="time" id="af_hf"></label>' +
@@ -1500,7 +1519,8 @@ function fpFields(P, l) {
 }
 function fpShow(P) {
   const fp = isFP(P), hide = (el, h) => { if (el) el.style.display = h ? 'none' : ''; };
-  document.querySelectorAll('.' + P + '_fp').forEach(e => { if (e.id !== P + '_fdw') e.style.display = fp ? '' : 'none'; });
+  document.querySelectorAll('.' + P + '_fp').forEach(e => { if (e.id !== P + '_fdw' || !fp) e.style.display = fp ? '' : 'none'; });
+  if (!fp) { const fd = document.getElementById(P + '_fd'); if (fd && !fd.disabled) fd.checked = false; }
   const lab = id => { const e = document.getElementById(id); return e && e.closest('label'); };
   hide(lab(P + '_m'), fp); hide(lab(P + '_ret'), fp);
   if (fp) { document.querySelectorAll('.' + P + '_r, .' + P + '_d').forEach(e => e.style.display = 'none'); }
@@ -1627,7 +1647,8 @@ const isA = () => window.ROLE === 'assistant';
 const pidOf = P => Number(String(val(P + '_p')).replace(/\D.*$/, '')) || 0;
 function refField(P, kind, cur, notas) {
   const m = String(notas || '').match(/Carta: (\d{2})\/(\d{2})\/(\d{4})/), dc = m ? m[3] + '-' + m[2] + '-' + m[1] : '';
-  return '<label class="' + P + '_refw">' + LL('Data da carta', 'Letter date') + ' *<input type="date" id="' + P + '_dc" value="' + dc + '"><small class="muted">' + LL('quando a carta foi feita — define a lista de referências', 'when the letter was written — sets the reference list') + '</small></label>' +
+  const dcv = dc || (P === 'af' ? todayStr() : '');
+  return '<label class="' + P + '_refw">' + LL('Data da carta', 'Letter date') + ' *<input type="date" id="' + P + '_dc" value="' + dcv + '"><small class="muted">' + LL('quando a carta foi feita — define a lista de referências', 'when the letter was written — sets the reference list') + '</small></label>' +
     '<label class="full ' + P + '_refw">' + LL('Referência', 'Reference') + ' *<select id="' + P + '_refs" data-kind="' + kind + '" data-cur="' + esc(cur || '') + '">' + (cur ? '<option selected>' + esc(cur) + '</option>' : '<option value="">' + LL('Escolha a pessoa e a data da carta', 'Choose the person and the letter date') + '</option>') + '</select><small class="muted" id="' + P + '_refi"></small></label>' +
     '<label class="full ' + P + '_refw">' + LL('Referência — exceção (opcional)', 'Reference — exception (optional)') + '<input id="' + P + '_refx" autocomplete="off" placeholder="' + LL('só para uma exceção — substitui a lista', 'only for an exception — replaces the list') + '"></label>';
 }
@@ -1682,7 +1703,7 @@ async function refLoad(P) {
 /* fills company code, balances, working days and the next reference after the person / dates change */
 async function formSync(P, newPerson) {
   const id = pidOf(P); if (!id) return;
-  if (P === 'af' && AF.tipo !== 'Licença' && AF.tipo !== 'Adiantamento') return;
+  if (P === 'af' && AF.tipo !== 'Licença' && AF.tipo !== 'Adiantamento' && AF.tipo !== 'Pagamento') return;
   if (!PINFO[id]) { try { PINFO[id] = await call(isA() ? 'aRefInfo' : 'refInfo', { id: id }); } catch (e) { return; } }
   const inf = PINFO[id], ed = FS[P] && FS[P].edit;
   const rc = document.getElementById(P + '_rc');
@@ -1703,6 +1724,7 @@ async function formSync(P, newPerson) {
     ferShow(P);
   } else loanCalc('lo', 'lo_v', 'lo_i');
   if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
+  if (P === 'af' && AF.tipo === 'Pagamento') pgCalc();
   refLoad(P);
   fpCalc(P);
   if (P === 'af' && OCR.text) letterCheck(true);
@@ -1710,7 +1732,7 @@ async function formSync(P, newPerson) {
 function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
 function apLoan(n) { const v = Number(val('ap_tot' + n)) || 0, np = Number(val('ap_np' + n)) || 0, pe = document.getElementById('ap_pre' + n); if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2); }
 function afMode() { const d = val('af_m') === 'd'; document.querySelectorAll('.af_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.af_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
-async function assistSubmit() {
+function afCollect() {
   const id = Number(val('af_p')); AF.id = id;
   let dados = {};
   if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
@@ -1719,11 +1741,19 @@ async function assistSubmit() {
     if (isFP('af') ? !dados.de : (md ? !dados.datas.length : !dados.de)) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
   if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: tagNote(val('af_n'), 'Carta', val('af_dc')) }; if (!dados.total) return toast(t('required')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
+  if (AF.tipo === 'Pagamento') { dados = { valor: val('af_pv'), forma: val('af_pf'), nota: val('af_n') }; if (!(Number(dados.valor) > 0)) return toast(t('required'));
+    const inf = PINFO[id]; if (inf && !(inf.divida > 0)) return toast(LL('Esta pessoa não tem dívida', 'This person has no debt'));
+    if (inf && Number(dados.valor) > inf.divida + 0.005) return toast(LL('O valor é maior do que a dívida (', 'The amount is more than the debt (') + money(inf.divida) + ')'); }
   if (!id) return toast(t('required'));
   const needRef = AF.tipo === 'Adiantamento' || (AF.tipo === 'Licença' && isFer('af'));
-  const ref = needRef ? getRef('af') : AF.tipo === 'Licença' ? '' : val('af_ref');
+  const ref = needRef ? getRef('af') : (AF.tipo === 'Licença' || AF.tipo === 'Pagamento') ? '' : val('af_ref');
   if (needRef && !val('af_dc')) return toast(LL('Escreva a data da carta', 'Enter the letter date'));
   if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
+  return { id: id, dados: dados, ref: ref, needRef: needRef };
+}
+async function assistSubmit() {
+  const c = afCollect(); if (!c) return;
+  const id = c.id, dados = c.dados, ref = c.ref, needRef = c.needRef;
   if (needRef) {   /* the signed letter must match what was typed */
     const f = document.getElementById('af_f'), file = f && f.files[0];
     if (!file) return toast(t('required'));
@@ -1742,10 +1772,146 @@ async function assistSubmit() {
   } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = t('submit'); }
 }
 
+/* ---------- Letters generated by the app: the request is saved as Rascunho (keeps its reference), printed with a QR code, signed, then the photo is sent ---------- */
+const QRGEN = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js', QRREAD = 'https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js';
+function loadJs(src, ready) { return new Promise((ok, ko) => { if (ready()) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error(LL('sem internet para carregar ', 'no internet to load ') + src.split('/').pop())); document.head.appendChild(s); }); }
+function hsh(x) { let h = 0x811c9dc5; for (const ch of String(x)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36).toUpperCase().padStart(6, '0').slice(-6); }
+const ltrCode = (n, h) => 'RH-' + String(n).padStart(5, '0') + '-' + h;
+const cmField = () => '<label class="full">' + LL('Motivo (aparece na carta)', 'Reason (printed on the letter)') + '<input id="af_cm" maxlength="220"></label>';
+function pgCalc() { const sd = document.getElementById('af_sd'), ns = document.getElementById('af_ns'), inf = PINFO[pidOf('af')] || {}; if (!sd || !ns) return; sd.value = money(inf.divida || 0); ns.value = money(Math.max(0, (inf.divida || 0) - (Number(val('af_pv')) || 0))); }
+const mt = v => { const x = (Math.round((Number(v) || 0) * 100) / 100).toFixed(2).split('.'); return x[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + x[1]; };
+const longD = d => { const p = String(d || '').split('-'); return p.length === 3 ? Number(p[2]) + ' de ' + MES_PT[Number(p[1]) - 1] + ' de ' + p[0] : ''; };
+const eList = a => a.length > 1 ? a.slice(0, -1).join(', ') + ' e ' + a[a.length - 1] : a.join('');
+const nDias = n => { const v = Number(n) || 0; return String(v).replace('.', ',') + (v === 1 ? ' dia' : ' dias'); };
+/* everything printed on the letter, taken from the form; saved with the request so a reprint is identical */
+function cartaBuild(c) {
+  const meta = CACHE.ameta || {}, pe = (meta.people || []).find(x => x.id === c.id) || {}, emp = (meta.empresas || {})[pe.ent] || { nome: pe.ent || '', morada: '' };
+  const empN = emp.nome || pe.ent || '', fd = fmtDY, d = c.dados, motivo = (val('af_cm') || '').trim();
+  const intro = 'Eu, ' + pe.nome + ', trabalhador(a) da ' + empN + ', com o nº ' + c.id + (pe.dept ? ', do sector ' + pe.dept : '') + ', ';
+  const city = /maputo|matola|nampula|beira/i.test(pe.loc || '') ? String(pe.loc).replace(/^./, x => x.toUpperCase()) : 'Maputo';
+  const dateL = (c.needRef && val('af_dc')) || todayStr();
+  let t0 = '', p = [], k = [], s = ['O(A) Trabalhador(a)', 'A Direcção'];
+  const per = () => { const ds = d.datas && d.datas.length ? d.datas : null;
+    return ds && ds.length > 1 ? 'nos dias ' + eList(ds.map(fd)) : (ds ? 'no dia ' + fd(ds[0]) : d.de === d.ate || !d.ate ? 'no dia ' + fd(d.de) : 'no período de ' + fd(d.de) + ' a ' + fd(d.ate)); };
+  const ret = () => { const r = val('af_ret'); if (r) p.push('Regressarei ao trabalho no dia ' + fd(r) + '.'); };
+  const mot = () => { if (motivo) p.push('Motivo: ' + motivo + (/[.!?]$/.test(motivo) ? '' : '.')); };
+  if (AF.tipo === 'Licença') {
+    const lt = d.tipo, sa = val('af_sa'), sn = val('af_sn');
+    const salK = () => { if (sa !== '') { k.push(['Saldo anterior de férias', nDias(sa)]); k.push([lt === 'Férias pagas' ? 'Dias pagos' : 'Dias de férias solicitados', nDias(d.dias)]); k.push(['Saldo actual de férias', nDias(sn)]); } };
+    if (lt === 'Férias') { t0 = 'PEDIDO DE FÉRIAS'; p.push(intro + 'venho por este meio solicitar o gozo de ' + nDias(d.dias) + ' de férias, ' + per() + '.'); ret(); mot(); salK(); }
+    else if (lt === 'Férias pagas') {
+      const v = Number((document.getElementById('af_fv') || { dataset: {} }).dataset.v) || 0, pp = payPeriods().find(x => x.de === val('af_pp')), fdb = document.getElementById('af_fd');
+      t0 = 'PEDIDO DE PAGAMENTO DE FÉRIAS';
+      p.push(intro + 'venho por este meio solicitar o pagamento de ' + nDias(d.dias) + ' de férias não gozadas, no valor de ' + mt(v) + ' MT, a pagar no salário de ' + (pp ? pp.label.replace(/\s*\(.*$/, '').replace(/ (\d{4})$/, ' de $1') : fd(d.de)) + '.');
+      if (fdb && fdb.checked) p.push('Autorizo que este valor seja utilizado para o pagamento da minha dívida para com a empresa.');
+      mot(); salK(); k.push(['Valor', mt(v) + ' MT']);
+    } else if (lt === 'Dispensa') { t0 = 'PEDIDO DE DISPENSA'; p.push(intro + 'venho por este meio solicitar dispensa do trabalho ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); p.push('Tenho conhecimento de que os dias de dispensa são descontados do meu salário.'); ret(); }
+    else if (lt === 'Sem vencimento') { t0 = 'PEDIDO DE LICENÇA SEM VENCIMENTO'; p.push(intro + 'venho por este meio solicitar licença sem vencimento ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); p.push('Tenho conhecimento de que estes dias não são remunerados.'); ret(); }
+    else if (lt === 'Falta justificada') { t0 = 'JUSTIFICAÇÃO DE FALTA'; p.push(intro + 'venho por este meio justificar a minha ausência ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); }
+    else if (lt === 'Baixa médica') { t0 = 'COMUNICAÇÃO DE BAIXA MÉDICA'; p.push(intro + 'venho por este meio comunicar a minha ausência por baixa médica ' + per() + ', num total de ' + nDias(d.dias) + ', conforme o atestado médico em anexo.'); mot(); ret(); }
+    else { const nm = { 'Licença de parto': 'licença de maternidade', 'Licença de paternidade': 'licença de paternidade', 'Luto': 'licença por luto', 'Casamento': 'licença de casamento' }[lt] || 'licença';
+      t0 = 'PEDIDO DE ' + nm.toUpperCase(); p.push(intro + 'venho por este meio solicitar ' + nm + ' ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); ret(); }
+  } else if (AF.tipo === 'Adiantamento') {
+    const adv = d.tipo !== 'Empréstimo', np = Number(d.nprest) || 1, ini = String(d.inicio || ''), prev = Number((document.getElementById('af_sd') || { dataset: {} }).dataset.v) || 0;
+    t0 = adv ? 'PEDIDO DE ADIANTAMENTO' : 'PEDIDO DE EMPRÉSTIMO';
+    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + mt(d.total) + ' MT, a descontar no meu salário em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(d.prest) + ' MT' + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
+    p.push('Autorizo a empresa a efectuar os respectivos descontos no meu salário.');
+    k = [['Saldo anterior da dívida', mt(prev) + ' MT'], ['Valor solicitado', mt(d.total) + ' MT'], ['Novo saldo da dívida', mt(prev + (Number(d.total) || 0)) + ' MT']];
+  } else if (AF.tipo === 'Pagamento') {
+    const prev = (PINFO[c.id] || {}).divida || 0, v = Number(d.valor) || 0, fm = { 'Numerário': 'em numerário', 'Transferência': 'por transferência bancária', 'Depósito': 'por depósito bancário' }[d.forma] || '';
+    t0 = 'PAGAMENTO DE DÍVIDA';
+    p.push(intro + 'venho por este meio entregar o valor de ' + mt(v) + ' MT' + (fm ? ', ' + fm : '') + ', para pagamento ' + (v >= prev - 0.005 ? 'total' : 'parcial') + ' da minha dívida para com a empresa.');
+    k = [['Saldo anterior da dívida', mt(prev) + ' MT'], ['Valor pago', mt(v) + ' MT'], ['Saldo actual da dívida', mt(Math.max(0, prev - v)) + ' MT']];
+    s = ['O(A) Trabalhador(a)', 'Recebido por'];
+  } else if (AF.tipo === 'Horas extra') {
+    t0 = 'DECLARAÇÃO DE HORAS EXTRAORDINÁRIAS';
+    p.push('Declara-se que ' + pe.nome + ', trabalhador(a) da ' + empN + ', com o nº ' + c.id + (pe.dept ? ', do sector ' + pe.dept : '') + ', prestou ' + String(d.horas).replace('.', ',') + (Number(d.horas) === 1 ? ' hora' : ' horas') + ' de trabalho extraordinário no dia ' + fd(d.data) + (d.inicio && d.fim ? ', das ' + d.inicio + ' às ' + d.fim : '') + (d.responsavel ? ', a pedido de ' + d.responsavel : '') + '.');
+    if (d.motivo) p.push('Motivo: ' + d.motivo + (/[.!?]$/.test(d.motivo) ? '' : '.'));
+    s = ['O(A) Trabalhador(a)', 'O(A) Responsável' + (d.responsavel ? ' (' + d.responsavel + ')' : '')];
+  } else if (AF.tipo === 'Justificação') {
+    t0 = d.estado ? 'JUSTIFICAÇÃO DE FALTA' : 'JUSTIFICAÇÃO DE ATRASO';
+    p.push(intro + 'venho por este meio justificar ' + (d.estado ? 'a minha ausência' : 'o meu atraso') + ((d.datas || []).length > 1 ? ' nos dias ' : ' no dia ') + eList((d.datas || []).map(fd)) + '.'); mot();
+  }
+  const out = { t: t0, p: p, k: k, s: s, ref: c.ref || '', nome: pe.nome, id: c.id, ent: pe.ent || '', emp: { nome: empN, morada: emp.morada || '', nuit: emp.nuit || '' }, co: coCode(pe.ent), lugar: city + ', ' + longD(dateL) };
+  out.h = hsh(JSON.stringify(out));
+  return out;
+}
+function ltrHtml(c, n, qr) {
+  const lg = c.co && LOGO[c.co];
+  return '<div class="lt"><div class="lh">' + (lg ? '<img src="' + lg + '" alt="">' : '') + '<div class="le"><b>' + esc(c.emp.nome) + '</b>' + (c.emp.morada ? '<br>' + esc(c.emp.morada) : '') + (c.emp.nuit ? '<br>NUIT ' + esc(c.emp.nuit) : '') + '</div></div>' +
+    '<div class="lr"><span>' + (c.ref ? 'Ref.: <b>' + esc(c.ref) + '</b>' : 'Pedido Nº <b>' + n + '</b>') + '</span><span>Código: <b>' + ltrCode(n, c.h) + '</b></span></div>' +
+    '<h2>' + esc(c.t) + '</h2>' + c.p.map(x => '<p>' + esc(x) + '</p>').join('') +
+    (c.k.length ? '<table>' + c.k.map(r => '<tr><td>' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td></tr>').join('') + '</table>' : '') +
+    '<div class="ld">' + esc(c.lugar) + '</div><div class="ls">' + c.s.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' +
+    '<div class="lf">Carta gerada pelo Sistema RH Madi · Pedido Nº ' + n + '. Qualquer alteração à mão anula esta carta.</div>' +
+    '<div class="lq">' + (qr || '') + '<div>' + ltrCode(n, c.h) + '</div></div></div>';
+}
+async function printLetter(c, n) {
+  let qr = '';
+  try { await loadJs(QRGEN, () => window.qrcode); const q = qrcode(0, 'M'); q.addData('MADIRH|' + n + '|' + c.h); q.make(); qr = q.createSvgTag({ cellSize: 4, margin: 0, scalable: true }); }
+  catch (e) { toast(String(e.message || e)); }
+  let box = document.getElementById('ltr');
+  if (!box) { box = document.createElement('div'); box.id = 'ltr'; document.body.appendChild(box); }
+  box.innerHTML = ltrHtml(c, n, qr); document.body.classList.add('ltrm');
+  setTimeout(() => { window.print(); setTimeout(() => { document.body.classList.remove('ltrm'); }, 800); }, 150);
+}
+let LTR_NEW = 0;
+async function assistDraft() {
+  const c = afCollect(); if (!c) return;
+  const carta = cartaBuild(c);
+  if (!carta.t) return toast(t('required'));
+  const b = document.getElementById('af_g'); b.disabled = true; b.textContent = t('sending');
+  try {
+    const res = await call('aSubmit2', { tipo: AF.tipo, id: c.id, ref: c.ref, dados: c.dados, draft: 1, carta: carta });
+    LTR_NEW = res.n; AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; await render();
+  } catch (e) { toast(t('error') + ': ' + e); b.disabled = false; b.textContent = '🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign'); }
+}
+function ltrPrint(n) { const r = (window._mine || []).find(x => x.n === n); if (r && r.dados && r.dados.carta) printLetter(r.dados.carta, n); }
+async function ltrCancel(n) {
+  if (!confirm(LL('Anular o pedido Nº ' + n + '? A referência fica livre.', 'Cancel request Nº ' + n + '? The reference becomes free.'))) return;
+  try { await call('aCancel', { n: n }); toast(LL('Anulado', 'Cancelled')); render(); } catch (e) { toast(t('error') + ': ' + e); }
+}
+/* the photo must show this letter's QR code (or its printed code when the QR is not readable) */
+async function qrScan(file) {
+  await loadJs(QRREAD, () => window.jsQR);
+  const url = URL.createObjectURL(file), img = new Image();
+  await new Promise((ok, ko) => { img.onload = ok; img.onerror = () => ko(new Error('imagem')); img.src = url; });
+  try {
+    for (const max of [1600, 2400, 1000, 700]) {
+      const k = Math.min(1, max / Math.max(img.width, img.height)), cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
+      const g = cv.getContext('2d'); g.drawImage(img, 0, 0, cv.width, cv.height);
+      const r = jsQR(g.getImageData(0, 0, cv.width, cv.height).data, cv.width, cv.height, { inversionAttempts: 'attemptBoth' });
+      if (r && /^MADIRH\|/.test(r.data)) return r.data;
+      if (k === 1) break;
+    }
+  } finally { URL.revokeObjectURL(url); }
+  return '';
+}
+async function ltrAttach(n, input) {
+  const r = (window._mine || []).find(x => x.n === n), file = input.files && input.files[0], box = document.getElementById('ltv' + n);
+  if (!r || !file) return;
+  const c = (r.dados || {}).carta, code = c ? ltrCode(n, c.h) : '';
+  const say = (ok, msg) => { if (box) box.innerHTML = '<div class="ocr ' + (ok ? 'good' : 'bad') + '">' + msg + '</div>'; };
+  if (!/^image\//.test(file.type)) { input.value = ''; return say(false, '✗ ' + LL('Envie uma FOTO da carta assinada (não PDF).', 'Send a PHOTO of the signed letter (not a PDF).')); }
+  say(true, '⏳ ' + LL('A verificar a carta…', 'Checking the letter…'));
+  let verif = '';
+  try {
+    const q = await qrScan(file);
+    if (q) { const m = q.split('|'); if (Number(m[1]) !== n) { input.value = ''; return say(false, '✗ ' + LL('Esta foto é da carta Nº ' + m[1] + ', não da Nº ' + n + '.', 'This photo is of letter Nº ' + m[1] + ', not Nº ' + n + '.')); }
+      if (!c || m[2] !== c.h) { input.value = ''; return say(false, '✗ ' + LL('O código não corresponde a esta carta — imprima-a de novo.', 'The code does not match this letter — print it again.')); }
+      verif = 'qr'; }
+    else { say(true, '⏳ ' + LL('QR não encontrado — a ler o código impresso…', 'QR not found — reading the printed code…')); const o = await ocrRead(file); if (code && compact(o.text).indexOf(compact(code)) >= 0) verif = 'cod'; }
+  } catch (e) { input.value = ''; return say(false, '✗ ' + esc(e.message || e)); }
+  if (!verif) { input.value = ''; return say(false, '✗ ' + LL('Não encontrei o código desta carta (' + code + ') na foto. Tire outra foto: carta inteira, de frente, boa luz.', 'Could not find this letter\'s code (' + code + ') in the photo. Take another photo: whole letter, straight on, good light.')); }
+  say(true, '✓ ' + LL('Carta confirmada', 'Letter confirmed') + (verif === 'qr' ? ' (QR)' : ' (' + LL('código', 'code') + ')') + ' — ' + LL('a enviar…', 'sending…'));
+  try { const f = await readDoc(input); await call('aAttach', { n: n, file: f, verif: verif }); toast(t('sent') + ' · Nº ' + n); LTR_NEW = 0; render(); }
+  catch (e) { input.value = ''; say(false, '✗ ' + esc(String(e))); }
+}
+
 /* ---------- Owner: approvals inbox ---------- */
 function renderApprovals(d) {
   const pend = d.rows.filter(r => r.estado === 'Pendente').sort((a, b) => a.n - b.n);
-  const done = d.rows.filter(r => r.estado !== 'Pendente').slice(0, 40);
+  const done = d.rows.filter(r => r.estado !== 'Pendente' && r.estado !== 'Rascunho').slice(0, 40);
   window._req = d;
   const card = r => {
     const c = d.ctx[r.n] || {}, x = r.dados || {};
@@ -1757,6 +1923,8 @@ function renderApprovals(d) {
           '→ ' + LL('Novo saldo', 'New balance') + ': <b id="ap_sn' + r.n + '">' + (sa === '' || sa == null ? '?' : sa - Number(x.dias || 0)) + '</b>'; } }
     if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + LL('Nº prestações', 'Nº instalments') + ' <input type="number" min="1" step="1" id="ap_np' + r.n + '" value="' + esc(x.nprest || (x.prest ? Math.ceil(Math.round(x.total / x.prest * 100) / 100) : 1)) + '" style="width:60px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
       info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> + ' + money(x.total) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money((Number(c.divida) || 0) + (Number(x.total) || 0)) + '</b>'; }
+    if (r.tipo === 'Pagamento') { edit = '<label class="muted">' + LL('Valor pago', 'Amount paid') + ' <input type="number" step="0.01" id="ap_v' + r.n + '" value="' + esc(x.valor) + '" style="width:110px"></label>';
+      info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> − ' + money(x.valor) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money(Math.max(0, (Number(c.divida) || 0) - (Number(x.valor) || 0))) + '</b>'; }
     if (r.tipo === 'Horas extra') { edit = '<label class="muted">' + t('hours') + ' <input type="number" step="0.25" id="ap_h' + r.n + '" value="' + esc(x.horas) + '" style="width:80px"></label>';
       const mq = c.maquina; info = t('machine') + ': ' + (mq ? t('in') + ' ' + hm(mq.ent) + ' · ' + t('out') + ' ' + hm(mq.sai) + ' · ' + stTag(mq.st) + (mq.extra ? ' · ' + mq.extra + ' h' : '') : '—'); }
     if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
@@ -1764,7 +1932,7 @@ function renderApprovals(d) {
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
       '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
       (x.nota ? '<div class="row">' + (/saldo|balan/i.test(x.nota) ? '<span class="st s-bad">⚠ ' + LL('Verificar saldo', 'Check balance') + '</span> ' : '') + '<span class="muted">' + LL('Nota', 'Note') + ': ' + esc(x.nota) + '</span></div>' : '') + (info ? '<div class="row muted">' + info + '</div>' : '') +
-      '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + edit + '</div>' +
+      '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + (x.verif ? '<span class="st s-ok">✓ ' + LL('Carta da app · código confirmado', 'App letter · code confirmed') + '</span>' : x.carta ? '' : '<span class="st s-chk">' + LL('Carta feita fora da app', 'Letter made outside the app') + '</span>') + edit + '</div>' +
       '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
   };
   document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('approvals') + '</b><span class="sp"></span><button class="btn sec" onclick="assistAdmin()">' + t('assistants') + '</button></div>' +
@@ -1778,6 +1946,7 @@ async function decideReq(n, dec) {
   if (r.tipo === 'Adiantamento') { dados.total = val('ap_tot' + n); dados.prest = val('ap_pre' + n); dados.nprest = val('ap_np' + n); dados.inicio = val('ap_ini' + n); }
   const apSa = document.getElementById('ap_sa' + n);
   if (r.tipo === 'Horas extra') dados.horas = val('ap_h' + n);
+  if (r.tipo === 'Pagamento') dados.valor = val('ap_v' + n);
   if (r.tipo === 'Justificação') { dados.estado = val('ap_st' + n); dados.min = val('ap_min' + n); }
   document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
   try {
