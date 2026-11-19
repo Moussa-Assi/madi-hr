@@ -89,6 +89,7 @@ td.n{text-align:right;font-variant-numeric:tabular-nums}
 @media print{body.pm main,body.pm header,body.pm nav,body.pm #alert{display:none!important}body.pm .modal{position:static;display:block;background:#fff;padding:0;overflow:visible}body.pm .mbox{max-width:none;border-radius:0}body.pm .mh .x,body.pm .mh #mActs,body.pm .noprint{display:none!important}body.pm .rep td,body.pm .rep th{font-size:10px;padding:3px 5px}}
 .rep td{vertical-align:top}.sig{display:flex;gap:40px;padding:30px 14px 10px}.sig div{flex:1;border-top:1px solid #333;padding-top:6px;font-size:12px;text-align:center}
 @media(max-width:700px){.grid2{grid-template-columns:1fr}header h1{font-size:14px}main{padding:12px}.hb .l{width:100px}}
+.ocrbox{margin-top:6px}.ocr{border-radius:8px;padding:8px 10px;font-size:13px;line-height:1.55}.ocr.good{background:#e8f6ee;border:1px solid #9bd3b2}.ocr.bad{background:#fdecec;border:1px solid #f0a9a9}.ocr small{display:block;margin-top:4px}
 .colg{vertical-align:middle;margin-right:6px;object-fit:contain}.chip .colg{margin:-3px 6px -3px 0}
 </style>
 </head>
@@ -1193,7 +1194,7 @@ function assistLogout() { window.ASSIST = null; try { sessionStorage.removeItem(
 function assistFields(meta) {
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
   const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onchange="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
-  const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"></label>' +
+  const doc = '<label class="full">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"' + (AF.tipo === 'Licença' || AF.tipo === 'Adiantamento' ? ' onchange="afOcr()"' : '') + '><div id="af_ocr" class="ocrbox"></div></label>' +
     (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '<label>' + t('ref') + '<input id="af_ref"></label>');
   const btn = '<div class="act"><button class="btn" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div>';
   let f = '';
@@ -1232,6 +1233,96 @@ async function retCalc(P) {
 const tagNote = (nota, key, ymd) => { const re = new RegExp('\\s*·?\\s*' + key + ': \\d{2}/\\d{2}/\\d{4}', 'g'), n = String(nota || '').replace(re, '').trim(); return ymd ? (n ? n + ' · ' : '') + key + ': ' + ymd.split('-').reverse().join('/') : n; };
 const retNote = (nota, ret) => { const n = String(nota || '').replace(/\s*·?\s*Regressa: \d{2}\/\d{2}\/\d{4}/g, '').trim(); return ret ? (n ? n + ' · ' : '') + 'Regressa: ' + ret.split('-').reverse().join('/') : n; };
 document.addEventListener('change', e => { const id = e.target && e.target.id; if (/^(af|lf)_(p|de|ate|m)$/.test(id || '')) retCalc(id.slice(0, 2)); if (/^(af|lf|lo)_(p|de|ate|m|d|dc)$/.test(id || '')) formSync(id.slice(0, 2), /_p$/.test(id)); });
+
+/* ---------- letter check (assistants): read the photo with OCR and compare it with the form ---------- */
+const OCR = { file: null, text: '', conf: 0, busy: null, err: '' };
+const TESS = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/';
+let TW = null;
+function loadScript(src) { return new Promise((ok, ko) => { if (window.Tesseract) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error('OCR não carregou')); document.head.appendChild(s); }); }
+async function prepImg(file) {   /* smaller + grey + more contrast = faster and better reading */
+  const url = URL.createObjectURL(file), img = new Image();
+  await new Promise((ok, ko) => { img.onload = ok; img.onerror = () => ko(new Error('imagem')); img.src = url; });
+  const k = Math.min(1, 2200 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+  c.width = Math.round(img.width * k); c.height = Math.round(img.height * k);
+  const g = c.getContext('2d'); g.filter = 'grayscale(1) contrast(1.35)'; g.drawImage(img, 0, 0, c.width, c.height); URL.revokeObjectURL(url);
+  return c;
+}
+async function ocrRead(file) {
+  await loadScript(TESS + 'tesseract.min.js');
+  if (!TW) TW = await Tesseract.createWorker('por', 1, { workerPath: TESS + 'worker.min.js', corePath: 'https://cdn.jsdelivr.net/npm/tesseract.js-core@5.1.1', langPath: 'https://cdn.jsdelivr.net/npm/@tesseract.js-data/por@1.0.0/4.0.0' });
+  const r = await TW.recognize(await prepImg(file));
+  return { text: r.data.text || '', conf: r.data.confidence || 0 };
+}
+function afOcr() {
+  const f = document.getElementById('af_f'), file = f && f.files[0], box = document.getElementById('af_ocr');
+  Object.assign(OCR, { file: file || null, text: '', conf: 0, err: '', busy: null });
+  if (!file) { if (box) box.innerHTML = ''; return; }
+  if (!/^image\//.test(file.type)) { OCR.err = 'type'; if (box) box.innerHTML = '<span class="st s-bad">' + LL('Use uma FOTO da carta (não PDF) — a app tem de ler a carta.', 'Use a PHOTO of the letter (not a PDF) — the app must read it.') + '</span>'; return; }
+  if (box) box.innerHTML = '<span class="muted">⏳ ' + LL('A ler a carta…', 'Reading the letter…') + '</span>';
+  const job = OCR.busy = ocrRead(file).then(r => { if (OCR.busy !== job) return; OCR.text = r.text; OCR.conf = r.conf; letterCheck(true); })
+    .catch(e => { if (OCR.busy !== job) return; OCR.err = 'fail'; if (box) box.innerHTML = '<span class="st s-bad">' + LL('Não foi possível ler a carta', 'Could not read the letter') + ' (' + esc(e && e.message || e) + ')</span>'; });
+}
+const nrm = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const MESES = ['janeiro', 'fevereiro', 'marco', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
+function ocrDates(t) {
+  const out = new Set(), x = nrm(t).replace(/(\d)[o](?=\d)/g, '$10').replace(/[o](?=\d)/g, '0');
+  for (const m of x.matchAll(/(\d{1,2})\s*[\/\-.]\s*(\d{1,2})\s*[\/\-.]\s*(\d{4}|\d{2})(?!\d)/g)) out.add((m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + ('0' + m[2]).slice(-2) + '-' + ('0' + m[1]).slice(-2));
+  for (const m of x.matchAll(/(\d{1,2})\s*(?:de\s+)?(janeiro|fevereiro|marco|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s*(?:de\s+)?(\d{4})/g)) out.add(m[3] + '-' + ('0' + (MESES.indexOf(m[2]) + 1)).slice(-2) + '-' + ('0' + m[1]).slice(-2));
+  return out;
+}
+function ocrNums(t) {   /* every number / amount in a text: 10 000,00 · 10.000 · 3333,33 · 15 */
+  const out = [], x = String(t || '').replace(/(\d)[oO](?=\d)/g, '$10');
+  for (const m of x.matchAll(/\d{1,3}(?:[ . ']\d{3})+(?:,\d{1,2})?|\d+(?:[.,]\d{1,2})?/g)) {
+    let v = m[0].replace(/[  ']/g, '');
+    if (/,\d{1,2}$/.test(v)) v = v.replace(/\./g, '').replace(',', '.'); else if (/\.\d{3}/.test(v)) v = v.replace(/\./g, '');
+    out.push(Number(v));
+  }
+  return out;
+}
+function lev(a, b) { const d = Array.from({ length: a.length + 1 }, (_, i) => [i]); for (let j = 1; j <= b.length; j++) d[0][j] = j; for (let i = 1; i <= a.length; i++) for (let j = 1; j <= b.length; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[a.length][b.length]; }
+function nameIn(name, t) { const words = nrm(t).split(/[^a-z]+/).filter(w => w.length > 1); return nrm(name).split(/[^a-z]+/).filter(w => w.length > 2).every(tok => words.some(w => w === tok || (tok.length >= 5 && lev(w, tok) <= 1))); }
+const compact = s => nrm(s).replace(/[^a-z0-9]/g, '').replace(/o/g, '0').replace(/[il]/g, '1');
+function saldoNums(t, maxV) { const x = nrm(t), out = []; let i = -1; while ((i = x.indexOf('saldo', i + 1)) >= 0) ocrNums(x.slice(i, i + 70).replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ')).forEach(v => { if (v <= maxV) out.push(v); }); return out; }
+/* balances on the letter: every one must be the app's previous or new balance, and when the letter shows two, both must be there */
+function saldoOk(sn, app) { const eq = (a, b) => Math.abs(a - b) < 0.011, u = sn.filter((v, i) => sn.findIndex(x => eq(x, v)) === i);
+  return u.every(v => app.some(a => eq(a, v))) && (u.length < 2 || app.every(a => u.some(v => eq(a, v)))); }
+/* compare the letter with the form; show a ✓ / ✗ list; ok only when everything the letter shows matches */
+function letterCheck(show) {
+  const box = document.getElementById('af_ocr'), t = OCR.text;
+  const unreadable = !t || t.replace(/\s/g, '').length < 40 || OCR.conf < 35;
+  const C = [], add = (label, ok, info) => C.push({ label: label, ok: ok, info: info || '' });
+  const p = (PEOPLE_DL || []).find(x => x.id === Number(val('af_p')));
+  if (!unreadable) {
+    const dates = ocrDates(t), nums = ocrNums(String(t).replace(/[a-z]{2}\s*\/\s*[a-z]{2}\s*\/[\d\s\/]+/gi, ' ').replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ')), has = n => n !== '' && n != null && nums.some(v => Math.abs(v - Number(n)) < 0.011), fd = d => d ? d.split('-').reverse().join('/') : '—';
+    add(LL('Nome', 'Name'), !!p && nameIn(p.nome, t), p ? p.nome : '—');
+    add(LL('Data da carta', 'Letter date'), !!val('af_dc') && dates.has(val('af_dc')), fd(val('af_dc')));
+    const ref = getRef('af'); add(LL('Referência', 'Reference'), !!ref && compact(t).indexOf(compact(ref)) >= 0, ref || '—');
+    if (AF.tipo === 'Licença') {
+      const md = val('af_m') === 'd', days = md ? AF.days : [val('af_de'), val('af_ate') || val('af_de')];
+      add(LL('Período', 'Period'), days.length > 0 && days.every(d => d && dates.has(d)), md ? days.map(fd).join(', ') : fd(days[0]) + ' → ' + fd(days[1]));
+      add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
+      const sn = saldoNums(t, 400), sa = val('af_sa'), nw = val('af_sn');
+      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, [Number(sa), Number(nw)]), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + sa + ' → ' + nw);
+      else add(LL('Saldo de férias', 'Leave balance'), null, LL('não indicado na carta', 'not on the letter'));
+    } else {
+      add(LL('Valor', 'Amount'), has(val('af_tot')), money(val('af_tot') || 0));
+      add(LL('Nº de prestações', 'Nº of instalments'), has(val('af_np')), val('af_np'));
+      add(LL('Prestação', 'Instalment'), has(val('af_pre')) ? true : null, has(val('af_pre')) ? money(val('af_pre')) : LL('não indicada na carta', 'not on the letter'));
+      const sd = (document.getElementById('af_sd') || {}).dataset || {}, prev = Number(sd.v || 0), now = prev + (Number(val('af_tot')) || 0), sn = saldoNums(t, 1e9);
+      if (sn.length) add(LL('Saldo da dívida', 'Debt balance'), saldoOk(sn, [prev, now]), LL('carta: ', 'letter: ') + sn.map(money).join(' / ') + ' · app: ' + money(prev) + ' → ' + money(now));
+      else add(LL('Saldo da dívida', 'Debt balance'), null, LL('não indicado na carta', 'not on the letter'));
+    }
+  }
+  const ok = !unreadable && C.every(c => c.ok !== false);
+  if (show && box) box.innerHTML = unreadable
+    ? '<div class="ocr bad"><b>✗ ' + LL('Foto ilegível', 'Photo unreadable') + '</b><br>' + LL('Tire outra foto: carta inteira, boa luz, sem sombra, de frente.', 'Take another photo: whole letter, good light, no shadow, straight on.') + '</div>'
+    : '<div class="ocr ' + (ok ? 'good' : 'bad') + '"><b>' + (ok ? '✓ ' + LL('A carta corresponde ao pedido', 'The letter matches the request') : '✗ ' + LL('A carta não corresponde — não pode enviar', 'The letter does not match — cannot submit')) + '</b>' +
+      C.map(c => '<div>' + (c.ok === true ? '✓' : c.ok === false ? '✗' : '–') + ' ' + c.label + ': <span class="muted">' + esc(c.info) + '</span></div>').join('') +
+      (ok ? '' : '<small class="muted">' + LL('Corrija o formulário para ficar igual à carta, ou tire uma foto mais nítida. Saldo diferente: escreva na nota e fale com o Moussa.', 'Fix the form to match the letter, or take a sharper photo. Different balance: note it and talk to Moussa.') + '</small>') + '</div>';
+  return { ok: ok, unreadable: unreadable, checks: C };
+}
+document.addEventListener('input', e => { if (OCR.text && /^af_/.test((e.target && e.target.id) || '')) letterCheck(true); });
+document.addEventListener('change', e => { if (OCR.text && /^af_/.test((e.target && e.target.id) || '') && e.target.id !== 'af_f') setTimeout(() => letterCheck(true), 50); });
 /* ---------- references (FA/TS/01/11/26), leave balance and loan instalments ---------- */
 const LL = (pt, en) => LANG === 'pt' ? pt : en;
 const REFCO = { CP: 'CPCM', KI: 'K Import', TS: 'Tsutsuma', GM: 'Galerie Madi', AM: 'Ali Madi (Casa)' };
@@ -1316,6 +1407,7 @@ async function formSync(P, newPerson) {
   } else loanCalc('lo', 'lo_v', 'lo_i');
   if (P === 'af' && AF.tipo === 'Adiantamento') loanCalc('af', 'af_tot', 'af_pre');
   refLoad(P);
+  if (P === 'af' && OCR.text) letterCheck(true);
 }
 function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
 function apLoan(n) { const v = Number(val('ap_tot' + n)) || 0, np = Number(val('ap_np' + n)) || 0, pe = document.getElementById('ap_pre' + n); if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2); }
@@ -1333,6 +1425,15 @@ async function assistSubmit() {
   const ref = needRef ? getRef('af') : AF.tipo === 'Licença' ? '' : val('af_ref');
   if (needRef && !val('af_dc')) return toast(LL('Escreva a data da carta', 'Enter the letter date'));
   if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
+  if (needRef) {   /* the signed letter must match what was typed */
+    const f = document.getElementById('af_f'), file = f && f.files[0];
+    if (!file) return toast(t('required'));
+    if (OCR.file !== file) afOcr();
+    if (OCR.err) return toast(LL('A carta não pôde ser lida — tire outra foto', 'The letter could not be read — take another photo'));
+    if (!OCR.text) { toast('⏳ ' + LL('A ler a carta… aguarde', 'Reading the letter… please wait')); try { await OCR.busy; } catch (e) {} }
+    const chk = letterCheck(true);
+    if (!chk.ok) { document.getElementById('af_ocr').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast(chk.unreadable ? LL('Foto ilegível — tire outra foto da carta', 'Photo unreadable — take another photo') : LL('A carta não corresponde ao pedido — corrija os pontos a vermelho', 'The letter does not match the request — fix the points in red')); }
+  }
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
   try {
     const file = await readDoc(document.getElementById('af_f'));
