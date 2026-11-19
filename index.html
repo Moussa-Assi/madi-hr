@@ -1432,6 +1432,8 @@ const SET_NUMS = () => ({
     ['PAY_INSS_TRAB', LL('INSS do trabalhador', 'INSS employee'), '%', LL('% do salário base descontado ao trabalhador.', '% of base salary deducted from the worker.')],
     ['PAY_INSS_EMP', LL('INSS da empresa', 'INSS employer'), '%', LL('% do salário base pago pela empresa.', '% of base salary paid by the company.')],
     ['FP_INCLUI_OUTRAS', LL('Férias pagas incluem outras remunerações', 'Paid leave includes other pay'), '0/1', LL('1 = (salário base + outras remunerações) ÷ 30 × dias (como nas cartas); 0 = só salário base.', '1 = (base + other pay) ÷ 30 × days (as in the letters); 0 = base salary only.')],
+    ['BAIXA_DESCONTO_MIN_DIAS', LL('Baixa médica: descontar a partir de', 'Sick leave: deduct from'), LL('dias', 'days'), LL('Com atestado de N dias seguidos ou mais, todos os dias são descontados do salário (o trabalhador recebe do INSS). 0 = nunca.', 'With a medical certificate of N or more days in a row, all days are deducted from salary (the worker claims from INSS). 0 = never.')],
+    ['JUST_PRAZO_DIAS', LL('Prazo para justificar', 'Deadline to justify'), LL('dias', 'days'), LL('Dias depois do regresso ao trabalho para entregar a justificação. Depois disso só aprova marcando «Aceitar fora do prazo».', 'Days after returning to work to hand in the justification. After that it can only be approved by ticking «Accept although late».')],
     ['PAY_SAIDA_ANTECIPADA', LL('Descontar saída antecipada', 'Deduct early leave'), '0/1', LL('1 = os minutos de saída antecipada descontam como atraso; 0 = não.', '1 = early-leave minutes are deducted like lateness; 0 = no.')]],
   fer: [
     ['FERIAS_ANO1', LL('Dias de férias — 1º ano', 'Leave days — 1st year'), LL('dias', 'days'), ''],
@@ -1956,6 +1958,7 @@ function renderApprovals(d) {
       info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
       '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
+      (c.prazo ? '<div class="row"><span class="st s-bad">⚠ ' + LL('Fora do prazo', 'Late') + '</span> <span class="muted">' + esc(c.prazo) + '</span> <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ap_late' + r.n + '" style="width:auto"> ' + LL('Aceitar fora do prazo', 'Accept although late') + '</label></div>' : '') +
       (x.nota ? '<div class="row">' + (/saldo|balan/i.test(x.nota) ? '<span class="st s-bad">⚠ ' + LL('Verificar saldo', 'Check balance') + '</span> ' : '') + '<span class="muted">' + LL('Nota', 'Note') + ': ' + esc(x.nota) + '</span></div>' : '') + (info ? '<div class="row muted">' + info + '</div>' : '') +
       '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + (x.verif ? '<span class="st s-ok">✓ ' + LL('Carta da app · código confirmado', 'App letter · code confirmed') + '</span>' : x.carta ? '' : '<span class="st s-chk">' + LL('Carta feita fora da app', 'Letter made outside the app') + '</span>') + edit + '</div>' +
       '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
@@ -1975,11 +1978,12 @@ async function decideReq(n, dec) {
   const apSa = document.getElementById('ap_sa' + n);
   if (r.tipo === 'Horas extra') dados.horas = val('ap_h' + n);
   if (r.tipo === 'Pagamento') dados.valor = val('ap_v' + n);
+  const lateOk = !!(document.getElementById('ap_late' + n) || {}).checked;
   if (r.tipo === 'Justificação') { dados.estado = val('ap_st' + n); dados.min = val('ap_min' + n); }
   document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
   try {
     if (dec === 'Aprovado' && apSa && apSa.value !== '' && apSa.value !== apSa.dataset.sys) { const x = r.dados || {}; await call('balanceFix', { id: r.id, saldo: Number(apSa.value), before: x.de || (x.datas || [])[0], ref: x.ref }); dados.saldoAnt = Number(apSa.value); }
-    await call('requestDecide', { n: n, decision: dec, nota: val('ap_note' + n), dados: dados }); invalidate(); toast(t('saved')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); paintChrome(); render(); }
+    await call('requestDecide', { n: n, decision: dec, nota: val('ap_note' + n), dados: dados, lateOk: lateOk }); invalidate(); toast(t('saved')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); paintChrome(); render(); }
   catch (e) { toast(t('error') + ': ' + e); render(); }
 }
 async function viewDoc(n) {
