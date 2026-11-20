@@ -222,7 +222,7 @@ const T = {
     transferId:'Transferir ID', lastDay:'Último dia desta pessoa', newName:'Nome da nova pessoa', transferHint:'A pessoa atual fica inativa com todo o histórico (licenças, dívidas) num ID de arquivo. O ID passa para a nova pessoa a partir do dia seguinte.',
     idWas:'este ID era de', showInactive:'Mostrar inativos', totals:'Totais',
     approvals:'Aprovações', login:'Entrar', who:'Quem é?', logout:'Sair', notReady:'Há perfis sem PIN — peça ao Moussa para definir.', newReq:'Novo pedido', machine:'Máquina neste dia (só informação)', viewDoc:'📄 Ver documento', openDrive:'Abrir ficheiro',
-    subBy:'Submetido por', recent:'Decididos recentemente', noApprovals:'Nada para aprovar 🎉', assistants:'👤 Assistentes e PINs', newPin:'Novo PIN (4–8 dígitos)', canSubmit:'Pode submeter', pinOk:'PIN definido', pinNo:'Sem PIN', sending:'A enviar…',
+    subBy:'Submetido por', recent:'Decididos recentemente', noApprovals:'Nada para aprovar 🎉', assistants:'👤 Assistentes e PINs', newPin:'Novo PIN (6–8 dígitos)', canSubmit:'Pode submeter', pinOk:'PIN definido', pinNo:'Sem PIN', sending:'A enviar…',
     photo:'Foto do documento assinado *', startT:'Início', endT:'Fim', respSig:'Responsável que assinou', debtNow:'Dívida atual', onlyMin:'— só alterar minutos de atraso —', link:'Link', copy:'Copiar', decNote:'Nota da decisão',
     rtJust:'Justificação de falta', rtLeave:'Licença / férias', rtAdv:'Adiantamento / empréstimo', rtOT:'Horas extra', rtPay:'Pagamento de dívida', reqOwnerHint:'Os pedidos das assistentes (com foto) estão em Aprovações.',
     pay:'Salários', pDraft:'Rascunho', pClosedOn:'Fechado em', pUpTo:'Presenças contadas até', pBase:'Salário base', pOther:'Outras remunerações', pOT:'Horas extra', pLP:'Férias pagas', pBonus:'Bónus', pAllow:'Subsídios',
@@ -269,7 +269,7 @@ const T = {
     transferId:'Transfer ID', lastDay:'Last day of this person', newName:'New person’s name', transferHint:'The current person becomes inactive and keeps all history (leave, loans) under an archive ID. The ID passes to the new person from the next day.',
     idWas:'this ID belonged to', showInactive:'Show inactive', totals:'Totals',
     approvals:'Approvals', login:'Sign in', who:'Who are you?', logout:'Sign out', notReady:'Some profiles have no PIN yet — ask Moussa to set it.', newReq:'New request', machine:'Machine that day (info only)', viewDoc:'📄 View document', openDrive:'Open file',
-    subBy:'Submitted by', recent:'Recently decided', noApprovals:'Nothing to approve 🎉', assistants:'👤 Assistants & PINs', newPin:'New PIN (4–8 digits)', canSubmit:'Can submit', pinOk:'PIN set', pinNo:'No PIN', sending:'Sending…',
+    subBy:'Submitted by', recent:'Recently decided', noApprovals:'Nothing to approve 🎉', assistants:'👤 Assistants & PINs', newPin:'New PIN (6–8 digits)', canSubmit:'Can submit', pinOk:'PIN set', pinNo:'No PIN', sending:'Sending…',
     photo:'Photo of the signed document *', startT:'Start', endT:'End', respSig:'Signed by (manager)', debtNow:'Current debt', onlyMin:'— only change late minutes —', link:'Link', copy:'Copy', decNote:'Decision note',
     rtJust:'Absence justification', rtLeave:'Leave', rtAdv:'Advance / loan', rtOT:'Overtime', rtPay:'Debt payment', reqOwnerHint:'Assistants’ requests (with photo) are in Approvals.',
     pay:'Payroll', pDraft:'Draft', pClosedOn:'Closed on', pUpTo:'Attendance counted up to', pBase:'Base salary', pOther:'Other pay', pOT:'Overtime', pLP:'Leave paid out', pBonus:'Bonus', pAllow:'Allowances',
@@ -1204,7 +1204,12 @@ async function renderAssist() {
   try {
     const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
     PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome, ent: p.ent }));
-    const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + [['new', t('newReq')], ['mine', t('myReq')]].map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
+    const reqT = meta.types.filter(x => x !== 'Salários'), canPay = meta.types.indexOf('Salários') >= 0;
+    const tabs = (reqT.length ? [['new', t('newReq')], ['mine', t('myReq')]] : []).concat(canPay ? [['pay', '💰 ' + LL('Salários', 'Payroll')]] : []);
+    if (!tabs.some(x => x[0] === AV)) AV = tabs.length ? tabs[0][0] : 'none';
+    const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + tabs.map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
+    if (AV === 'none') { main.innerHTML = head + '<div class="card" style="padding:16px">' + LL('Ainda não tem acessos. Peça ao Moussa.', 'You have no access yet. Ask Moussa.') + '</div>'; return; }
+    if (AV === 'pay') { const d = await call('payroll', PAYP ? { periodo: PAYP } : {}); renderPay(d); main.insertAdjacentHTML('afterbegin', head); return; }
     if (AV === 'mine') {
       const mine = window._mine = await call('aMine');
       const drafts = mine.filter(r => r.estado === 'Rascunho');
@@ -1220,8 +1225,8 @@ async function renderAssist() {
       if (LTR_NEW && drafts.some(r => r.n === LTR_NEW)) setTimeout(() => ltrPrint(LTR_NEW), 300);
       return;
     }
-    if (!AF.tipo || meta.types.indexOf(AF.tipo) < 0) AF.tipo = meta.types[0];
-    main.innerHTML = head + '<div class="card"><h3>' + t('newReq') + '</h3><div style="padding:10px 14px" class="chips">' + meta.types.map(x => '<span class="chip ' + (AF.tipo === x ? 'on' : '') + '" onclick="AF.tipo=\'' + x + '\';AF.days=[];render()">' + esc(rtName(x)) + '</span>').join('') + '</div>' +
+    if (!AF.tipo || reqT.indexOf(AF.tipo) < 0) AF.tipo = reqT[0];
+    main.innerHTML = head + '<div class="card"><h3>' + t('newReq') + '</h3><div style="padding:10px 14px" class="chips">' + reqT.map(x => '<span class="chip ' + (AF.tipo === x ? 'on' : '') + '" onclick="AF.tipo=\'' + x + '\';AF.days=[];render()">' + esc(rtName(x)) + '</span>').join('') + '</div>' +
       '<div class="form" id="af">' + assistFields(meta) + '</div></div>';
     afShow();
   } catch (e) { if (String(e).indexOf('PIN') >= 0 || String(e).indexOf('Bloqueado') >= 0) { assistLogout(); toast(String(e)); } else showErr(e); }
@@ -1488,14 +1493,11 @@ function renderSettings(d) {
       '<tr><td><input id="se_i" type="number" style="width:90px" placeholder="ID"></td><td><input id="se_v" placeholder="Mercado"></td><td><input id="se_n"></td><td><button class="btn" onclick="setSave(\'SO_ENTRADA|\' + val(\'se_i\'), val(\'se_v\'), val(\'se_n\'))">+ ' + LL('Adicionar', 'Add') + '</button></td></tr></table></div>';
   } else if (SETV === 'usr') {
     body = '<div class="card" style="padding:14px"><h3>Moussa · ' + LL('Gestor', 'Manager') + '</h3><p class="muted">' + LL('Entra com email e palavra-passe. Os gestores veem salários e alteram dados (só nas Definições e, por exceção, nos Salários).', 'Signs in with email and password. Managers see payroll and change data (only in Settings and, by exception, in Payroll).') + '</p><button class="btn sec" onclick="pwForm()">' + LL('Mudar palavra-passe', 'Change password') + '</button></div>' +
-      '<div class="card" style="padding:14px"><h3>' + LL('Gestores — acesso total (ex.: Helia, RH)', 'Managers — full access (e.g. Helia, HR)') + '</h3><p class="muted">' + LL('Veem e fazem tudo o que o Moussa faz: salários, aprovações, definições. Escreva o email e uma palavra-passe inicial (mín. 8); a pessoa muda-a depois em «Mudar palavra-passe».', 'See and do everything Moussa does: payroll, approvals, settings. Enter the email and a first password (min. 8); the person changes it later with «Change password».') + '</p>' +
-      '<div id="mgrl" class="muted">' + t('loading') + '</div><div class="form" style="margin-top:10px"><label>' + t('name') + '<input id="mg_n" value="Helia"></label><label>Email<input id="mg_e" type="email" autocomplete="off"></label><label>' + LL('Palavra-passe inicial', 'First password') + '<input id="mg_p" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="mg_b" onclick="mgrSave()">' + t('save') + '</button></div></div></div>' +
-      '<div class="card" style="padding:14px"><h3>' + LL('Assistentes (Juvência, Yorna)', 'Assistants (Juvência, Yorna)') + '</h3><p class="muted">' + LL('Entram com nome + PIN de 6 a 8 dígitos. Só enviam pedidos para a sua aprovação; não veem salários nem mudam saldos. 5 PINs errados bloqueiam 15 min.', 'Sign in with name + 6–8 digit PIN. They only send requests for your approval; they cannot see payroll or change balances. 5 wrong PINs lock for 15 min.') + '</p><button class="btn" onclick="assistAdmin()">' + LL('PINs e permissões', 'PINs and permissions') + '</button></div>';
+      '<div class="card" style="padding:14px"><h3>' + LL('Utilizadores com PIN (Juvência, Yorna, Helia…)', 'PIN users (Juvência, Yorna, Helia…)') + '</h3><p class="muted">' + LL('Entram com nome + PIN de 6 a 8 dígitos e só veem o que marcar para cada um: tipos de pedido (para a sua aprovação) e/ou Salários (acesso total). Adicione, remova e mude acessos aqui. 5 PINs errados bloqueiam 15 min.', 'Sign in with name + 6–8 digit PIN and only see what you tick for each: request types (for your approval) and/or Payroll (full access). Add, remove and change access here. 5 wrong PINs lock for 15 min.') + '</p><button class="btn" onclick="assistAdmin()">' + LL('PINs e permissões', 'PINs and permissions') + '</button></div>';
   }
   const shead = '<div class="bar"><b>' + t('set') + '</b></div><div class="bar"><div class="chips">' + sec.map(x => '<span class="chip ' + (SETV === x[0] ? 'on' : '') + '" onclick="SETV=\'' + x[0] + '\';renderSettings(window._set)">' + x[1] + '</span>').join('') + '</div></div>';
   document.getElementById('main').innerHTML = shead + body + (setAsync ? '<div class="load">' + t('loading') + '</div>' : '');
   if (setAsync) setFill(setAsync, shead + body);
-  if (SETV === 'usr') mgrList();
 }
 /* Settings sections that load their own data */
 async function setFill(k, head) {
@@ -2047,10 +2049,14 @@ async function assistAdmin() {
   modal(t('assistants').replace('👤 ', ''));
   try {
     const a = await call('assistAdmin', {});
-    document.getElementById('mBody').innerHTML = '<div class="form"><label class="full">' + t('link') + '<input id="as_link" readonly value="' + esc(a.link) + '"></label><div class="act"><button class="btn sec sm" onclick="copyLink()">' + t('copy') + '</button></div></div>' +
-      a.users.map((u, i) => '<div class="card" style="margin:0 14px 12px"><h3>' + esc(u.name) + ' <span class="st s-' + (u.hasPin ? 'ok' : 'bad') + '">' + (u.hasPin ? t('pinOk') : t('pinNo')) + '</span></h3><div class="form">' +
+    window._asUsers = a.users;
+    const MODN = { 'Salários': LL('Salários — acesso total (ver, exceções, recibos, exportar, fechar)', 'Payroll — full access (view, exceptions, payslips, export, close)') };
+    document.getElementById('mBody').innerHTML = '<div class="muted" style="padding:10px 14px">' + LL('Cada utilizador entra com o seu nome + PIN e só vê o que marcar aqui. Pode mudar quando quiser.', 'Each user signs in with name + PIN and only sees what you tick here. You can change it anytime.') + '</div>' +
+      '<div class="form" style="margin:0 14px 12px"><label>' + LL('Novo utilizador', 'New user') + '<input id="as_new" placeholder="' + LL('Nome (ex.: Helia)', 'Name (e.g. Helia)') + '" maxlength="40"></label><div class="act"><button class="btn" onclick="addAssist()">+ ' + LL('Adicionar', 'Add') + '</button></div></div>' +
+      a.users.map((u, i) => '<div class="card" style="margin:0 14px 12px"><h3>' + esc(u.name) + ' <span class="st s-' + (u.hasPin ? 'ok' : 'bad') + '">' + (u.hasPin ? t('pinOk') : t('pinNo')) + '</span><span class="sp"></span><button class="btn sec sm" onclick="delAssist(' + i + ')">✕ ' + LL('Remover', 'Remove') + '</button></h3><div class="form">' +
         '<label>' + t('newPin') + '<input type="password" inputmode="numeric" id="as_pin' + i + '" maxlength="8"></label>' +
         '<div class="full"><span class="muted">' + t('canSubmit') + ':</span> ' + a.types.map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_t' + i + '" value="' + esc(x) + '"' + (u.types.indexOf(x) >= 0 ? ' checked' : '') + '> ' + esc(rtName(x)) + '</label>').join('') + '</div>' +
+        '<div class="full"><span class="muted">' + LL('Pode usar', 'Can use') + ':</span> ' + (a.modules || []).map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_t' + i + '" value="' + esc(x) + '"' + (u.types.indexOf(x) >= 0 ? ' checked' : '') + '> <b>' + esc(MODN[x] || x) + '</b></label>').join('') + '</div>' +
         '<div class="act"><button class="btn" onclick="saveAssist(' + i + ',\'' + esc(u.name) + '\')">' + t('save') + '</button></div></div></div>').join('');
   } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
 }
@@ -2061,6 +2067,8 @@ async function saveAssist(i, name) {
   try { await call('assistAdmin', { set: { name: name, pin: pin, types: types } }); toast(t('saved')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); }
 }
 function assistLink() { assistAdmin(); }
+async function addAssist() { const n = val('as_new').trim(); if (!n) return toast(t('required')); try { await call('assistAdmin', { add: { name: n } }); toast(t('saved') + ' · ' + LL('defina o PIN e os acessos', 'set the PIN and access')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); } }
+async function delAssist(i) { const u = window._asUsers[i]; if (!confirm(LL('Remover o acesso de ' + u.name + '? Deixa de poder entrar.', 'Remove ' + u.name + '\'s access? They can no longer sign in.'))) return; try { await call('assistAdmin', { remove: u.name }); toast(t('saved')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); } }
 
 /* ======================= Phase 6: payroll ======================= */
 let PAYP = '', PAYE = 'all';
