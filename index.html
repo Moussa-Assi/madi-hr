@@ -376,7 +376,8 @@ function paintChrome() {
   document.getElementById('nav').innerHTML = (window.ROLE === 'assistant' ? ['req'] : ['today','month','grid','approvals','leave','loans','pay','pending','people','dash','set']).map(v =>
     '<button class="' + (VIEW === v ? 'on' : '') + '" onclick="go(\'' + v + '\')">' + t(v) + (v === 'pending' && pend ? '<span class="badge">' + pend + '</span>' : '') + (v === 'approvals' && nreq ? '<span class="badge">' + nreq + '</span>' : '') + (v === 'people' && window.NDOC ? '<span class="badge">' + window.NDOC + '</span>' : '') + '</button>').join('');
 }
-function go(v) { VIEW = v; F.q = ''; paintChrome(); render(); }
+let EDITP = false;
+function go(v) { VIEW = v; F.q = ''; EDITP = false; paintChrome(); render(); }
 function loading() { document.getElementById('main').innerHTML = '<div class="load">' + t('loading') + '</div>'; }
 function showErr(e) { document.getElementById('main').innerHTML = '<div class="err">' + t('error') + ': ' + esc(e) + '</div>'; }
 let PEOPLE_STALE = false;
@@ -527,7 +528,7 @@ function renderPeople(list, al) {
   const rows = list.filter(p => (F.inact || p.estado !== 'Inativo') && (F.dept === 'all' || p.dept === F.dept) && byName(p.nome));
   document.getElementById('main').innerHTML =
     '<div class="bar">' + deptChips(list.filter(p => F.inact || p.estado !== 'Inativo').map(p => [0, 0, 0, p.dept]), 3) + '<span class="sp"></span><label class="muted"><input type="checkbox" ' + (F.inact ? 'checked' : '') + ' onchange="F.inact=this.checked;render()"> ' + t('showInactive') + '</label>' + searchBox() +
-    '<button class="btn sec" onclick="listsModal()">' + t('lists') + '</button><button class="btn" onclick="personForm(null)">' + t('newPerson') + '</button></div>' + docAlertsHtml(al) +
+    '<button class="btn sec" onclick="SETV=\'ppl\';go(\'set\')">⚙ ' + LL('Editar em Definições', 'Edit in Settings') + '</button></div>' + docAlertsHtml(al) +
     '<div class="card tw"><table><tr><th>' + t('id') + '</th><th>' + t('name') + '</th><th>' + t('entity') + '</th><th>' + t('dept') + '</th><th>' + t('role') + '</th><th>' + t('schedule') + '</th><th>' + t('state') + '</th><th>' + t('notes') + '</th></tr>' +
     rows.map(p => '<tr class="click" onclick="openPerson(' + p.id + ')"><td>' + p.id + '</td><td>' + esc(p.nome) + '</td><td>' + coLogo(p.ent, 14) + esc(p.ent) + '</td><td>' + esc(p.dept) + '</td><td>' + esc(p.func) + '</td><td>' + esc(p.hor) +
       '</td><td>' + esc(p.estado) + '</td><td class="muted">' + esc(p.notas) + '</td></tr>').join('') + '</table></div>';
@@ -540,7 +541,7 @@ function modal(title, acts, body) {
   document.getElementById('mActs').innerHTML = acts || '';
   document.getElementById('mBody').innerHTML = body || '<div class="load">' + t('loading') + '</div>';
 }
-function closeModal() { document.getElementById('modal').classList.remove('on'); if (document.querySelector('#main > .load')) render(); }
+function closeModal() { EDITP = false; document.getElementById('modal').classList.remove('on'); if (document.querySelector('#main > .load')) render(); }
 document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
 const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
 const clearInl = () => { const el = document.getElementById('inl'); if (el) el.innerHTML = ''; };
@@ -558,7 +559,7 @@ async function openPerson(id, focusDate) {
     const s = summarize(days)[0] || {};
     const yn = v => v === 'Sim' ? t('yes') : t('no');
     modal(p.nome + ' · ' + id,
-      '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> <button class="btn sec sm" onclick="personForm(CUR.p)">' + t('edit') + '</button> <button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>',
+      '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> ' + (EDITP ? '<button class="btn sm" onclick="personForm(CUR.p)">✎ ' + t('edit') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>' : '<button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button>'),
       '<div id="inl"></div>' +
       '<div class="info">' + [[t('entity'), p.ent], [t('dept'), p.dept], [t('role'), p.func], [t('schedule'), p.hor], [t('exempt'), yn(p.isento)], [t('dayoff'), folgaName(p.folga)], [t('payRule'), prName(p.regra)], [t('contractEnd'), p.fimContrato ? fmtDY(p.fimContrato) : t('none')],
         [t('salary'), p.sal ? Number(p.sal).toLocaleString('pt-PT') : t('none')], [t('days'), (s.worked || 0) + '/' + (s.due || 0)], [t('absences'), s.abs || 0], [t('lateMin'), s.lateM || 0], [t('earlyMin'), s.earlyM || 0], [t('checkN'), s.chk || 0]]
@@ -914,13 +915,13 @@ async function saveLeaveForm(n) {
 }
 
 function yearSel(kind) { const y = new Date().getFullYear(); return '<select onchange="LVY=this.value;render()">' + [y - 1, y, y + 1].map(x => '<option' + (String(x) === LVY ? ' selected' : '') + '>' + x + '</option>').join('') + '</select>'; }
-function renderBalances(head, d) {
+function renderBalances(head, d, edit) {
   const rows = d.rows.filter(b => byDept([0, 0, 0, b.dept], 3) && byName(b.nome)).sort((a, b) => String(a.dept).localeCompare(b.dept) || String(a.nome).localeCompare(b.nome));
   document.getElementById('main').innerHTML = head +
     '<div class="bar">' + t('year') + ' ' + yearSel() + '<span class="muted">' + t('rule').replace('{1}', d.rule.y1).replace('{2}', d.rule.y2) + '</span><span class="sp"></span>' + searchBox() + '</div>' +
     '<div class="bar">' + deptChips(d.rows.map(b => [0, 0, 0, b.dept]), 3) + '</div>' +
     '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + LL('Faltas inj.', 'Unjust. abs.') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + LL('Saldo real', 'Real balance') + '</th><th class="n">' + LL('Após faltas', 'After absences') + '</th><th>' + t('notes') + '</th></tr>' +
-    rows.map(b => '<tr class="click" onclick="balForm(' + b.id + ')"><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
+    rows.map(b => '<tr' + (edit ? ' class="click" onclick="balForm(' + b.id + ')"' : '') + '><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
       '</td><td class="n">' + (b.usados || '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="n"><b style="color:' + (b.saldoFaltas !== '' && b.saldoFaltas < 0 ? 'var(--bad)' : 'inherit') + '">' + (b.faltas ? b.saldoFaltas : (b.saldo === '' ? '' : b.saldo)) + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
   window._bal = d;
 }
@@ -939,20 +940,21 @@ async function saveBal(id) {
   const b = window._bal.rows.filter(x => x.id === id)[0];
   try { await call('balanceSave', { row: b.row, id: id, nome: b.nome, year: window._bal.year, direito: val('bf_d'), transitado: val('bf_t'), usadosAntes: val('bf_u'), dataBase: val('bf_b'), notas: val('bf_n') }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
 }
-function renderHolidays(head, d) {
+function renderHolidays(head, d, edit) {
   const scopeName = s => s === 'Todos' ? t('scopeAll') : s;
   document.getElementById('main').innerHTML = head +
     '<div class="bar">' + t('year') + ' ' + yearSel() + '</div>' +
     '<div class="card tw"><table><tr><th>' + t('date') + '</th><th>' + t('name') + '</th><th>' + t('holType') + '</th><th>' + t('scope') + '</th><th>' + t('dayOff') + '</th></tr>' +
     d.rows.map(h => '<tr><td>' + dow(h.data) + ' ' + fmtDY(h.data) + '</td><td>' + esc(h.nome) + '</td>' +
+      (!edit ? '<td>' + (h.tipo === 'Tolerância' ? t('tolerance') : t('holiday')) + '</td><td>' + esc(scopeName(h.ambito)) + '</td><td>' + (h.ativo === 'Sim' ? t('yes') : t('no')) + '</td></tr>' :
       '<td><select onchange="holSave(' + h.row + ',\'tipo\',this.value)"><option value="Feriado"' + (h.tipo === 'Feriado' ? ' selected' : '') + '>' + t('holiday') + '</option><option value="Tolerância"' + (h.tipo === 'Tolerância' ? ' selected' : '') + '>' + t('tolerance') + '</option></select></td>' +
       '<td><select onchange="holSave(' + h.row + ',\'ambito\',this.value)">' + d.scopes.map(s => '<option value="' + s + '"' + (h.ambito === s ? ' selected' : '') + '>' + scopeName(s) + '</option>').join('') + '</select></td>' +
-      '<td><select onchange="holSave(' + h.row + ',\'ativo\',this.value)"><option value="Sim"' + (h.ativo === 'Sim' ? ' selected' : '') + '>' + t('yes') + '</option><option value="Não"' + (h.ativo !== 'Sim' ? ' selected' : '') + '>' + t('no') + '</option></select></td></tr>').join('') +
-    '</table></div>' +
+      '<td><select onchange="holSave(' + h.row + ',\'ativo\',this.value)"><option value="Sim"' + (h.ativo === 'Sim' ? ' selected' : '') + '>' + t('yes') + '</option><option value="Não"' + (h.ativo !== 'Sim' ? ' selected' : '') + '>' + t('no') + '</option></select></td></tr>')).join('') +
+    '</table></div>' + (!edit ? '<p class="muted" style="margin:10px 14px">' + LL('Para alterar feriados: Definições → Feriados.', 'To change holidays: Settings → Holidays.') + '</p>' :
     '<div class="card"><h3>' + t('addHol') + '</h3><div class="form"><label>' + t('date') + '<input type="date" id="hn_d"></label><label>' + t('name') + '<input id="hn_n"></label>' +
     '<label>' + t('holType') + '<select id="hn_t"><option value="Tolerância">' + t('tolerance') + '</option><option value="Feriado">' + t('holiday') + '</option></select></label>' +
     '<label>' + t('scope') + '<select id="hn_s">' + d.scopes.map(s => '<option value="' + s + '">' + scopeName(s) + '</option>').join('') + '</select></label>' +
-    '<div class="act"><button class="btn" onclick="holAdd()">' + t('save') + '</button></div></div></div>';
+    '<div class="act"><button class="btn" onclick="holAdd()">' + t('save') + '</button></div></div></div>');
   window._hol = d;
 }
 async function holSave(row, field, value) {
@@ -1412,7 +1414,7 @@ function absTable(P) {
 }
 /* =========================== ⚙ SETTINGS =========================== */
 let SETV = 'co';
-const SET_SECTIONS = () => [['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
+const SET_SECTIONS = () => [['ppl', LL('Pessoas', 'People')], ['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
   ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')]];
 const SET_NUMS = () => ({
   att: [
@@ -1430,7 +1432,6 @@ const SET_NUMS = () => ({
     ['PAY_HE_MULT', LL('Hora extra (seg–sáb)', 'Overtime (Mon–Sat)'), '×', LL('Multiplicador do valor da hora.', 'Multiplier of the hourly rate.')],
     ['PAY_HE_MULT_DOM', LL('Hora extra (domingo)', 'Overtime (Sunday)'), '×', ''],
     ['PAY_INSS_TRAB', LL('INSS do trabalhador', 'INSS employee'), '%', LL('% do salário base descontado ao trabalhador.', '% of base salary deducted from the worker.')],
-    ['PAY_INSS_EMP', LL('INSS da empresa', 'INSS employer'), '%', LL('% do salário base pago pela empresa.', '% of base salary paid by the company.')],
     ['FP_INCLUI_OUTRAS', LL('Férias pagas incluem outras remunerações', 'Paid leave includes other pay'), '0/1', LL('1 = (salário base + outras remunerações) ÷ 30 × dias (como nas cartas); 0 = só salário base.', '1 = (base + other pay) ÷ 30 × days (as in the letters); 0 = base salary only.')],
     ['BAIXA_DESCONTO_MIN_DIAS', LL('Baixa médica: descontar a partir de', 'Sick leave: deduct from'), LL('dias', 'days'), LL('Com atestado de N dias seguidos ou mais, todos os dias são descontados do salário (o trabalhador recebe do INSS). 0 = nunca.', 'With a medical certificate of N or more days in a row, all days are deducted from salary (the worker claims from INSS). 0 = never.')],
     ['JUST_PRAZO_DIAS', LL('Prazo para justificar', 'Deadline to justify'), LL('dias', 'days'), LL('Dias depois do regresso ao trabalho para entregar a justificação. Depois disso só aprova marcando «Aceitar fora do prazo».', 'Days after returning to work to hand in the justification. After that it can only be approved by ticking «Accept although late».')],
@@ -1449,7 +1450,7 @@ function renderSettings(d) {
   window._set = d;
   const sec = SET_SECTIONS(), N = SET_NUMS(), names = d.names || {};
   const nm = id => names[id] ? esc(names[id]) : '<span class="st s-bad">' + LL('não existe', 'not found') + '</span>';
-  let body = '';
+  let body = '', setAsync = '';
   if (SETV === 'co') {
     body = '<p class="muted">' + LL('Dados que aparecem nos recibos, exportações e referências (FA/CR/código/nº/mês/ano).', 'Shown on payslips, exports and references (FA/CR/code/no./month/year).') + '</p>' +
       Object.keys(d.empresas).sort().map((e, i) => { const x = d.empresas[e]; return '<div class="card"><h3>' + coLogo(e, 26) + esc(e) + ' <span class="muted">· ' + x.pessoas + ' ' + LL('pessoas', 'people') + '</span></h3><div class="form">' +
@@ -1471,9 +1472,9 @@ function renderSettings(d) {
       '<p class="muted">' + LL('O horário de cada pessoa escolhe-se na ficha da pessoa (Pessoas).', 'Each person\'s schedule is chosen on their record (People).') + '</p>';
   } else if (SETV === 'att') body = '<p class="muted">' + LL('Mudar uma regra recalcula as presenças do período.', 'Changing a rule recalculates the period\'s attendance.') + '</p>' + numCard(d, N.att);
   else if (SETV === 'pay') body = '<p class="muted">' + LL('Aplicam-se aos salários dos períodos abertos. Períodos fechados não mudam.', 'Apply to open payroll periods. Closed periods do not change.') + '</p>' + numCard(d, N.pay);
-  else if (SETV === 'fer') body = numCard(d, N.fer) + '<div class="act" style="margin-top:10px"><button class="btn sec" onclick="LV=\'bal\';go(\'leave\')">' + LL('Ver / corrigir saldos de férias →', 'View / correct leave balances →') + '</button></div>' +
-    '<p class="muted">' + LL('Contagem de férias: domingos e folga contam; só os feriados não contam.', 'Leave count: Sundays and day off count; only holidays do not.') + '</p>';
-  else if (SETV === 'hol') body = '<div class="card" style="padding:14px"><p>' + LL('Feriados e tolerâncias de ponto por ano e por cidade (Todos, Maputo, Nampula, Beira).', 'Holidays and tolerance days per year and city (All, Maputo, Nampula, Beira).') + '</p><button class="btn" onclick="LV=\'hol\';go(\'leave\')">' + LL('Abrir feriados →', 'Open holidays →') + '</button></div>';
+  else if (SETV === 'fer') { body = numCard(d, N.fer) + '<p class="muted">' + LL('Férias: um período seguido conta todos os dias (domingos incluídos), só os feriados não contam; dias soltos contam só esses dias. Clique numa pessoa para corrigir o saldo.', 'Leave: a continuous period counts every day (Sundays included), only holidays do not; separate days count only those days. Click a person to correct the balance.') + '</p>'; setAsync = 'fer'; }
+  else if (SETV === 'ppl') { body = ''; setAsync = 'ppl'; }
+  else if (SETV === 'hol' && (setAsync = 'hol')) body = '<div class="card" style="padding:14px"><p>' + LL('Feriados e tolerâncias de ponto por ano e por cidade (Todos, Maputo, Nampula, Beira).', 'Holidays and tolerance days per year and city (All, Maputo, Nampula, Beira).') + '</p><button class="btn" onclick="LV=\'hol\';go(\'leave\')">' + LL('Abrir feriados →', 'Open holidays →') + '</button></div>';
   else if (SETV === 'lst') body = '<div class="card" style="padding:14px"><p>' + LL('Listas usadas nos formulários: empresas, departamentos, localizações, funções e tipos de documento. Mudar um nome atualiza todas as pessoas.', 'Lists used in forms: companies, departments, locations, roles and document types. Renaming updates every person.') + '</p><button class="btn" onclick="listsModal()">' + LL('Editar listas', 'Edit lists') + '</button></div>';
   else if (SETV === 'hik') {
     const M = d.rows.filter(r => r.key.indexOf('ID_MERGE|') === 0), S = d.rows.filter(r => r.key.indexOf('SO_ENTRADA|') === 0);
@@ -1486,10 +1487,53 @@ function renderSettings(d) {
       S.map(r => '<tr><td>' + esc(r.key.slice(11)) + ' · ' + nm(r.key.slice(11)) + '</td><td>' + esc(r.value) + '</td><td class="muted">' + esc(r.note) + '</td><td><button class="btn sec" onclick="setDel(\'' + esc(r.key) + '\')">✕</button></td></tr>').join('') +
       '<tr><td><input id="se_i" type="number" style="width:90px" placeholder="ID"></td><td><input id="se_v" placeholder="Mercado"></td><td><input id="se_n"></td><td><button class="btn" onclick="setSave(\'SO_ENTRADA|\' + val(\'se_i\'), val(\'se_v\'), val(\'se_n\'))">+ ' + LL('Adicionar', 'Add') + '</button></td></tr></table></div>';
   } else if (SETV === 'usr') {
-    body = '<div class="card" style="padding:14px"><h3>Moussa · ' + LL('Gestor', 'Manager') + '</h3><p class="muted">' + LL('Entra com email e palavra-passe. Só esta conta vê salários e altera dados.', 'Signs in with email and password. Only this account sees payroll and changes data.') + '</p><button class="btn sec" onclick="pwForm()">' + LL('Mudar palavra-passe', 'Change password') + '</button></div>' +
+    body = '<div class="card" style="padding:14px"><h3>Moussa · ' + LL('Gestor', 'Manager') + '</h3><p class="muted">' + LL('Entra com email e palavra-passe. Os gestores veem salários e alteram dados (só nas Definições e, por exceção, nos Salários).', 'Signs in with email and password. Managers see payroll and change data (only in Settings and, by exception, in Payroll).') + '</p><button class="btn sec" onclick="pwForm()">' + LL('Mudar palavra-passe', 'Change password') + '</button></div>' +
+      '<div class="card" style="padding:14px"><h3>' + LL('Gestores — acesso total (ex.: Helia, RH)', 'Managers — full access (e.g. Helia, HR)') + '</h3><p class="muted">' + LL('Veem e fazem tudo o que o Moussa faz: salários, aprovações, definições. Escreva o email e uma palavra-passe inicial (mín. 8); a pessoa muda-a depois em «Mudar palavra-passe».', 'See and do everything Moussa does: payroll, approvals, settings. Enter the email and a first password (min. 8); the person changes it later with «Change password».') + '</p>' +
+      '<div id="mgrl" class="muted">' + t('loading') + '</div><div class="form" style="margin-top:10px"><label>' + t('name') + '<input id="mg_n" value="Helia"></label><label>Email<input id="mg_e" type="email" autocomplete="off"></label><label>' + LL('Palavra-passe inicial', 'First password') + '<input id="mg_p" type="password" autocomplete="new-password"></label><div class="act"><button class="btn" id="mg_b" onclick="mgrSave()">' + t('save') + '</button></div></div></div>' +
       '<div class="card" style="padding:14px"><h3>' + LL('Assistentes (Juvência, Yorna)', 'Assistants (Juvência, Yorna)') + '</h3><p class="muted">' + LL('Entram com nome + PIN de 6 a 8 dígitos. Só enviam pedidos para a sua aprovação; não veem salários nem mudam saldos. 5 PINs errados bloqueiam 15 min.', 'Sign in with name + 6–8 digit PIN. They only send requests for your approval; they cannot see payroll or change balances. 5 wrong PINs lock for 15 min.') + '</p><button class="btn" onclick="assistAdmin()">' + LL('PINs e permissões', 'PINs and permissions') + '</button></div>';
   }
-  document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('set') + '</b></div><div class="bar"><div class="chips">' + sec.map(x => '<span class="chip ' + (SETV === x[0] ? 'on' : '') + '" onclick="SETV=\'' + x[0] + '\';renderSettings(window._set)">' + x[1] + '</span>').join('') + '</div></div>' + body;
+  const shead = '<div class="bar"><b>' + t('set') + '</b></div><div class="bar"><div class="chips">' + sec.map(x => '<span class="chip ' + (SETV === x[0] ? 'on' : '') + '" onclick="SETV=\'' + x[0] + '\';renderSettings(window._set)">' + x[1] + '</span>').join('') + '</div></div>';
+  document.getElementById('main').innerHTML = shead + body + (setAsync ? '<div class="load">' + t('loading') + '</div>' : '');
+  if (setAsync) setFill(setAsync, shead + body);
+  if (SETV === 'usr') mgrList();
+}
+/* Settings sections that load their own data */
+async function setFill(k, head) {
+  try {
+    if (k === 'fer') return renderBalances(head, await need('balances', { year: LVY }), true);
+    if (k === 'hol') return renderHolidays(head.replace(/<div class="card" style="padding:14px"><p>[\s\S]*$/, ''), await need('holidays', { year: LVY }), true);
+    if (k === 'ppl') return renderSetPeople(head, await need('people'));
+  } catch (e) { showErr(e); }
+}
+function renderSetPeople(head, list) {
+  const rows = (list.rows || list).filter(p => (F.inact || p.estado !== 'Inativo') && byName(p.nome));
+  const n = v => v === '' || v === null || v === undefined ? '' : money(v);
+  document.getElementById('main').innerHTML = head +
+    '<div class="bar"><span class="muted">' + LL('Todos os dados das pessoas mudam-se só aqui: ficha, salário, dias pagos por mês, horário, folga, documentos, transferência.', 'All people data is changed only here: record, salary, paid days per month, schedule, day off, documents, transfer.') + '</span><span class="sp"></span>' + searchBox() +
+    '<label class="muted"><input type="checkbox" ' + (F.inact ? 'checked' : '') + ' onchange="F.inact=this.checked;render()"> ' + t('inactive') + '</label>' +
+    '<button class="btn sec" onclick="listsModal()">' + t('lists') + '</button><button class="btn" onclick="EDITP=true;personForm(null)">' + t('newPerson') + '</button></div>' +
+    '<div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('entity') + '</th><th>' + t('dept') + '</th><th>' + t('role') + '</th><th>' + t('schedule') + '</th><th>' + t('dayoff') + '</th><th class="n">' + t('salary') + '</th><th class="n">' + LL('Outras rem.', 'Other pay') + '</th><th class="n">' + t('efDays') + '</th><th>' + t('state') + '</th><th></th></tr>' +
+    rows.map(p => '<tr class="click" onclick="setPerson(' + p.id + ')"><td>' + p.id + '</td><td><b>' + esc(p.nome) + '</b></td><td>' + coLogo(p.ent, 14) + esc(p.ent) + '</td><td>' + esc(p.dept) + '</td><td>' + esc(p.func) + '</td><td>' + esc(p.hor) + '</td><td>' + esc(folgaName(p.folga) || '') +
+      '</td><td class="n">' + n(p.sal) + '</td><td class="n">' + n(p.outras) + '</td><td class="n">' + (p.ef === '' || p.ef === null || p.ef === undefined ? '<span class="muted">30</span>' : '<b>' + p.ef + '</b>') + '</td><td>' + esc(p.estado) + '</td><td><button class="btn sm">✎ ' + t('edit') + '</button></td></tr>').join('') + '</table></div>';
+}
+function setPerson(id) { EDITP = true; openPerson(id); }
+/* managers (full access, e.g. HR) — Moussa types the email and a first password; they can change it later */
+async function rawCall(action, extra) {
+  const r = await fetch(window.V2.url + '?a=' + action, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ token: window.V2.token, action: action }, extra || {})) }).then(x => x.json());
+  if (r && r.error) throw new Error(r.error);
+  return r;
+}
+async function mgrList() {
+  const el = document.getElementById('mgrl'); if (!el) return;
+  try { const r = await rawCall('__users'); el.innerHTML = '<table class="tab"><tr><th>' + t('name') + '</th><th>Email</th><th>' + LL('Acesso', 'Access') + '</th><th>' + LL('Última entrada', 'Last sign-in') + '</th></tr>' +
+    r.rows.map(u => '<tr><td><b>' + esc(u.nome) + '</b></td><td>' + esc(u.email) + '</td><td>' + (u.role === 'owner' ? LL('Total', 'Full') : LL('Assistente', 'Assistant')) + '</td><td class="muted">' + (u.last_sign_in_at ? String(u.last_sign_in_at).slice(0, 16).replace('T', ' ') : '—') + '</td></tr>').join('') + '</table>'; }
+  catch (e) { el.innerHTML = '<span class="muted">' + esc(String(e.message || e)) + '</span>'; }
+}
+async function mgrSave() {
+  const b = document.getElementById('mg_b'); b.disabled = true;
+  try { await rawCall('__setManager', { nome: val('mg_n'), email: val('mg_e'), password: val('mg_p') }); toast(t('saved')); document.getElementById('mg_p').value = ''; mgrList(); }
+  catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+  b.disabled = false;
 }
 async function setSave(key, value, note, del) {
   try {
@@ -2049,7 +2093,7 @@ function renderPay(d) {
     '<div class="bar"><b>' + t('pay') + '</b><select onchange="PAYP=this.value;render()">' + d.periods.map(k => '<option value="' + k + '"' + (k === d.periodo ? ' selected' : '') + '>' + k + (d.closedMap[k] ? ' ✓' : '') + '</option>').join('') + '</select>' +
     '<span class="muted">' + fmtDY(d.from) + ' → ' + fmtDY(d.to) + '</span>' +
     (d.closed ? '<span class="st s-ok">' + t('pClosedOn') + ' ' + esc(d.closedAt) + '</span>' + (d.copyUrl ? '<a class="btn sec sm" target="_blank" rel="noopener" href="' + esc(d.copyUrl) + '">' + (LANG === 'pt' ? 'Cópia guardada' : 'Saved copy') + '</a>' : '') : '<span class="st s-chk">' + t('pDraft') + '</span>' + (d.upTo ? '<span class="muted">' + t('pUpTo') + ' ' + fmtD(d.upTo) + '</span>' : '')) +
-    (d.closed ? '' : '<button class="btn sec sm" onclick="payFresh()">' + t('pRecalc') + '</button>') + '<span class="sp"></span><button class="btn sec" onclick="payCompanies()">' + t('pCoInfo') + '</button><button class="btn sec" id="pxb" onclick="payExport()">' + t('exportS') + '</button>' +
+    (d.closed ? '' : '<button class="btn sec sm" onclick="payFresh()">' + t('pRecalc') + '</button>') + '<span class="sp"></span><button class="btn sec" id="pxb" onclick="payExport()">' + t('exportS') + '</button>' +
     (d.canReopen ? '<button class="btn sec" onclick="payReopen()">' + t('pReopen') + '</button>' : '') + (d.canClose ? '<button class="btn" onclick="payClose()">' + t('pClose') + '</button>' : '') + '</div>' +
     (d.warn && d.warn.length ? '<div class="card" style="border-color:var(--chk)"><div style="padding:10px 14px"><b>' + t('pToCheck') + ':</b> ' + d.warn.map(payWarn).join(' · ') + '</div></div>' : '') +
     '<div class="kpis"><div class="kpi inf">' + t('pGross') + '<b>' + money(S(rows, 'bruto')) + '</b></div><div class="kpi late">' + t('pInss') + '<b>' + money(S(rows, 'inss')) + '</b></div><div class="kpi bad">' + t('pAdv') + '<b>' + money(S(rows, 'loans')) + '</b></div><div class="kpi ok">' + t('pNet') + '<b>' + money(S(rows, 'liquido')) + '</b></div></div>' +
@@ -2231,11 +2275,11 @@ const isLicenceC = tp => /carta|licen|driv/i.test(String(tp || ''));
 
 function docsCard(list) {
   const noLic = isDriverC(CUR.p.func) && !list.some(d => isLicenceC(d.tipo) && d.st !== 'exp');
-  return '<div class="card" style="margin:0 14px 12px"><h3>' + t('docs') + '<span class="sp"></span><button class="btn sec sm" onclick="docForm()">' + t('addDoc') + '</button></h3><div id="dinl"></div>' +
+  return '<div class="card" style="margin:0 14px 12px"><h3>' + t('docs') + '<span class="sp"></span>' + (EDITP ? '<button class="btn sec sm" onclick="docForm()">' + t('addDoc') + '</button>' : '') + '</h3><div id="dinl"></div>' +
     (noLic ? '<div class="err" style="margin:10px 14px">⚠ ' + t('noLicence') + '</div>' : '') +
     (list.length ? '<table><tr><th>' + t('type') + '</th><th>' + t('docNo') + '</th><th>' + t('expiry') + '</th><th></th><th></th></tr>' + list.map(d =>
       '<tr><td>' + esc(d.tipo) + '</td><td>' + esc(d.num) + '</td><td>' + (d.val ? fmtDY(d.val) : '—') + '</td><td><span class="st s-' + DOC_ST[d.st][0] + '">' + t(DOC_ST[d.st][1]) + '</span></td><td style="text-align:right;white-space:nowrap">' +
-      (d.hasFile ? '<button class="btn sec sm" onclick="viewPDoc(' + d.n + ')">' + t('dView') + '</button> ' : '') + '<button class="btn sec sm" onclick="docForm(' + d.n + ')">' + t('edit') + '</button> <button class="btn sec sm" onclick="docDel(' + d.n + ')">×</button></td></tr>').join('') + '</table>'
+      (d.hasFile ? '<button class="btn sec sm" onclick="viewPDoc(' + d.n + ')">' + t('dView') + '</button> ' : '') + (EDITP ? '<button class="btn sec sm" onclick="docForm(' + d.n + ')">' + t('edit') + '</button> <button class="btn sec sm" onclick="docDel(' + d.n + ')">×</button>' : '') + '</td></tr>').join('') + '</table>'
       : '<div class="muted" style="padding:12px 14px">' + t('noDocs') + '</div>') + '</div>';
 }
 async function docForm(n) {
