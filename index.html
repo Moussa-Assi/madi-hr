@@ -1244,13 +1244,13 @@ function assistFields(meta) {
   let f = '';
   if (AF.tipo === 'Justificação') {
     f = per + '<label>' + t('newStatus') + '<select id="af_st"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
-      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
+      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + entField() + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Licença') {
     f = per + '<label>' + t('type') + '<select id="af_lt" onchange="const nd=document.getElementById(\'af_nd\');if(nd)delete nd.dataset.man;ferShow(\'af\');formSync(\'af\')">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
       '<label class="af_r">' + t('fromD') + ' *<input type="date" id="af_de"></label><label class="af_r">' + t('toD') + '<input type="date" id="af_ate"></label>' +
       '<div class="af_d full" style="display:none;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onblur="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>' +
-      ferFields('af') + fpFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret" oninput="this.dataset.man=1"><small class="muted">' + LL('calculado — pode alterar', 'calculated — you can change it') + '</small></label>' + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
+      ferFields('af') + fpFields('af') + '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="af_ret" oninput="this.dataset.man=1"><small class="muted">' + LL('calculado — pode alterar', 'calculated — you can change it') + '</small></label>' + entField() + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Adiantamento') {
     f = per + '<label>' + t('loanType') + '<select id="af_at"><option value="Adiantamento">' + t('advance') + '</option><option value="Empréstimo">' + t('loan') + '</option></select></label>' +
       loanFields('af', 'af_tot', 'af_pre', '', '', '') +
@@ -1763,6 +1763,7 @@ function afCollect() {
     const inf = PINFO[id]; if (inf && !(inf.divida > 0)) return toast(LL('Esta pessoa não tem dívida', 'This person has no debt'));
     if (inf && Number(dados.valor) > inf.divida + 0.005) return toast(LL('O valor é maior do que a dívida (', 'The amount is more than the debt (') + money(inf.divida) + ')'); }
   if (!id) return toast(t('required'));
+  if (document.getElementById('af_ent') && val('af_ent')) dados.entrega = val('af_ent');
   const needRef = AF.tipo === 'Adiantamento' || (AF.tipo === 'Licença' && isFer('af'));
   const ref = needRef ? getRef('af') : (AF.tipo === 'Licença' || AF.tipo === 'Pagamento') ? '' : val('af_ref');
   if (needRef && !val('af_dc')) return toast(LL('Escreva a data da carta', 'Enter the letter date'));
@@ -1795,6 +1796,9 @@ const QRGEN = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js', Q
 function loadJs(src, ready) { return new Promise((ok, ko) => { if (ready()) return ok(); const s = document.createElement('script'); s.src = src; s.onload = ok; s.onerror = () => ko(new Error(LL('sem internet para carregar ', 'no internet to load ') + src.split('/').pop())); document.head.appendChild(s); }); }
 function hsh(x) { let h = 0x811c9dc5; for (const ch of String(x)) { h ^= ch.codePointAt(0); h = Math.imul(h, 0x01000193) >>> 0; } return h.toString(36).toUpperCase().padStart(6, '0').slice(-6); }
 const ltrCode = (n, h) => 'RH-' + String(n).padStart(5, '0') + '-' + h;
+const entField = () => '<label>' + LL('Entregue pelo trabalhador em', 'Handed in by the worker on') + '<input type="date" id="af_ent" value="' + todayStr() + '" onchange="entWarn()"><small class="muted" id="af_entw"></small></label>';
+function entWarn() { const v = val('af_ent'), w = document.getElementById('af_entw'); if (!w) return; const d = v ? Math.round((new Date(todayStr() + 'T12:00:00') - new Date(v + 'T12:00:00')) / 864e5) : 0;
+  w.innerHTML = d > 1 ? '<b style="color:#c62828">⚠ ' + LL('Registo atrasado: ' + d + ' dias depois da entrega — o Moussa vai ver um alerta.', 'Entered late: ' + d + ' days after hand-in — Moussa will see an alert.') + '</b>' : ''; }
 const cmField = () => '<label class="full">' + LL('Motivo (aparece na carta)', 'Reason (printed on the letter)') + '<input id="af_cm" maxlength="220"></label>';
 function pgCalc() { const sd = document.getElementById('af_sd'), ns = document.getElementById('af_ns'), inf = PINFO[pidOf('af')] || {}; if (!sd || !ns) return; sd.value = money(inf.divida || 0); ns.value = money(Math.max(0, (inf.divida || 0) - (Number(val('af_pv')) || 0))); }
 const mt = v => { const x = (Math.round((Number(v) || 0) * 100) / 100).toFixed(2).split('.'); return x[0].replace(/\B(?=(\d{3})+(?!\d))/g, ' ') + ',' + x[1]; };
@@ -1958,7 +1962,7 @@ function renderApprovals(d) {
       info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
       '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
-      (c.prazo ? '<div class="row"><span class="st s-bad">⚠ ' + LL('Fora do prazo', 'Late') + '</span> <span class="muted">' + esc(c.prazo) + '</span> <label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ap_late' + r.n + '" style="width:auto"> ' + LL('Aceitar fora do prazo', 'Accept although late') + '</label></div>' : '') +
+      (c.prazo ? '<div style="background:#fdecea;border:2px solid #c62828;border-radius:10px;padding:10px 12px;margin:6px 0;color:#8e1b1b"><b style="font-size:15px">⚠ ' + (/^entregue/.test(c.prazo) ? LL('JUSTIFICAÇÃO ENTREGUE FORA DO PRAZO', 'JUSTIFICATION HANDED IN LATE') : LL('JUSTIFICAÇÃO REGISTADA TARDE', 'JUSTIFICATION ENTERED LATE')) + '</b><br><span>' + esc(c.prazo) + '</span><br><small>' + LL('Pode aprovar ou rejeitar — decida com atenção.', 'You can approve or reject — decide carefully.') + '</small></div>' : '') +
       (x.nota ? '<div class="row">' + (/saldo|balan/i.test(x.nota) ? '<span class="st s-bad">⚠ ' + LL('Verificar saldo', 'Check balance') + '</span> ' : '') + '<span class="muted">' + LL('Nota', 'Note') + ': ' + esc(x.nota) + '</span></div>' : '') + (info ? '<div class="row muted">' + info + '</div>' : '') +
       '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + (x.verif ? '<span class="st s-ok">✓ ' + LL('Carta da app · código confirmado', 'App letter · code confirmed') + '</span>' : x.carta ? '' : '<span class="st s-chk">' + LL('Carta feita fora da app', 'Letter made outside the app') + '</span>') + edit + '</div>' +
       '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
