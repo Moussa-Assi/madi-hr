@@ -112,6 +112,8 @@ main{max-width:none!important;padding:16px 20px}
 .gridt tr > th:first-child{min-width:230px;text-align:left}
 @media(max-width:700px){main{padding:10px}.tw{max-height:calc(100vh - 120px)}.gridt td.nm,.gridt tr > th:first-child{min-width:160px}}
 @media print{.tw{max-height:none!important;overflow:visible!important}.tw th{position:static!important;box-shadow:none}}
+#main .tw th,#mBody .tw th{cursor:pointer;user-select:none}#main .tw th:hover{background:#e7eaf0}
+.lt .lnota{font-size:12px;margin-top:10px}
 </style>
 </head>
 <body>
@@ -126,8 +128,8 @@ main{max-width:none!important;padding:16px 20px}
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>#login{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}#login .box{background:#fff;padding:28px 24px;border-radius:12px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}#login h2{margin:0 0 4px;color:var(--pri,#23365e);font-size:20px}#login label{display:block;font-size:13px;color:#374151}#login input{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}#login button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--pri,#23365e);color:#fff;font-weight:600;font-size:15px;cursor:pointer}#login button:disabled{opacity:.6}#login .e{color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:8px}#login .s{color:#6b7280;font-size:13px;margin-bottom:18px}#login .tabs{display:flex;gap:6px;margin:10px 0 18px}#login .tabs button{flex:1;background:#eef0f4;color:#374151;font-weight:600;font-size:13px;padding:9px}#login .tabs button.on{background:var(--pri,#23365e);color:#fff}#login select{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}</style>
 <div id="login" style="display:none"><div class="box"><h2>Madi HR</h2><div class="tabs"><button type="button" id="lt_m" class="on" onclick="lmode('m')">Gestor · Manager</button><button type="button" id="lt_a" onclick="lmode('a')">Assistente · Assistant</button></div>
-<form id="lf_m" onsubmit="return doLogin(event)"><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form>
-<form id="lf_a" style="display:none" onsubmit="return doAssist(event)"><label>Nome · Name<select id="la_n"></select></label><label>PIN<input id="la_p" type="password" inputmode="numeric" autocomplete="off" required></label><div class="e" id="la_err"></div><button id="la_b">Entrar · Sign in</button></form></div></div>
+<form id="lgf_m" onsubmit="return doLogin(event)"><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form>
+<form id="lgf_a" style="display:none" onsubmit="return doAssist(event)"><label>Nome · Name<select id="la_n"></select></label><label>PIN<input id="la_p" type="password" inputmode="numeric" autocomplete="off" required></label><div class="e" id="la_err"></div><button id="la_b">Entrar · Sign in</button></form></div></div>
 <script>
 /* Login with Supabase (email + password). After login the app below starts with a short-lived pass that renews itself. */
 const SB_URL = 'https://erxlksuoplobtfbsvypg.supabase.co', SB_PK = 'sb_publishable_M5dLHCm5GFfgzP0g0Ol9lQ_3vjLme_l', FN_URL = SB_URL + '/functions/v1/rh-api';
@@ -160,7 +162,7 @@ async function doLogin(e) {
 }
 function lmode(m) {
   document.getElementById('lt_m').classList.toggle('on', m === 'm'); document.getElementById('lt_a').classList.toggle('on', m === 'a');
-  document.getElementById('lf_m').style.display = m === 'm' ? '' : 'none'; document.getElementById('lf_a').style.display = m === 'a' ? '' : 'none';
+  document.getElementById('lgf_m').style.display = m === 'm' ? '' : 'none'; document.getElementById('lgf_a').style.display = m === 'a' ? '' : 'none';
   try { localStorage.setItem('rh_lmode', m); } catch (e) {}
   if (m === 'a' && !document.getElementById('la_n').options.length) fetch(FN_URL + '?a=names', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: '__assistNames' }) }).then(r => r.json()).then(j => {
     document.getElementById('la_n').innerHTML = (j.names || []).map(n => '<option>' + n.replace(/</g, '&lt;') + '</option>').join('');
@@ -868,13 +870,16 @@ async function decide(n, dec) {
   document.querySelectorAll('.pc .btn').forEach(b => b.disabled = true);
   try { await call('leaveDecide', { n: n, decision: dec, nota: val('dn' + n) }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); render(); }
 }
+function refBox() { return '<input type="search" id="qref" placeholder="' + LL('Procurar ref. (ex.: FA/GM/04)', 'Search ref. (e.g. FA/GM/04)') + '" value="' + esc(LF.ref || '') + '" style="max-width:220px" oninput="LF.ref=this.value;render();setTimeout(()=>{const q=document.getElementById(\'qref\');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},0)">'; }
+const refHit = r => { const q = String(LF.ref || '').replace(/\s/g, '').toUpperCase(); return !q || String(r || '').replace(/\s/g, '').toUpperCase().indexOf(q) >= 0; };
+const entD = s => { const m = String(s || '').match(/^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}:\d{2}))?/); return m ? m[3] + '/' + m[2] + '/' + m[1].slice(2) + (m[4] ? ' ' + m[4] : '') : ''; };
 function renderLeaveAll(head, d) {
-  let rows = d.rows.filter(l => (!LF.st || l.estado === LF.st) && (!LF.tp || l.tipo === LF.tp) && byName(l.nome));
+  let rows = d.rows.filter(l => (!LF.st || l.estado === LF.st) && (!LF.tp || l.tipo === LF.tp) && byName(l.nome) && refHit(l.ref));
   document.getElementById('main').innerHTML = head +
     '<div class="bar"><select onchange="LF.st=this.value;render()"><option value="">' + t('allStatus') + '</option>' + ['Pendente','Aprovado','Rejeitado'].map(s => '<option value="' + s + '"' + (LF.st === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select>' +
-    '<select onchange="LF.tp=this.value;render()"><option value="">' + t('allTypes') + '</option>' + stOpts(d.types, LF.tp) + '</select><span class="sp"></span>' + searchBox() + '</div>' +
-    '<div class="card tw"><table><tr><th>Nº</th><th>' + t('person') + '</th><th>' + t('type') + '</th><th>' + t('mode') + '</th><th class="n">' + t('nDays') + '</th><th>' + t('status2') + '</th><th>' + t('ref') + '</th><th>' + t('reqBy') + '</th></tr>' +
-    rows.map(l => '<tr class="click" onclick="leaveFormN(' + l.n + ')"><td>' + l.n + '</td><td>' + esc(l.nome) + '</td><td>' + stTag(l.tipo) + '</td><td>' + fmtDates(l) + '</td><td class="n">' + l.dias + '</td><td>' + stwTag(l.estado) + '</td><td>' + esc(l.ref) + '</td><td class="muted">' + esc(l.pedidoPor) + '</td></tr>').join('') + '</table></div>';
+    '<select onchange="LF.tp=this.value;render()"><option value="">' + t('allTypes') + '</option>' + stOpts(d.types, LF.tp) + '</select><span class="sp"></span>' + refBox() + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>Nº</th><th>' + LL('Registada em', 'Entered on') + '</th><th>' + t('person') + '</th><th>' + t('type') + '</th><th>' + t('mode') + '</th><th class="n">' + t('nDays') + '</th><th>' + t('status2') + '</th><th>' + t('ref') + '</th><th>' + t('reqBy') + '</th></tr>' +
+    rows.map(l => '<tr class="click" onclick="leaveFormN(' + l.n + ')"><td>' + l.n + '</td><td class="muted" style="white-space:nowrap" title="' + LL('data e hora em que a carta entrou no sistema', 'date and time the letter was entered') + '">' + entD(l.pedidoEm) + '</td><td>' + esc(l.nome) + '</td><td>' + stTag(l.tipo) + '</td><td>' + fmtDates(l) + '</td><td class="n">' + l.dias + (l.fnj ? ' <span class="st s-bad" title="' + LL('faltas não justificadas descontadas na carta', 'unjustified absences deducted on the letter') + '">+' + l.fnj + ' ' + LL('faltas', 'abs.') + '</span>' : '') + '</td><td>' + stwTag(l.estado) + '</td><td>' + esc(l.ref) + '</td><td class="muted">' + esc(l.pedidoPor) + '</td></tr>').join('') + '</table></div>';
 }
 function leaveFormN(n) { const l = (CACHE.leaves || { rows: [] }).rows.filter(x => x.n === n)[0]; leaveForm(l || null); }
 let LDAYS = [];
@@ -891,15 +896,15 @@ async function leaveForm(l, presetId) {
     '<label class="lf_r">' + t('fromD') + ' *<input type="date" id="lf_de" value="' + (l && !days ? l.de : '') + '"></label>' +
     '<label class="lf_r">' + t('toD') + '<input type="date" id="lf_ate" value="' + (l && !days ? l.ate : '') + '"></label>' +
     '<div class="lf_d full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="lf_day" onblur="lfAdd()"><button class="btn sec sm" onclick="lfAdd()">' + t('addDay') + '</button><span id="lf_days"></span></div>' +
-    ferFields('lf', l ? l.dias : '') + fpFields('lf', l) +
+    ferFields('lf', l ? l.dias : '', l ? l.fnj : 0, l ? fnjTxtOf(l.notas) : '') + fpFields('lf', l) +
     '<label>' + (LANG === 'pt' ? 'Regressa ao trabalho' : 'Back to work') + '<input type="date" id="lf_ret" oninput="this.dataset.man=1"' + (l && /Regressa: \d/.test(l.notas || '') ? ' data-man="1"' : '') + ' value="' + (l && /Regressa: (\d{2})\/(\d{2})\/(\d{4})/.test(l.notas || '') ? (l.notas.match(/Regressa: (\d{2})\/(\d{2})\/(\d{4})/).slice(1).reverse().join('-')) : '') + '"></label>' +
     refField('lf', 'FA', l ? l.ref : '', l ? l.notas : '') +
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
-    '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? l.notas : '') + '"></label>' +
+    '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? String(l.notas || '').replace(FNJ_RE, '').trim() : '') + '"></label>' +
     '<div class="full muted">ⓘ ' + t('paidHint') + '</div>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
-  FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, estado: l.estado, ref: l.ref || '' } : null }; lfMode(); lfShow(); formSync('lf', true);
+  FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, fnj: Number(l.fnj) || 0, estado: l.estado, ref: l.ref || '' } : null }; lfMode(); lfShow(); formSync('lf', true);
 }
 function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 function lfAdd() { const i = document.getElementById('lf_day'), x = i ? i.value : ''; if (!x) return; if (LDAYS.indexOf(x) < 0) { LDAYS.push(x); LDAYS.sort(); } i.value = ''; retFree('lf'); lfShow(); }
@@ -909,7 +914,7 @@ function lfShow() { const el = document.getElementById('lf_days'); if (el) el.in
 async function saveLeaveForm(n) {
   const id = pid(val('lf_p')); const mode = val('lf_m');
   if (mode === 'd' && val('lf_day') && LDAYS.indexOf(val('lf_day')) < 0) lfAdd();
-  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: tagNote(retNote(val('lf_note'), val('lf_ret')), 'Carta', isFer('lf') ? val('lf_dc') : ''), estado: val('lf_st') || 'Pendente' };
+  const p = { n: n || '', id: id, tipo: val('lf_t'), dias: val('lf_n'), ref: isFer('lf') ? getRef('lf') : ((FS.lf && FS.lf.edit && FS.lf.edit.ref) || ''), doc: val('lf_doc'), nota: fnjNote(tagNote(retNote(val('lf_note'), val('lf_ret')), 'Carta', isFer('lf') ? val('lf_dc') : ''), isFer('lf') ? val('lf_fnj') : 0, val('lf_fnjt')), estado: val('lf_st') || 'Pendente', fnj: isFer('lf') ? (val('lf_fnj') || 0) : 0 };
   const fp = isFP('lf');
   if (fp) { p.de = p.ate = val('lf_pp'); p.datas = ''; p.nota = fpNote('lf', p.nota); }
   else if (mode === 'd') { p.datas = LDAYS.join(','); } else { p.de = val('lf_de'); p.ate = val('lf_ate'); }
@@ -933,7 +938,7 @@ function renderBalances(head, d, edit) {
     '<div class="bar">' + deptChips(d.rows.map(b => [0, 0, 0, b.dept]), 3) + '</div>' +
     '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + LL('Faltas inj.', 'Unjust. abs.') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + LL('Saldo real', 'Real balance') + '</th><th class="n">' + LL('Após faltas', 'After absences') + '</th><th>' + t('notes') + '</th></tr>' +
     rows.map(b => '<tr' + (edit ? ' class="click" onclick="balForm(' + b.id + ')"' : '') + '><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
-      '</td><td class="n">' + (b.usados || '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="n"><b style="color:' + (b.saldoFaltas !== '' && b.saldoFaltas < 0 ? 'var(--bad)' : 'inherit') + '">' + (b.faltas ? b.saldoFaltas : (b.saldo === '' ? '' : b.saldo)) + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
+      '</td><td class="n">' + (b.usados || '') + (b.fnj ? ' <small class="muted" title="' + LL('inclui faltas descontadas em cartas', 'includes absences deducted on letters') + '">(' + b.fnj + ' ' + LL('faltas', 'abs.') + ')</small>' : '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="n"><b style="color:' + (b.saldoFaltas !== '' && b.saldoFaltas < 0 ? 'var(--bad)' : 'inherit') + '">' + (b.faltas ? b.saldoFaltas : (b.saldo === '' ? '' : b.saldo)) + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
   window._bal = d;
 }
 function balForm(id) {
@@ -1007,7 +1012,7 @@ async function closeLoans() {
   if (!confirm(t('closeQ'))) return;
   try { const r = await call('loansClose'); invalidate(); toast(t('saved') + ' (' + r.count + ')'); render(); } catch (e) { toast(t('error') + ': ' + e); }
 }
-function loanToP(x) { return { n: x.n, id: x.id, tipo: x.tipo, data: x.data, total: x.total, prest: x.prest, inicio: x.inicio, pagoAntes: x.pagoAntes, ent: x.ent, ref: x.ref, estado: x.estado, notas: x.notas }; }
+function loanToP(x) { return { n: x.n, id: x.id, tipo: x.tipo, data: x.data, total: x.total, prest: x.prest, inicio: x.inicio, pagoAntes: x.pagoAntes, ent: x.ent, ref: x.ref, estado: x.estado, notas: x.notas, fonte: x.fonte, prestB: x.prestB }; }
 async function assignLoan(n) {
   const x = CACHE.loans.rows.filter(r => r.n === n)[0]; const id = pid(val('as' + n)); if (!id) return toast(t('required'));
   const p = loanToP(x); p.id = id; p.notas = String(x.notas || '').replace('Sem pessoa — atribuir', 'Atribuído');
@@ -1019,8 +1024,8 @@ async function loanPerson(id) {
   const h = d.history.filter(x => x.id === id).sort((a, b) => a.periodo < b.periodo ? 1 : -1);
   modal((L[0] || {}).nome + ' · ' + t('loansOf'), '<button class="btn sec sm" onclick="loanForm(null,' + id + ')">' + t('newLoan') + '</button>',
     '<div id="inll"></div><div class="card tw" style="margin:12px 14px"><table><tr><th>' + t('ref') + '</th><th>' + t('date') + '</th><th>' + t('loanType') + '</th><th class="n">' + t('total') + '</th><th class="n">' + t('inst') + '</th><th>' + t('firstDed') + '</th><th class="n">' + t('paid') + '</th><th class="n">' + t('prevBal') + '</th><th class="n">' + t('thisDed') + '</th><th class="n">' + t('curBal') + '</th><th>' + t('status2') + '</th><th></th></tr>' +
-    L.map(x => '<tr><td>' + esc(x.ref) + '</td><td>' + fmtDY(x.data) + '</td><td>' + (x.tipo === 'Adiantamento' ? t('advance') : t('loan')) + '</td><td class="n">' + money(x.total) + '</td><td class="n">' + money(x.prest) + '</td><td>' + esc(x.inicio) + '</td><td class="n">' + money(x.paid) +
-      '</td><td class="n">' + money(x.saldoAnterior) + '</td><td class="n"><b>' + money(x.previsto + x.confirmadoPeriodo) + '</b>' + (x.override ? ' ✎' : '') + '</td><td class="n">' + money(x.saldoAtual) + '</td><td>' + esc(LSTW(x.estado)) + (String(x.notas).indexOf('estimado') >= 0 ? ' <span class="st s-chk">' + t('estimated') + '</span>' : '') +
+    L.map(x => '<tr><td>' + esc(x.ref) + '</td><td>' + fmtDY(x.data) + '</td><td>' + (x.tipo === 'Adiantamento' ? t('advance') : t('loan')) + '</td><td class="n">' + money(x.total) + '</td><td class="n">' + (x.fonte === 'Bónus' ? '' : money(x.prest)) + (x.fonte && x.fonte !== 'Salário' ? '<br><small class="muted">' + LL('bónus ', 'bonus ') + money(x.prestB) + '</small>' : '') + '</td><td>' + esc(x.inicio) + '</td><td class="n">' + money(x.paid) +
+      '</td><td class="n">' + money(x.saldoAnterior) + '</td><td class="n"><b>' + money(x.previsto + x.confirmadoPeriodo) + '</b>' + (x.override ? ' ✎' : '') + (x.previstoB ? '<br><small class="muted">+ ' + LL('bónus ', 'bonus ') + money(x.previstoB) + '</small>' : '') + '</td><td class="n">' + money(x.saldoAtual) + '</td><td>' + esc(LSTW(x.estado)) + (String(x.notas).indexOf('estimado') >= 0 ? ' <span class="st s-chk">' + t('estimated') + '</span>' : '') +
       '</td><td style="white-space:nowrap"><button class="btn sec sm" onclick="planForm(' + x.n + ')">' + t('changeDed') + '</button> <button class="btn sec sm" onclick="payForm(' + x.n + ')">' + t('payment') + '</button> <button class="btn sec sm" onclick="loanFormN(' + x.n + ')">' + t('edit') + '</button></td></tr>').join('') + '</table></div>' +
     (h.length ? '<div class="card tw" style="margin:0 14px"><h3>' + t('history') + '</h3><table><tr><th>' + t('period') + '</th><th>' + t('ref') + '</th><th class="n">' + t('amount') + '</th><th>' + t('payType') + '</th><th>' + t('date') + '</th><th>' + t('notes') + '</th></tr>' +
       h.map(x => '<tr><td>' + x.periodo + '</td><td>' + esc((d.rows.filter(r => r.n === x.n)[0] || {}).ref || x.n) + '</td><td class="n">' + money(x.valor) + '</td><td>' + esc(x.tipo) + '</td><td>' + fmtD(x.data) + '</td><td class="muted">' + esc(x.notas) + '</td></tr>').join('') + '</table></div>' : ''));
@@ -1046,7 +1051,7 @@ async function loanForm(x, presetId) {
     '<label>' + t('person') + ' *' + personSelect('lo_p', x ? x.id : presetId) + '</label>' +
     '<label>' + t('loanType') + '<select id="lo_t"><option value="Adiantamento"' + (x && x.tipo === 'Adiantamento' ? ' selected' : '') + '>' + t('advance') + '</option><option value="Empréstimo"' + (!x || x.tipo !== 'Adiantamento' ? ' selected' : '') + '>' + t('loan') + '</option></select></label>' +
     '<label>' + t('date') + '<input type="date" id="lo_d" value="' + v2('data', todayStr()) + '"></label>' +
-    loanFields('lo', 'lo_v', 'lo_i', v2('total', ''), v2('prest', ''), v2('nprest', '')) +
+    loanFields('lo', 'lo_v', 'lo_i', v2('total', ''), v2('prest', ''), v2('nprest', ''), x) +
     '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
     '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
     '<label>' + t('entity') + '<select id="lo_e"><option value="">' + LL('— a da pessoa —', '— the person\'s company —') + '</option>' + ents.concat(x && x.ent && ents.indexOf(x.ent) < 0 ? [x.ent] : []).map(e => '<option' + (x && x.ent === e ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select></label>' +
@@ -1059,7 +1064,8 @@ async function loanForm(x, presetId) {
 }
 async function saveLoan(n) {
   const id = pid(val('lo_p'));
-  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: tagNote(val('lo_n'), 'Carta', val('lo_dc')) };
+  const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: tagNote(val('lo_n'), 'Carta', val('lo_dc')), ...loanOpt('lo') };
+  if (p.fonte !== 'Salário' && !(Number(p.prestB) > 0)) return toast(LL('Escreva a prestação do bónus', 'Enter the bonus instalment'));
   if (!id || !p.total) return toast(t('required'));
   document.getElementById('lo_btn').disabled = true;
   try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
@@ -1440,6 +1446,7 @@ const SET_NUMS = () => ({
     ['INTERVALO_DUPLO_MIN', LL('Picagens repetidas', 'Repeated punches'), 'min', LL('Picagens dentro deste intervalo contam como uma.', 'Punches within this window count as one.')],
     ['VERIFICAR_ATRASO_MAX_MIN', LL('Entrada muito tardia → Verificar', 'Very late arrival → To check'), 'min', LL('Se a 1ª picagem é mais tarde do que isto, provavelmente faltou a entrada.', 'If the first punch is later than this, the entry punch is probably missing.')],
     ['VERIFICAR_JANELA_MIN', LL('Dia muito curto → Verificar', 'Very short day → To check'), 'min', LL('Se a 1ª e a última picagem distam menos do que isto.', 'If first and last punch are closer than this.')],
+    ['LATE_ABERTURA', LL('Atraso conta a partir da abertura', 'Lateness counted from the opening'), '0/1', LL('1 = quando a loja / armazém abre atrasado, o atraso dos outros conta a partir da hora em que abriu (1ª entrada do departamento); quem abriu fica com o atraso. 0 = sempre a partir da hora do horário.', '1 = when the shop / warehouse opens late, the others\' lateness counts from when it opened (first entry of the department); the person who opened keeps the lateness. 0 = always from the scheduled time.')],
     ['GM_SABADO_14H_MAX', LL('GM Armazém: sábado às 14:00', 'GM Warehouse: Saturday at 14:00'), LL('vezes', 'times'), LL('Vezes por período que podem sair às 14:00 ao sábado; a seguinte vai para Verificar.', 'Times per period they may leave at 14:00 on Saturday; the next goes to To check.')]],
   pay: [
     ['PERIODO_DIA_INICIO', LL('Início do período', 'Period start day'), LL('dia', 'day'), LL('O período vai do dia X ao dia X−1 do mês seguinte (hoje 26 → 25). Mudar isto altera todos os períodos!', 'The period runs from day X to day X−1 of next month (now 26 → 25). Changing this moves every period!')],
@@ -1663,8 +1670,9 @@ function nameIn(name, t) { const words = nrm(t).split(/[^a-z]+/).filter(w => w.l
 const compact = s => nrm(s).replace(/[^a-z0-9]/g, '').replace(/o/g, '0').replace(/[il]/g, '1');
 function saldoNums(t, maxV) { const x = nrm(t), out = []; let i = -1; while ((i = x.indexOf('saldo', i + 1)) >= 0) { const v = ocrNums(x.slice(i, i + 45).replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' '))[0]; if (v !== undefined && v <= maxV) out.push(v); } return out; }   /* the first number after each 'saldo' */
 /* balances on the letter: every one must be the app's previous or new balance, and when the letter shows two, both must be there */
-function saldoOk(sn, app) { const eq = (a, b) => Math.abs(a - b) < 0.011, u = sn.filter((v, i) => sn.findIndex(x => eq(x, v)) === i);
-  return u.every(v => app.some(a => eq(a, v))) && (u.length < 2 || app.every(a => u.some(v => eq(a, v)))); }
+function saldoOk(sn, app, extra) { const eq = (a, b) => Math.abs(a - b) < 0.011, u = sn.filter((v, i) => sn.findIndex(x => eq(x, v)) === i), all = app.concat(extra || []);
+  return u.every(v => all.some(a => eq(a, v))) && (u.length < 2 || u.some(v => eq(app[0], v))); }
+const ferApp = () => { const N = ferNums('af'); return N ? { app: [N.sa, N.sn], extra: [N.after, N.snReal, Math.round((N.sa - N.nd) * 10) / 10], txt: N.sa + ' → ' + N.sn } : { app: [], extra: [], txt: '—' }; };
 /* compare the letter with the form; show a ✓ / ✗ list; ok only when everything the letter shows matches */
 function letterCheck(show) {
   const box = document.getElementById('af_ocr'), t = OCR.text;
@@ -1686,21 +1694,21 @@ function letterCheck(show) {
       const v = Number((document.getElementById('af_fv') || {}).dataset ? document.getElementById('af_fv').dataset.v : 0) || 0;
       add(LL('Valor', 'Amount'), v > 0 && nums.some(n => Math.abs(n - v) <= 1), v ? money(v) : '—');
       add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
-      const sn = saldoNums(t, 400), sa = val('af_sa'), nw = val('af_sn');
-      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, [Number(sa), Number(nw)]), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + sa + ' → ' + nw);
+      const sn = saldoNums(t, 400), F = ferApp();
+      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, F.app, F.extra), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + F.txt);
     } else if (AF.tipo === 'Licença') {
       const md = val('af_m') === 'd', days = md ? AF.days : [val('af_de'), val('af_ate') || val('af_de')];
       add(LL('Período', 'Period'), days.length > 0 && days.every(d => d && dates.has(d)), md ? days.map(fd).join(', ') : fd(days[0]) + ' → ' + fd(days[1]));
       add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
-      const sn = saldoNums(t, 400), sa = val('af_sa'), nw = val('af_sn');
-      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, [Number(sa), Number(nw)]), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + sa + ' → ' + nw);
+      const sn = saldoNums(t, 400), F = ferApp();
+      if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, F.app, F.extra), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + F.txt);
       else add(LL('Saldo de férias', 'Leave balance'), null, LL('não indicado na carta', 'not on the letter'));
     } else {
       add(LL('Valor', 'Amount'), has(val('af_tot')), money(val('af_tot') || 0));
       add(LL('Nº de prestações', 'Nº of instalments'), has(val('af_np')), val('af_np'));
       add(LL('Prestação', 'Instalment'), has(val('af_pre')) ? true : null, has(val('af_pre')) ? money(val('af_pre')) : LL('não indicada na carta', 'not on the letter'));
       const sd = (document.getElementById('af_sd') || {}).dataset || {}, prev = Number(sd.v || 0), now = prev + (Number(val('af_tot')) || 0), sn = saldoNums(t, 1e9);
-      if (sn.length) add(LL('Saldo da dívida', 'Debt balance'), saldoOk(sn, [prev, now]), LL('carta: ', 'letter: ') + sn.map(money).join(' / ') + ' · app: ' + money(prev) + ' → ' + money(now));
+      if (sn.length) add(LL('Saldo da dívida', 'Debt balance'), saldoOk(sn, [prev, now], [now - prev]), LL('carta: ', 'letter: ') + sn.map(money).join(' / ') + ' · app: ' + money(prev) + ' → ' + money(now));
       else add(LL('Saldo da dívida', 'Debt balance'), null, LL('não indicado na carta', 'not on the letter'));
     }
   }
@@ -1728,37 +1736,73 @@ function refField(P, kind, cur, notas) {
     '<label class="full ' + P + '_refw">' + LL('Referência — exceção (opcional)', 'Reference — exception (optional)') + '<input id="' + P + '_refx" autocomplete="off" placeholder="' + LL('só para uma exceção — substitui a lista', 'only for an exception — replaces the list') + '"></label>';
 }
 const getRef = P => (val(P + '_refx') || '').trim().toUpperCase() || val(P + '_refs');
-function ferFields(P, dias) {
-  const nd = P === 'af' ? 'af_nd' : 'lf_n';
-  return '<label>' + LL('Dias a usar', 'Days used') + '<input type="number" step="0.5" id="' + nd + '" value="' + esc(dias == null ? '' : dias) + '"' + (dias !== '' && dias != null ? ' data-man="1"' : '') + ' oninput="this.dataset.man=1;balCalc(\'' + P + '\')" placeholder="' + LL('férias: domingos e folga contam, feriados não', 'leave: Sundays and day off count, holidays do not') + '"></label>' +
-    '<label class="' + P + '_fer">' + LL('Saldo anterior de férias', 'Previous leave balance') + '<input type="number" step="0.5" id="' + P + '_sa" data-sys="" oninput="balCalc(\'' + P + '\')"' + (isA() ? ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"' : '') + '><small class="muted" id="' + P + '_sys"></small></label>' +
-    '<label class="' + P + '_fer">' + LL('Novo saldo de férias', 'New leave balance') + '<input id="' + P + '_sn" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
+const FNJ_RE = /\s*·?\s*Faltas descontadas: [\d.,]+ dia\(s\)(?: \([^)]*\))?/g;
+const fnjNote = (nota, n, txt) => { const x = String(nota || '').replace(FNJ_RE, '').trim(); return Number(n) > 0 ? (x ? x + ' · ' : '') + 'Faltas descontadas: ' + String(n).replace('.', ',') + ' dia(s)' + (txt ? ' (' + String(txt).replace(/[()]/g, '') + ')' : '') : x; };
+const fnjTxtOf = nota => { const m = String(nota || '').match(/Faltas descontadas: [\d.,]+ dia\(s\) \(([^)]*)\)/); return m ? m[1] : ''; };
+function ferFields(P, dias, fnj, fnjTxt) {
+  const nd = P === 'af' ? 'af_nd' : 'lf_n', ro = ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"';
+  return '<label class="' + P + '_fer">' + LL('Saldo real anterior', 'Real previous balance') + '<input type="number" step="0.5" id="' + P + '_sa" data-sys="" oninput="balCalc(\'' + P + '\')"' + (isA() ? ro : '') + '><small class="muted" id="' + P + '_sys"></small></label>' +
+    '<label class="' + P + '_fer">' + LL('Faltas não justificadas — app', 'Unjustified absences — app') + '<input id="' + P + '_fa"' + ro + '><small class="muted">' + LL('marcadas no ponto desde 26/10/2026 — já descontadas sozinhas', 'from the clock since 26/10/2026 — deducted automatically') + '</small></label>' +
+    '<label class="' + P + '_fer">' + LL('Faltas não justificadas — na carta', 'Unjustified absences — on the letter') + '<input type="number" min="0" step="0.5" id="' + P + '_fnj" value="' + esc(fnj || 0) + '" oninput="balCalc(\'' + P + '\')"><small class="muted">' + LL('0 = nada. Faltas antigas que a carta desconta das férias (não repita as da app).', '0 = nothing. Older absences the letter takes off the leave (do not repeat the app ones).') + '</small></label>' +
+    '<label class="' + P + '_fer ' + P + '_fnjw">' + LL('Meses / dias dessas faltas', 'Months / days of those absences') + '<input id="' + P + '_fnjt" value="' + esc(fnjTxt || '') + '" placeholder="' + LL('ex.: maio, junho, julho e agosto', 'e.g. May, June, July and August') + '"></label>' +
+    '<label class="' + P + '_fer">' + LL('Saldo após faltas', 'Balance after absences') + '<input id="' + P + '_saf"' + ro + '></label>' +
+    '<label>' + LL('Dias usados', 'Days used') + '<input type="number" step="0.5" id="' + nd + '" value="' + esc(dias == null ? '' : dias) + '"' + (dias !== '' && dias != null ? ' data-man="1"' : '') + ' oninput="this.dataset.man=1;balCalc(\'' + P + '\')" placeholder="' + LL('férias: domingos e folga contam, feriados não', 'leave: Sundays and day off count, holidays do not') + '"></label>' +
+    '<label class="' + P + '_fer">' + LL('Novo saldo de férias', 'New leave balance') + '<input id="' + P + '_sn" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"><small class="muted" id="' + P + '_snr"></small></label>';
 }
-function loanFields(P, tot, pre, vt, vp, vn) {
-  const f = 'loanCalc(\'' + P + '\',\'' + tot + '\',\'' + pre + '\')';
-  return '<label>' + LL('Saldo anterior (dívida)', 'Previous balance (debt)') + '<input id="' + P + '_sd" readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"></label>' +
+/* the balances of the leave form: real → after absences (app + letter) → minus days used = new balance */
+function ferNums(P) {
+  const sa = val(P + '_sa'), fa = Number(val(P + '_fa')) || 0, fl = Number(val(P + '_fnj')) || 0, nd = Number(val(P === 'af' ? 'af_nd' : 'lf_n')) || 0, r1 = x => Math.round(x * 10) / 10;
+  if (sa === '') return null;
+  const s0 = Number(sa), after = r1(s0 - fa - fl);
+  return { sa: s0, fa: fa, fl: fl, nd: nd, after: after, sn: r1(after - nd), snReal: r1(s0 - fl - nd) };
+}
+function loanFields(P, tot, pre, vt, vp, vn, x) {
+  const f = 'loanCalc(\'' + P + '\',\'' + tot + '\',\'' + pre + '\')', ro = ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"', fo = (x && x.fonte) || 'Salário';
+  return '<label>' + LL('Saldo anterior (dívida)', 'Previous balance (debt)') + '<input id="' + P + '_sd"' + ro + '><small class="muted" id="' + P + '_sdi"></small></label>' +
     '<label>' + LL('Valor a creditar', 'Amount credited') + ' *<input type="number" step="0.01" id="' + tot + '" value="' + vt + '" oninput="' + f + '"></label>' +
+    '<label class="' + P + '_mdw">' + LL('Prestações sobre', 'Instalments on') + '<select id="' + P + '_md" onchange="' + f + '"><option value="nova">' + LL('Só a nova dívida (a prestação antiga continua)', 'The new debt only (the old instalment goes on)') + '</option><option value="toda">' + LL('Toda a dívida (atualiza a prestação)', 'The whole debt (updates the instalment)') + '</option></select></label>' +
+    '<label>' + LL('Descontar de', 'Deduct from') + '<select id="' + P + '_fo" onchange="' + f + '">' + [['Salário', LL('Salário', 'Salary')], ['Bónus', LL('Bónus', 'Bonus')], ['Salário e bónus', LL('Salário e bónus', 'Salary and bonus')]].map(o => '<option value="' + o[0] + '"' + (o[0] === fo ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
     '<label>' + LL('Nº de prestações', 'Nº of instalments') + '<input type="number" min="1" step="1" id="' + P + '_np" value="' + vn + '" oninput="' + f + '"></label>' +
-    '<label>' + LL('Prestação (valor ÷ prestações)', 'Instalment (amount ÷ instalments)') + '<input type="number" step="0.01" id="' + pre + '" value="' + vp + '"' + (isA() ? ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"' : '') + '></label>' +
-    '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>';
+    '<label class="' + P + '_bw">' + LL('Prestação do bónus (por mês)', 'Bonus instalment (per month)') + '<input type="number" step="0.01" id="' + P + '_pbn" value="' + esc((x && x.prestB) || '') + '" oninput="this.dataset.man=1;' + f + '"><small class="muted">' + LL('só desconta se houver bónus nesse mês', 'only taken when there is a bonus that month') + '</small></label>' +
+    '<label class="' + P + '_sw">' + LL('Prestação do salário (por mês)', 'Salary instalment (per month)') + '<input type="number" step="0.01" id="' + pre + '" value="' + vp + '"' + (isA() ? ro : '') + '></label>' +
+    '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"><small class="muted" id="' + P + '_nsi"></small></label>';
 }
+const loanOpt = P => ({ modo: val(P + '_md') || 'nova', fonte: val(P + '_fo') || 'Salário', prestB: val(P + '_pbn') });
 const isFer = P => /^Férias/.test(val(P === 'af' ? 'af_lt' : 'lf_t'));
 function ferShow(P) { fpShow(P); const f = isFer(P); document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = f ? '' : 'none'); if (P !== 'lo' && !(P === 'af' && AF.tipo === 'Adiantamento')) document.querySelectorAll('.' + P + '_refw').forEach(e => e.style.display = f ? '' : 'none'); balCalc(P); }
 function balCalc(P) {
   fpCalc(P);
   const sa = document.getElementById(P + '_sa'), sn = document.getElementById(P + '_sn'); if (!sa || !sn) return;
-  const nd = val(P === 'af' ? 'af_nd' : 'lf_n');
-  sn.value = sa.value === '' ? '' : String(Math.round((Number(sa.value) - Number(nd || 0)) * 10) / 10);
-  const sys = document.getElementById(P + '_sys');
-  const inf0 = PINFO[pidOf(P)] || {}, fx = inf0.faltas ? ' · ' + LL('após ' + inf0.faltas + ' falta(s) injustificada(s): ', 'after ' + inf0.faltas + ' unjustified absence(s): ') + inf0.saldoFaltas : '';
+  const inf0 = PINFO[pidOf(P)] || {}, fa = document.getElementById(P + '_fa');
+  if (fa) { const md = val(P + '_m') === 'd', ld = (FS[P] && FS[P].ld && FS[P].ld.length ? FS[P].ld : (md ? (P === 'af' ? AF.days : LDAYS) : [])), de = md ? '' : val(P + '_de'), ate = md ? '' : (val(P + '_ate') || de);   /* days of this leave are not absences */
+    fa.value = inf0.faltasDatas ? inf0.faltasDatas.filter(d => ld.indexOf(d) < 0 && !(de && d >= de && d <= ate)).length : (inf0.faltas || 0); }
+  const fw = document.querySelector('.' + P + '_fnjw'); if (fw && isFer(P)) fw.style.display = Number(val(P + '_fnj')) > 0 ? '' : 'none';
+  const N = ferNums(P), saf = document.getElementById(P + '_saf'), snr = document.getElementById(P + '_snr');
+  sn.value = N ? String(N.sn) : ''; if (saf) saf.value = N ? String(N.after) : '';
+  if (snr) snr.textContent = N && N.fa ? LL('sem as faltas da app: ', 'without the app absences: ') + N.snReal : '';
+  const sys = document.getElementById(P + '_sys'), fx = '';
   if (sys && isA()) sys.textContent = LL('Do sistema. Se estiver errado, escreva na nota — o Moussa corrige na aprovação.', 'From the system. If it is wrong, write it in the note — Moussa corrects it when approving.') + fx;
   else if (sys) sys.innerHTML = (sa.dataset.sys === '' ? '' : sa.value !== sa.dataset.sys ? '<span class="st s-chk">' + LL('corrigido · sistema: ', 'corrected · system: ') + sa.dataset.sys + '</span>' : LL('do sistema', 'from the system')) + esc(fx);
 }
 function loanCalc(P, tot, pre) {
-  const v = Number(val(tot)) || 0, np = Number(val(P + '_np')) || 0, pe = document.getElementById(pre);
-  if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2);
-  const sd = document.getElementById(P + '_sd'), ns = document.getElementById(P + '_ns');
-  if (ns && sd) ns.value = sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money((Number(sd.dataset.v) || 0) + (FS[P] && FS[P].edit ? 0 : v));
+  const v = Number(val(tot)) || 0, np = Number(val(P + '_np')) || 0, pe = document.getElementById(pre), pb = document.getElementById(P + '_pbn');
+  const sd = document.getElementById(P + '_sd'), ns = document.getElementById(P + '_ns'), prev = sd && sd.dataset.v ? Number(sd.dataset.v) || 0 : 0, ed = FS[P] && FS[P].edit;
+  const mdw = document.querySelector('.' + P + '_mdw'); if (mdw) mdw.style.display = !ed && prev > 0 ? '' : 'none';
+  const toda = !ed && prev > 0 && val(P + '_md') === 'toda', fo = val(P + '_fo') || 'Salário', base = toda ? prev + v : v, r2 = x => Math.round(x * 100) / 100;
+  document.querySelectorAll('.' + P + '_bw').forEach(e => e.style.display = fo === 'Salário' ? 'none' : '');
+  document.querySelectorAll('.' + P + '_sw').forEach(e => e.style.display = fo === 'Bónus' ? 'none' : '');
+  if (base && np > 0) {
+    const per = r2(base / np);
+    if (fo === 'Bónus') { if (pb) pb.value = per.toFixed(2); if (pe) pe.value = ''; }
+    else if (fo === 'Salário e bónus') { const b = pb ? Math.min(Number(pb.value) || 0, per) : 0; if (pe) pe.value = r2(per - b).toFixed(2); }
+    else if (pe) pe.value = per.toFixed(2);
+  }
+  if (ns && sd) ns.value = sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money(prev + (ed ? 0 : v));
+  const inf = PINFO[pidOf(P)] || {}, sdi = document.getElementById(P + '_sdi'), nsi = document.getElementById(P + '_nsi');
+  if (sdi) sdi.textContent = prev > 0 && !ed ? LL('desconto mensal atual: ', 'current monthly deduction: ') + money(inf.prestMes || 0) + (inf.prestMesB ? ' + ' + LL('bónus ', 'bonus ') + money(inf.prestMesB) : '') : '';
+  if (nsi) { const s = Number(val(pre)) || 0, b = fo === 'Salário' ? 0 : Number(val(P + '_pbn')) || 0;
+    nsi.textContent = !v ? '' : LL('por mês: ', 'per month: ') + (toda || !prev ? (fo === 'Bónus' ? '' : money(s)) + (b ? (fo === 'Bónus' ? '' : ' + ') + LL('bónus ', 'bonus ') + money(b) : '') + (toda ? ' — ' + LL('uma só prestação para toda a dívida', 'one instalment for the whole debt') : '')
+      : money((inf.prestMes || 0) + s) + (b + (inf.prestMesB || 0) ? ' + ' + LL('bónus ', 'bonus ') + money(b + (inf.prestMesB || 0)) : '') + ' (' + LL('antiga + nova', 'old + new') + ')'); }
 }
 const refDate = P => val(P + '_dc');   /* the letter date (when it was written) decides the month of the reference */
 /* reference list: next free numbers for the person's company and the letter's month (continues after the last one used, also for a closed month) */
@@ -1787,7 +1831,7 @@ async function formSync(P, newPerson) {
   const sa = document.getElementById(P + '_sa');
   if (sa && (newPerson || sa.dataset.sys === '')) {
     let s = inf.saldo === '' || inf.saldo == null ? '' : Number(inf.saldo);
-    if (s !== '' && ed && /^Férias/.test(ed.tipo || '') && ed.estado === 'Aprovado') s += ed.dias;   /* editing an approved leave: balance before it */
+    if (s !== '' && ed && /^Férias/.test(ed.tipo || '') && ed.estado === 'Aprovado') s += ed.dias + (ed.fnj || 0);   /* editing an approved leave: balance before it */
     sa.dataset.sys = String(s); sa.value = String(s);
   }
   const sd = document.getElementById(P + '_sd');
@@ -1805,17 +1849,17 @@ async function formSync(P, newPerson) {
   fpCalc(P);
   if (P === 'af' && OCR.text) letterCheck(true);
 }
-function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0)); }
+function apBal(n) { const sa = val('ap_sa' + n), el = document.getElementById('ap_sn' + n); if (el) el.textContent = sa === '' ? '?' : String(Number(sa) - Number(val('ap_dias' + n) || 0) - (Number(el.dataset.fnj) || 0)); }
 function apLoan(n) { const v = Number(val('ap_tot' + n)) || 0, np = Number(val('ap_np' + n)) || 0, pe = document.getElementById('ap_pre' + n); if (v && np > 0 && pe) pe.value = (Math.round(v / np * 100) / 100).toFixed(2); }
 function afMode() { const d = val('af_m') === 'd'; document.querySelectorAll('.af_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.af_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
 function afCollect() {
   const id = Number(val('af_p')); AF.id = id;
   let dados = {};
   if (AF.tipo === 'Justificação') { if (val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { datas: AF.days.slice(), estado: val('af_st'), min: val('af_min'), nota: val('af_n') }; if (!dados.datas.length || (!dados.estado && dados.min === '')) return toast(t('required')); }
-  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: tagNote(retNote(val('af_n'), val('af_ret')), 'Carta', isFer('af') ? val('af_dc') : '') };
+  if (AF.tipo === 'Licença') { const md = val('af_m') === 'd'; if (md && val('af_day') && AF.days.indexOf(val('af_day')) < 0) afAdd(); dados = { tipo: val('af_lt'), de: md ? '' : val('af_de'), ate: md ? '' : (val('af_ate') || val('af_de')), datas: md ? AF.days.slice() : [], dias: val('af_nd'), regresso: val('af_ret'), nota: fnjNote(tagNote(retNote(val('af_n'), val('af_ret')), 'Carta', isFer('af') ? val('af_dc') : ''), isFer('af') ? val('af_fnj') : 0, val('af_fnjt')), fnj: isFer('af') ? (val('af_fnj') || 0) : 0, fnjTxt: val('af_fnjt') };
     if (isFP('af')) { dados.de = dados.ate = val('af_pp'); dados.datas = []; dados.regresso = ''; dados.nota = fpNote('af', dados.nota); }
     if (isFP('af') ? !dados.de : (md ? !dados.datas.length : !dados.de)) return toast(t('required')); if (dados.tipo === 'Férias pagas' && !dados.dias) return toast(t('required')); }
-  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: tagNote(val('af_n'), 'Carta', val('af_dc')) }; if (!dados.total) return toast(t('required')); }
+  if (AF.tipo === 'Adiantamento') { dados = { tipo: val('af_at'), total: val('af_tot'), prest: val('af_pre'), nprest: val('af_np'), inicio: val('af_ini'), nota: tagNote(val('af_n'), 'Carta', val('af_dc')), ...loanOpt('af') }; if (!dados.total) return toast(t('required')); if (dados.fonte !== 'Salário' && !(Number(dados.prestB) > 0)) return toast(LL('Escreva a prestação do bónus', 'Enter the bonus instalment')); }
   if (AF.tipo === 'Horas extra') { dados = { data: val('af_d'), horas: val('af_h'), inicio: val('af_hi'), fim: val('af_hf'), responsavel: val('af_resp'), motivo: val('af_mot') }; if (!dados.data || !dados.horas) return toast(t('required')); }
   if (AF.tipo === 'Pagamento') { dados = { valor: val('af_pv'), forma: val('af_pf'), nota: val('af_n') }; if (!(Number(dados.valor) > 0)) return toast(t('required'));
     const inf = PINFO[id]; if (inf && !(inf.divida > 0)) return toast(LL('Esta pessoa não tem dívida', 'This person has no debt'));
@@ -1880,7 +1924,13 @@ function cartaBuild(c) {
   const mot = () => { if (motivo) p.push('Motivo: ' + motivo + (/[.!?]$/.test(motivo) ? '' : '.')); };
   if (AF.tipo === 'Licença') {
     const lt = d.tipo, sa = val('af_sa'), sn = val('af_sn');
-    const salK = () => { if (sa !== '') { k.push(['Saldo anterior de férias', nDias(sa)]); k.push([lt === 'Férias pagas' ? 'Dias pagos' : 'Dias de férias solicitados', nDias(d.dias)]); k.push(['Saldo actual de férias', nDias(sn)]); const fi = PINFO[c.id] || {}; if (fi.faltas) { k.push(['Faltas injustificadas descontadas', nDias(fi.faltas)]); k.push(['Saldo após faltas', nDias(Number(sn) - fi.faltas)]); } } };
+    const salK = () => { const N = ferNums('af'); if (!N) return;
+      k.push(['Saldo anterior de férias', nDias(N.sa)]);
+      if (N.fa) k.push(['Faltas não justificadas (registo de ponto)', nDias(N.fa)]);
+      if (N.fl) k.push(['Faltas não justificadas descontadas' + (val('af_fnjt') ? ' (' + val('af_fnjt') + ')' : ''), nDias(N.fl)]);
+      if (N.fa || N.fl) k.push(['Saldo após faltas', nDias(N.after)]);
+      k.push([lt === 'Férias pagas' ? 'Dias pagos' : 'Dias de férias solicitados', nDias(d.dias)]); k.push(['Saldo actual de férias', nDias(N.sn)]);
+      if (N.fl) p.push((N.fl === 1 ? 'Foi descontado ' : 'Foram descontados ') + nDias(N.fl) + ' de faltas não justificadas' + (val('af_fnjt') ? ' (' + val('af_fnjt') + ')' : '') + ' do saldo de férias.'); };
     if (lt === 'Férias') { t0 = 'PEDIDO DE FÉRIAS'; p.push(intro + 'venho por este meio solicitar o gozo de ' + nDias(d.dias) + ' de férias, ' + per() + '.'); ret(); mot(); salK(); }
     else if (lt === 'Férias pagas') {
       const v = Number((document.getElementById('af_fv') || { dataset: {} }).dataset.v) || 0, pp = payPeriods().find(x => x.de === val('af_pp')), fdb = document.getElementById('af_fd');
@@ -1897,8 +1947,14 @@ function cartaBuild(c) {
   } else if (AF.tipo === 'Adiantamento') {
     const adv = d.tipo !== 'Empréstimo', np = Number(d.nprest) || 1, ini = String(d.inicio || ''), prev = Number((document.getElementById('af_sd') || { dataset: {} }).dataset.v) || 0;
     t0 = adv ? 'PEDIDO DE ADIANTAMENTO' : 'PEDIDO DE EMPRÉSTIMO';
-    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + mt(d.total) + ' MT, a descontar no meu salário em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(d.prest) + ' MT' + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
-    p.push('Autorizo a empresa a efectuar os respectivos descontos no meu salário.');
+    const fo = d.fonte || 'Salário', toda = d.modo === 'toda' && prev > 0, pb = Number(d.prestB) || 0, ps = Number(d.prest) || 0;
+    const onde = fo === 'Bónus' ? 'no meu bónus, em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(pb) + ' MT'
+      : fo === 'Salário e bónus' ? 'em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT no salário e ' + mt(pb) + ' MT no bónus'
+      : 'no meu salário em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT';
+    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + mt(d.total) + ' MT, a descontar ' + onde + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
+    if (toda) p.push('A prestação passa a cobrir toda a minha dívida (saldo anterior de ' + mt(prev) + ' MT + este valor = ' + mt(prev + (Number(d.total) || 0)) + ' MT).');
+    if (fo !== 'Salário') p.push('Quando não houver bónus num mês, a parte do bónus fica para o mês seguinte.');
+    p.push('Autorizo a empresa a efectuar os respectivos descontos' + (fo === 'Bónus' ? ' no meu bónus.' : fo === 'Salário e bónus' ? ' no meu salário e no meu bónus.' : ' no meu salário.'));
     k = [['Saldo anterior da dívida', mt(prev) + ' MT'], ['Valor solicitado', mt(d.total) + ' MT'], ['Novo saldo da dívida', mt(prev + (Number(d.total) || 0)) + ' MT']];
   } else if (AF.tipo === 'Pagamento') {
     const prev = (PINFO[c.id] || {}).divida || 0, v = Number(d.valor) || 0, fm = { 'Numerário': 'em numerário', 'Transferência': 'por transferência bancária', 'Depósito': 'por depósito bancário' }[d.forma] || '';
@@ -1915,7 +1971,8 @@ function cartaBuild(c) {
     t0 = d.estado ? 'JUSTIFICAÇÃO DE FALTA' : 'JUSTIFICAÇÃO DE ATRASO';
     p.push(intro + 'venho por este meio justificar ' + (d.estado ? 'a minha ausência' : 'o meu atraso') + ((d.datas || []).length > 1 ? ' nos dias ' : ' no dia ') + eList((d.datas || []).map(fd)) + '.'); mot();
   }
-  const out = { t: t0, p: p, k: k, s: s, ref: c.ref || '', nome: pe.nome, id: c.id, ent: pe.ent || '', emp: { nome: empN, morada: emp.morada || '', nuit: emp.nuit || '' }, co: coCode(pe.ent), lugar: city + ', ' + longD(dateL) };
+  const nota = AF.tipo === 'Licença' ? 'Faltas não justificadas serão descontadas no salário e nas férias; se já gozou as férias, serão descontadas nas férias do ano seguinte, nos termos do n.º 1 do artigo 115 da Lei do Trabalho.' : '';
+  const out = { t: t0, p: p, k: k, s: s, nota: nota, ref: c.ref || '', nome: pe.nome, id: c.id, ent: pe.ent || '', emp: { nome: empN, morada: emp.morada || '', nuit: emp.nuit || '' }, co: coCode(pe.ent), lugar: city + ', ' + longD(dateL) };
   out.h = hsh(JSON.stringify(out));
   return out;
 }
@@ -1925,6 +1982,7 @@ function ltrHtml(c, n, qr) {
     '<div class="lr"><span>' + (c.ref ? 'Ref.: <b>' + esc(c.ref) + '</b>' : 'Pedido Nº <b>' + n + '</b>') + '</span><span>Código: <b>' + ltrCode(n, c.h) + '</b></span></div>' +
     '<h2>' + esc(c.t) + '</h2>' + c.p.map(x => '<p>' + esc(x) + '</p>').join('') +
     (c.k.length ? '<table>' + c.k.map(r => '<tr><td>' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td></tr>').join('') + '</table>' : '') +
+    (c.nota ? '<p class="lnota"><b>NOTA:</b> ' + esc(c.nota) + '</p>' : '') +
     '<div class="ld">' + esc(c.lugar) + '</div><div class="ls">' + c.s.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' +
     '<div class="lf">Carta gerada pelo Sistema RH Madi · Pedido Nº ' + n + '. Qualquer alteração à mão anula esta carta.</div>' +
     '<div class="lq">' + (qr || '') + '<div>' + ltrCode(n, c.h) + '</div></div></div>';
@@ -2009,6 +2067,37 @@ function fitTables() {
   document.addEventListener('DOMContentLoaded', () => { const m = document.getElementById('main'); if (m) new MutationObserver(go).observe(m, { childList: true }); go(); });
   if (document.readyState !== 'loading') { const m = document.getElementById('main'); if (m) new MutationObserver(go).observe(m, { childList: true }); } })();
 
+/* click a column title to sort the rows (again = reverse); group rows (company / department) keep their rows under them */
+const SORTS = {};
+const sortKey = tb => (window.TAB || '') + '|' + [...(tb.rows[0] || { cells: [] }).cells].map(c => c.textContent.replace(/[▲▼]/g, '').trim()).join('|');
+const sortVal = s => { s = String(s || '').replace(/[▲▼]/g, '').trim(); let m = s.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?/); if (m) return 'D' + (m[3] ? (m[3].length === 2 ? '20' + m[3] : m[3]) : '0000') + ('0' + m[2]).slice(-2) + ('0' + m[1]).slice(-2) + s.slice(m[0].length);
+  m = s.replace(/\s/g, '').match(/^[-−]?\d+(?:[.,]\d+)*(?:\/\d+)?/); if (m && m[0].length >= s.replace(/\s/g, '').length - 6) { let v = m[0].replace('−', '-').split('/')[0]; v = /,\d{1,2}$/.test(v) ? v.replace(/\./g, '').replace(',', '.') : v.replace(/,/g, ''); return Number(v); }
+  return s === '' || s === '·' || s === '—' ? null : s.toLowerCase(); };
+function sortTable(tb, col, dir) {
+  const rows = [...tb.rows], allTh = r => r.cells.length && [...r.cells].every(c => c.tagName === 'TH');
+  let head = -1; for (let i = 0; i < rows.length; i++) { if (allTh(rows[i])) head = i; else if (head >= 0) break; }
+  if (head < 0) return;
+  const fixed = r => r.classList.contains('cohead') || r.classList.contains('tot') || [...r.cells].some(c => c.tagName === 'TH' || (c.colSpan || 1) >= 3);
+  let seg = [];
+  const flush = before => { if (seg.length > 1) { const par = seg[0].parentNode, sorted = seg.slice().sort((a, b) => { const x = sortVal((a.cells[col] || {}).textContent), y = sortVal((b.cells[col] || {}).textContent);
+      if (x === null && y === null) return 0; if (x === null) return 1; if (y === null) return -1; return (typeof x === typeof y ? (x < y ? -1 : x > y ? 1 : 0) : (typeof x === 'number' ? -1 : 1)) * dir; });
+      sorted.forEach(r => par.insertBefore(r, before)); } seg = []; };
+  for (let i = head + 1; i < rows.length; i++) { if (fixed(rows[i])) flush(rows[i]); else seg.push(rows[i]); }
+  flush(seg.length ? seg[seg.length - 1].nextSibling : null);
+  [...rows[head].cells].forEach((c, i) => { c.textContent = c.textContent.replace(/ ?[▲▼]$/, ''); if (i === col) c.textContent += dir > 0 ? ' ▲' : ' ▼'; });
+}
+document.addEventListener('click', e => {
+  const th = e.target.closest && e.target.closest('#main .tw th, #mBody .tw th'); if (!th || e.target.closest('input,select,button,a')) return;
+  const tb = th.closest('table'), tr = th.parentNode; if (!tb || [...tr.cells].some(c => c.tagName !== 'TH') || (th.colSpan || 1) > 1) return;
+  const nx = tr.nextElementSibling; if (nx && nx.cells.length && [...nx.cells].every(c => c.tagName === 'TH')) return;   /* only the last title row sorts */
+  const col = [...tr.cells].indexOf(th), k = sortKey(tb), cur = SORTS[k], dir = cur && cur.col === col ? -cur.dir : 1;
+  SORTS[k] = { col: col, dir: dir }; sortTable(tb, col, dir);
+});
+/* a re-drawn table keeps the order chosen */
+(function () { let busy = false; const again = () => { if (busy) return; busy = true; try { document.querySelectorAll('#main .tw table').forEach(tb => { const k = sortKey(tb), s = SORTS[k]; if (s) sortTable(tb, s.col, s.dir); }); } finally { busy = false; } };
+  const hook = () => { const m = document.getElementById('main'); if (m) new MutationObserver(() => setTimeout(again, 0)).observe(m, { childList: true }); };
+  if (document.readyState !== 'loading') hook(); else document.addEventListener('DOMContentLoaded', hook); })();
+
 /* ---------- Owner: approvals inbox ---------- */
 function renderApprovals(d) {
   const pend = d.rows.filter(r => r.estado === 'Pendente').sort((a, b) => a.n - b.n);
@@ -2021,9 +2110,12 @@ function renderApprovals(d) {
       if (x.tipo === 'Férias' || x.tipo === 'Férias pagas') { const sa = x.saldoAnt !== undefined && x.saldoAnt !== '' ? x.saldoAnt : c.saldo;
         info = LL('Saldo anterior', 'Previous balance') + ': <input type="number" step="0.5" id="ap_sa' + r.n + '" value="' + esc(sa) + '" data-sys="' + esc(c.saldo) + '" style="width:70px" oninput="apBal(' + r.n + ')"> ' +
           (String(sa) !== String(c.saldo) ? '<span class="st s-chk">' + LL('sistema', 'system') + ': ' + (c.saldo === '' || c.saldo == null ? '—' : c.saldo) + '</span> ' : '') +
-          '→ ' + LL('Novo saldo', 'New balance') + ': <b id="ap_sn' + r.n + '">' + (sa === '' || sa == null ? '?' : sa - Number(x.dias || 0)) + '</b>'; } }
+          (Number(x.fnj) ? '− ' + LL('faltas da carta', 'letter absences') + ' <b>' + x.fnj + '</b>' + (x.fnjTxt ? ' <span class="muted">(' + esc(x.fnjTxt) + ')</span>' : '') + ' ' : '') +
+          '→ ' + LL('Novo saldo', 'New balance') + ': <b id="ap_sn' + r.n + '" data-fnj="' + (Number(x.fnj) || 0) + '">' + (sa === '' || sa == null ? '?' : sa - Number(x.dias || 0) - (Number(x.fnj) || 0)) + '</b>'; } }
     if (r.tipo === 'Adiantamento') { edit = '<label class="muted">' + t('total') + ' <input type="number" step="0.01" id="ap_tot' + r.n + '" value="' + esc(x.total) + '" style="width:110px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + LL('Nº prestações', 'Nº instalments') + ' <input type="number" min="1" step="1" id="ap_np' + r.n + '" value="' + esc(x.nprest || (x.prest ? Math.ceil(Math.round(x.total / x.prest * 100) / 100) : 1)) + '" style="width:60px" oninput="apLoan(' + r.n + ')"></label><label class="muted">' + t('inst') + ' <input type="number" step="0.01" id="ap_pre' + r.n + '" value="' + esc(x.prest) + '" style="width:110px"></label><label class="muted">' + t('firstDed') + ' <input type="month" id="ap_ini' + r.n + '" value="' + esc(x.inicio) + '"></label>';
-      info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> + ' + money(x.total) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money((Number(c.divida) || 0) + (Number(x.total) || 0)) + '</b>'; }
+      info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> + ' + money(x.total) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money((Number(c.divida) || 0) + (Number(x.total) || 0)) + '</b>' +
+        (x.fonte && x.fonte !== 'Salário' ? ' · <span class="st s-inf">' + esc(x.fonte) + (Number(x.prestB) ? ': ' + LL('bónus ', 'bonus ') + money(x.prestB) + '/' + LL('mês', 'month') : '') + '</span>' : '') +
+        (x.modo === 'toda' && Number(c.divida) > 0 ? ' · <span class="st s-chk">' + LL('prestação sobre toda a dívida', 'instalment on the whole debt') + '</span>' : ''); }
     if (r.tipo === 'Licença' && x.tipo === 'Férias pagas' && Number(c.divida) > 0) edit += '<label class="muted" style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="ap_fd' + r.n + '" style="width:auto"' + (/\[dívida\]/.test(x.nota || '') ? ' checked' : '') + '> ' + LL('Usar para pagar a dívida', 'Use to pay the debt') + ' (' + money(c.divida) + ')</label>';
     if (r.tipo === 'Pagamento') { edit = '<label class="muted">' + LL('Valor pago', 'Amount paid') + ' <input type="number" step="0.01" id="ap_v' + r.n + '" value="' + esc(x.valor) + '" style="width:110px"></label>';
       info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> − ' + money(x.valor) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money(Math.max(0, (Number(c.divida) || 0) - (Number(x.valor) || 0))) + '</b>'; }
