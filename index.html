@@ -902,7 +902,7 @@ async function leaveForm(l, presetId) {
     '<label>' + t('doc') + '<input id="lf_doc" value="' + esc(l ? l.doc : '') + '"></label>' +
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
     '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? String(l.notas || '').replace(FNJ_RE, '').trim() : '') + '"></label>' +
-    '<div class="full muted">ⓘ ' + t('paidHint') + '</div>' +
+    '<div class="full muted">ⓘ ' + t('paidHint') + (l ? ' <button class="btn sec sm" style="margin-left:8px" onclick="histShow(\'lf_hist\',{tabelas:[\'LICENCAS\'],chaves:[\'' + l.n + '\']})">📜 ' + LL('Histórico', 'History') + '</button> <span class="muted">' + LL('Registada em ', 'Entered on ') + entD(l.pedidoEm) + (l.pedidoPor ? ' · ' + esc(l.pedidoPor) : '') + '</span>' : '') + '</div><div class="full" id="lf_hist"></div>' +
     '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
   FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, fnj: Number(l.fnj) || 0, estado: l.estado, ref: l.ref || '' } : null }; lfMode(); lfShow(); formSync('lf', true);
 }
@@ -985,7 +985,49 @@ async function holAdd() {
 
 /* ---------- Advances & loans ---------- */
 let LOF = { ent: 'all' };
+let LOV = 'list', DPID = 0;
+const loanTabs = () => '<div class="bar"><div class="chips">' + [['list', LL('Dívidas', 'Debts')], ['pay', LL('Pagamento da dívida', 'Debt payment')]].map(x => '<span class="chip ' + (LOV === x[0] ? 'on' : '') + '" onclick="LOV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div></div>';
+const PAYT_OUT = ['Desconto salário', 'Desconto bónus'];
+function renderDebtPay(d) {
+  const debt = {}; d.rows.forEach(x => { if (x.id && !/liquid|suspens/i.test(x.estado)) debt[x.id] = (debt[x.id] || 0) + (x.saldo || 0); });
+  const names = {}; d.rows.forEach(x => { if (x.id) names[x.id] = x.nome; });
+  const H = d.history.filter(x => PAYT_OUT.indexOf(x.tipo) < 0 && byName(x.nome || names[x.id])).sort((a, b) => String(b.regEm || b.data).localeCompare(String(a.regEm || a.data)));
+  const tot = H.filter(x => x.periodo === d.periodo && x.tipo !== 'Transferência').reduce((a, x) => a + x.valor, 0);
+  document.getElementById('main').innerHTML = loanTabs() +
+    '<div class="card" style="padding:14px"><h3 style="margin:0 0 6px">💵 ' + LL('Registar pagamento da dívida', 'Record a debt payment') + '</h3><p class="muted" style="margin:0 0 10px">' + LL('Dinheiro que o trabalhador entrega fora do salário (numerário, transferência, depósito). Paga primeiro a dívida mais antiga. Não muda a prestação do salário deste mês.', 'Money the worker pays outside the salary (cash, transfer, deposit). Pays the oldest debt first. The salary instalment of this month does not change.') + '</p>' +
+    '<div class="form"><label>' + t('person') + ' *' + personSelect('dp_p', DPID || '') + '</label>' +
+    '<label>' + LL('Dívida atual', 'Current debt') + '<input id="dp_d" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>' +
+    '<label>' + LL('Valor pago', 'Amount paid') + ' *<input type="number" step="0.01" id="dp_v" oninput="dpCalc()"></label>' +
+    '<label>' + LL('Data do pagamento', 'Payment date') + '<input type="date" id="dp_dt" value="' + todayStr() + '"></label>' +
+    '<label>' + LL('Forma', 'Method') + '<select id="dp_f">' + [['Numerário', LL('Numerário', 'Cash')], ['Transferência', LL('Transferência', 'Transfer')], ['Depósito', LL('Depósito', 'Deposit')], ['Outro', LL('Outro', 'Other')]].map(o => '<option value="' + o[0] + '">' + o[1] + '</option>').join('') + '</select></label>' +
+    '<label>' + LL('Recibo / comprovativo nº', 'Receipt / proof nº') + '<input id="dp_doc"></label>' +
+    '<label>' + LL('Novo saldo da dívida', 'New debt balance') + '<input id="dp_n" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"></label>' +
+    '<label class="full">' + t('notes') + '<input id="dp_nt"></label>' +
+    '<div class="act"><button class="btn" id="dp_b" onclick="dpSave()">' + t('save') + '</button></div></div></div>' +
+    '<div class="bar"><b>' + LL('Pagamentos fora do salário', 'Payments outside the salary') + '</b><span class="muted">' + LL('este período: ', 'this period: ') + money(tot) + '</span><span class="sp"></span>' + searchBox() + '</div>' +
+    '<div class="card tw"><table><tr><th>' + LL('Registado em', 'Entered on') + '</th><th>' + LL('Data do pagamento', 'Payment date') + '</th><th>' + t('name') + '</th><th>' + t('ref') + '</th><th class="n">' + t('amount') + '</th><th>' + t('payType') + '</th><th>' + t('notes') + '</th></tr>' +
+    H.map(x => '<tr class="click" onclick="loanPerson(' + x.id + ')"><td class="muted" style="white-space:nowrap">' + (entD(x.regEm) || '—') + '</td><td>' + fmtD(x.data) + '</td><td>' + esc(x.nome || names[x.id]) + '</td><td>' + esc((d.rows.find(r => r.n === x.n) || {}).ref || x.n) + '</td><td class="n"><b>' + money(x.valor) + '</b></td><td>' + esc(x.tipo) + '</td><td class="muted">' + esc(x.notas) + '</td></tr>').join('') + '</table></div><span id="dlh"></span>';
+  window._dpDebt = debt;
+  peopleDL().then(dl => { const el = document.getElementById('dlh'); if (el) el.innerHTML = dl; dpCalc(); });
+}
+['change', 'input'].forEach(ev => document.addEventListener(ev, e => { if (/^dp_p/.test((e.target && e.target.id) || '')) setTimeout(dpCalc, 30); }));
+function dpCalc() {
+  const id = pid(val('dp_p')), d = (window._dpDebt || {})[id] || 0, v = Number(val('dp_v')) || 0, a = document.getElementById('dp_d'), n = document.getElementById('dp_n');
+  if (a) a.value = id ? money(d) : ''; if (n) n.value = id ? money(Math.max(0, d - v)) : '';
+  if (n) n.style.color = v > d + 0.005 ? 'var(--bad)' : '';
+}
+async function dpSave() {
+  const id = pid(val('dp_p')), v = Number(val('dp_v')) || 0, d = (window._dpDebt || {})[id] || 0;
+  if (!id || !(v > 0)) return toast(t('required'));
+  if (!(d > 0)) return toast(LL('Esta pessoa não tem dívida', 'This person has no debt'));
+  if (v > d + 0.005) return toast(LL('O valor é maior do que a dívida (', 'The amount is more than the debt (') + money(d) + ')');
+  if (!confirm(LL('Registar pagamento de ', 'Record payment of ') + money(v) + LL(' — novo saldo ', ' — new balance ') + money(d - v) + '?')) return;
+  const b = document.getElementById('dp_b'); b.disabled = true;
+  try { const r = await call('debtPay', { id: id, valor: v, data: val('dp_dt'), forma: val('dp_f'), doc: val('dp_doc'), notas: val('dp_nt') }); invalidate(); DPID = 0; toast(t('saved') + ' · ' + LL('novo saldo ', 'new balance ') + money(r.depois)); render(); }
+  catch (e) { toast(t('error') + ': ' + (e.message || e)); b.disabled = false; }
+}
 function renderLoans(d) {
+  if (LOV === 'pay') return renderDebtPay(d);
   const all = d.rows;
   const ents = [...new Set(all.map(x => x.ent || x.entPessoa).filter(Boolean))].sort();
   const rows = all.filter(x => (LOF.ent === 'all' || (x.ent || x.entPessoa) === LOF.ent) && byName(x.nome));
@@ -996,7 +1038,7 @@ function renderLoans(d) {
   const list = Object.values(per).filter(p => p.n).sort((a, b) => String(a.nome).localeCompare(b.nome));
   const out = rows.filter(x => x.estado !== 'Liquidado').reduce((a, x) => a + x.saldo, 0);
   const ded = list.reduce((a, p) => a + p.ded, 0);
-  document.getElementById('main').innerHTML =
+  document.getElementById('main').innerHTML = loanTabs() +
     '<div class="bar"><b>' + t('period') + ': ' + d.periodo + '</b>' + (d.closed ? '<span class="st s-ok">' + t('closedTxt') + '</span>' : '') + '<span class="sp"></span>' +
     '<button class="btn sec" onclick="go(\'pay\')">' + t('payGo') + '</button><button class="btn" onclick="loanForm(null)">' + t('newLoan') + '</button></div>' +
     '<div class="kpis"><div class="kpi bad">' + t('outstanding') + '<b>' + money(out) + '</b></div><div class="kpi late">' + t('periodDed') + '<b>' + money(ded) + '</b></div><div class="kpi inf">' + t('activeL') + '<b>' + rows.filter(x => x.estado === 'Ativo' && x.saldo > 0).length + '</b></div><div class="kpi chk">' + t('unassigned') + '<b>' + un.length + '</b></div></div>' +
@@ -1022,13 +1064,14 @@ async function loanPerson(id) {
   const d = CACHE.loans || await need('loans');
   const L = d.rows.filter(x => x.id === id).sort((a, b) => a.data < b.data ? 1 : -1);
   const h = d.history.filter(x => x.id === id).sort((a, b) => a.periodo < b.periodo ? 1 : -1);
-  modal((L[0] || {}).nome + ' · ' + t('loansOf'), '<button class="btn sec sm" onclick="loanForm(null,' + id + ')">' + t('newLoan') + '</button>',
-    '<div id="inll"></div><div class="card tw" style="margin:12px 14px"><table><tr><th>' + t('ref') + '</th><th>' + t('date') + '</th><th>' + t('loanType') + '</th><th class="n">' + t('total') + '</th><th class="n">' + t('inst') + '</th><th>' + t('firstDed') + '</th><th class="n">' + t('paid') + '</th><th class="n">' + t('prevBal') + '</th><th class="n">' + t('thisDed') + '</th><th class="n">' + t('curBal') + '</th><th>' + t('status2') + '</th><th></th></tr>' +
+  const hkeys = JSON.stringify(L.map(x => String(x.n))).replace(/"/g, "'");
+  modal((L[0] || {}).nome + ' · ' + t('loansOf'), '<button class="btn sec sm" onclick="LOV=\'pay\';closeModal();DPID=' + id + ';render()">💵 ' + LL('Pagamento da dívida', 'Debt payment') + '</button> <button class="btn sec sm" onclick="histShow(\'ll_hist\',{tabelas:[\'DIVIDAS\',\'DESCONTOS\'],chaves:' + hkeys + '})">📜 ' + LL('Histórico', 'History') + '</button> <button class="btn sec sm" onclick="loanForm(null,' + id + ')">' + t('newLoan') + '</button>',
+    '<div id="inll"></div><div id="ll_hist" style="margin:0 14px"></div><div class="card tw" style="margin:12px 14px"><table><tr><th>' + t('ref') + '</th><th>' + t('date') + '</th><th>' + t('loanType') + '</th><th class="n">' + t('total') + '</th><th class="n">' + t('inst') + '</th><th>' + t('firstDed') + '</th><th class="n">' + t('paid') + '</th><th class="n">' + t('prevBal') + '</th><th class="n">' + t('thisDed') + '</th><th class="n">' + t('curBal') + '</th><th>' + t('status2') + '</th><th></th></tr>' +
     L.map(x => '<tr><td>' + esc(x.ref) + '</td><td>' + fmtDY(x.data) + '</td><td>' + (x.tipo === 'Adiantamento' ? t('advance') : t('loan')) + '</td><td class="n">' + money(x.total) + '</td><td class="n">' + (x.fonte === 'Bónus' ? '' : money(x.prest)) + (x.fonte && x.fonte !== 'Salário' ? '<br><small class="muted">' + LL('bónus ', 'bonus ') + money(x.prestB) + '</small>' : '') + '</td><td>' + esc(x.inicio) + '</td><td class="n">' + money(x.paid) +
       '</td><td class="n">' + money(x.saldoAnterior) + '</td><td class="n"><b>' + money(x.previsto + x.confirmadoPeriodo) + '</b>' + (x.override ? ' ✎' : '') + (x.previstoB ? '<br><small class="muted">+ ' + LL('bónus ', 'bonus ') + money(x.previstoB) + '</small>' : '') + '</td><td class="n">' + money(x.saldoAtual) + '</td><td>' + esc(LSTW(x.estado)) + (String(x.notas).indexOf('estimado') >= 0 ? ' <span class="st s-chk">' + t('estimated') + '</span>' : '') +
       '</td><td style="white-space:nowrap"><button class="btn sec sm" onclick="planForm(' + x.n + ')">' + t('changeDed') + '</button> <button class="btn sec sm" onclick="payForm(' + x.n + ')">' + t('payment') + '</button> <button class="btn sec sm" onclick="loanFormN(' + x.n + ')">' + t('edit') + '</button></td></tr>').join('') + '</table></div>' +
-    (h.length ? '<div class="card tw" style="margin:0 14px"><h3>' + t('history') + '</h3><table><tr><th>' + t('period') + '</th><th>' + t('ref') + '</th><th class="n">' + t('amount') + '</th><th>' + t('payType') + '</th><th>' + t('date') + '</th><th>' + t('notes') + '</th></tr>' +
-      h.map(x => '<tr><td>' + x.periodo + '</td><td>' + esc((d.rows.filter(r => r.n === x.n)[0] || {}).ref || x.n) + '</td><td class="n">' + money(x.valor) + '</td><td>' + esc(x.tipo) + '</td><td>' + fmtD(x.data) + '</td><td class="muted">' + esc(x.notas) + '</td></tr>').join('') + '</table></div>' : ''));
+    (h.length ? '<div class="card tw" style="margin:0 14px"><h3>' + t('history') + '</h3><table><tr><th>' + LL('Registado em', 'Entered on') + '</th><th>' + t('period') + '</th><th>' + t('ref') + '</th><th class="n">' + t('amount') + '</th><th>' + t('payType') + '</th><th>' + t('date') + '</th><th>' + t('notes') + '</th></tr>' +
+      h.map(x => '<tr><td class="muted" style="white-space:nowrap">' + entD(x.regEm) + '</td><td>' + x.periodo + '</td><td>' + esc((d.rows.filter(r => r.n === x.n)[0] || {}).ref || x.n) + '</td><td class="n">' + money(x.valor) + '</td><td>' + esc(x.tipo) + '</td><td>' + fmtD(x.data) + '</td><td class="muted">' + esc(x.notas) + '</td></tr>').join('') + '</table></div>' : ''));
 }
 function planForm(n) {
   const x = CACHE.loans.rows.filter(r => r.n === n)[0];
@@ -1437,7 +1480,7 @@ function absTable(P) {
 /* =========================== ⚙ SETTINGS =========================== */
 let SETV = 'co';
 const SET_SECTIONS = () => [['ppl', LL('Pessoas', 'People')], ['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
-  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')]];
+  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')], ['log', LL('Histórico', 'History log')]];
 const SET_NUMS = () => ({
   att: [
     ['TOLERANCIA_ATRASO_MIN', LL('Tolerância de atraso', 'Late tolerance'), 'min', LL('O atraso só conta quando a entrada é X min ou mais depois da hora.', 'Late only counts when arrival is X min or more after start time.')],
@@ -1497,6 +1540,7 @@ function renderSettings(d) {
   else if (SETV === 'pay') body = '<p class="muted">' + LL('Aplicam-se aos salários dos períodos abertos. Períodos fechados não mudam.', 'Apply to open payroll periods. Closed periods do not change.') + '</p>' + numCard(d, N.pay);
   else if (SETV === 'fer') { body = numCard(d, N.fer) + '<p class="muted">' + LL('Férias: um período seguido conta todos os dias (domingos incluídos), só os feriados não contam; dias soltos contam só esses dias. Clique numa pessoa para corrigir o saldo.', 'Leave: a continuous period counts every day (Sundays included), only holidays do not; separate days count only those days. Click a person to correct the balance.') + '</p>'; setAsync = 'fer'; }
   else if (SETV === 'ppl') { body = ''; setAsync = 'ppl'; }
+  else if (SETV === 'log') { body = ''; setAsync = 'log'; }
   else if (SETV === 'hol' && (setAsync = 'hol')) body = '<div class="card" style="padding:14px"><p>' + LL('Feriados e tolerâncias de ponto por ano e por cidade (Todos, Maputo, Nampula, Beira).', 'Holidays and tolerance days per year and city (All, Maputo, Nampula, Beira).') + '</p><button class="btn" onclick="LV=\'hol\';go(\'leave\')">' + LL('Abrir feriados →', 'Open holidays →') + '</button></div>';
   else if (SETV === 'lst') body = '<div class="card" style="padding:14px"><p>' + LL('Listas usadas nos formulários: empresas, departamentos, localizações, funções e tipos de documento. Mudar um nome atualiza todas as pessoas.', 'Lists used in forms: companies, departments, locations, roles and document types. Renaming updates every person.') + '</p><button class="btn" onclick="listsModal()">' + LL('Editar listas', 'Edit lists') + '</button></div>';
   else if (SETV === 'hik') {
@@ -1523,6 +1567,7 @@ async function setFill(k, head) {
     if (k === 'fer') return renderBalances(head, await need('balances', { year: LVY }), true);
     if (k === 'hol') return renderHolidays(head.replace(/<div class="card" style="padding:14px"><p>[\s\S]*$/, ''), await need('holidays', { year: LVY }), true);
     if (k === 'ppl') return renderSetPeople(head, await need('people'));
+    if (k === 'log') return renderHistLog(head);
   } catch (e) { showErr(e); }
 }
 function renderSetPeople(head, list) {
@@ -1815,7 +1860,8 @@ async function refLoad(P) {
   try {
     const r = await call(isA() ? 'aRefList' : 'refList', { id: id, tipo: kind, date: date });
     const opts = (cur ? [cur] : []).concat(r.opts.filter(o => o !== cur)), pick = opts.indexOf(prev) >= 0 ? prev : opts[0];
-    s.innerHTML = opts.length ? opts.map(o => '<option' + (o === pick ? ' selected' : '') + '>' + esc(o) + '</option>').join('') : '<option value="">' + LL('Empresa sem código — use a exceção', 'Company has no code — use the exception') + '</option>';
+    const gp = r.gaps || [];
+    s.innerHTML = opts.length ? opts.map(o => '<option value="' + esc(o) + '"' + (o === pick ? ' selected' : '') + '>' + esc(o) + (gp.indexOf(o) >= 0 ? ' — ' + LL('saltada, ainda não usada', 'skipped, not used yet') : '') + '</option>').join('') : '<option value="">' + LL('Empresa sem código — use a exceção', 'Company has no code — use the exception') + '</option>';
     const inf = document.getElementById(P + '_refi');
     if (inf) inf.textContent = !r.co ? '' : r.last ? LL('Última usada: ', 'Last used: ') + r.last : LL('Primeira deste mês', 'First one this month');
   } catch (e) {}
@@ -2097,6 +2143,26 @@ document.addEventListener('click', e => {
 (function () { let busy = false; const again = () => { if (busy) return; busy = true; try { document.querySelectorAll('#main .tw table').forEach(tb => { const k = sortKey(tb), s = SORTS[k]; if (s) sortTable(tb, s.col, s.dir); }); } finally { busy = false; } };
   const hook = () => { const m = document.getElementById('main'); if (m) new MutationObserver(() => setTimeout(again, 0)).observe(m, { childList: true }); };
   if (document.readyState !== 'loading') hook(); else document.addEventListener('DOMContentLoaded', hook); })();
+
+/* history log: every save is recorded (who, when, before → after) */
+const HTAB = { LICENCAS: ['Licença', 'Leave'], DIVIDAS: ['Dívida', 'Loan'], DESCONTOS: ['Pagamento / desconto', 'Payment / deduction'], FUNCIONARIOS: ['Pessoa', 'Person'], PEDIDOS: ['Pedido', 'Request'], AJUSTES: ['Ajuste', 'Adjustment'], PROCESSAMENTO: ['Salários', 'Payroll'], FERIAS_SALDOS: ['Saldo de férias', 'Leave balance'], CONFIG: ['Definição', 'Setting'], ASSISTENTES: ['Utilizador', 'User'] };
+function histTable(rows) {
+  if (!rows.length) return '<div class="load">' + LL('Sem registos', 'No records') + '</div>';
+  return '<div class="tw"><table><tr><th>' + LL('Data / hora', 'Date / time') + '</th><th>' + LL('Por', 'By') + '</th><th>' + LL('Onde', 'Where') + '</th><th>Nº</th><th>' + LL('Operação', 'Operation') + '</th><th>' + LL('Antes', 'Before') + '</th><th>' + LL('Depois', 'After') + '</th><th>' + t('notes') + '</th></tr>' +
+    rows.map(h => '<tr><td style="white-space:nowrap">' + entD(h.em) + '</td><td>' + esc(h.por) + '</td><td>' + esc((HTAB[h.tabela] || [h.tabela, h.tabela])[LANG === 'pt' ? 0 : 1]) + '</td><td>' + esc(h.chave) + '</td><td><b>' + esc(h.campo) + '</b></td><td class="muted">' + esc(h.antes) + '</td><td>' + esc(h.depois) + '</td><td class="muted">' + esc(h.nota) + '</td></tr>').join('') + '</table></div>';
+}
+async function histShow(boxId, q) {
+  const el = document.getElementById(boxId); if (!el) return;
+  if (el.dataset.open === '1') { el.innerHTML = ''; el.dataset.open = ''; return; }
+  el.dataset.open = '1'; el.innerHTML = '<div class="load">…</div>';
+  try { const r = await call('histLog', q); el.innerHTML = '<div class="card" style="margin:8px 0"><h3>📜 ' + LL('Histórico', 'History') + '</h3>' + histTable(r.rows) + '</div>'; } catch (e) { el.innerHTML = '<span class="muted">' + esc(String(e.message || e)) + '</span>'; }
+}
+let HLQ = { q: '', tab: '' };
+async function renderHistLog(head) {
+  document.getElementById('main').innerHTML = head + '<div class="bar"><select onchange="HLQ.tab=this.value;render()"><option value="">' + LL('Tudo', 'Everything') + '</option>' + Object.keys(HTAB).map(k => '<option value="' + k + '"' + (HLQ.tab === k ? ' selected' : '') + '>' + HTAB[k][LANG === 'pt' ? 0 : 1] + '</option>').join('') + '</select>' +
+    '<input type="search" id="hlq" placeholder="' + LL('Procurar (nome, nº, ref., utilizador…)', 'Search (name, nº, ref., user…)') + '" value="' + esc(HLQ.q) + '" onchange="HLQ.q=this.value;render()" style="flex:1;min-width:220px"><span class="muted">' + LL('últimos 500', 'last 500') + '</span></div><div id="hlb"><div class="load">…</div></div>';
+  try { const r = await call('histLog', { q: HLQ.q, tabelas: HLQ.tab ? [HLQ.tab] : [], limit: 500 }); const b = document.getElementById('hlb'); if (b) b.innerHTML = '<div class="card">' + histTable(r.rows) + '</div>'; } catch (e) { showErr(e); }
+}
 
 /* ---------- Owner: approvals inbox ---------- */
 function renderApprovals(d) {
