@@ -851,10 +851,11 @@ const plabel = id => { const p = (PEOPLE_DL || []).filter(x => x.id === Number(i
 
 /* ---------- Leave ---------- */
 async function renderLeave() {
-  const tabs = [['req', t('lvReq')], ['all', t('lvAll')], ['bal', t('lvBal')], ['hol', t('lvHol')]];
+  const tabs = [['req', t('lvReq')], ['all', t('lvAll')], ['bal', t('lvBal')], ['falt', '📋 ' + LL('Faltas do mês', 'Monthly absences')], ['hol', t('lvHol')]];
   const head = '<div class="bar">' + '<div class="chips">' + tabs.map(x => '<span class="chip ' + (LV === x[0] ? 'on' : '') + '" onclick="LV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span>' +
     '<button class="btn sec sm" onclick="assistLink()">🔗 ' + t('assistLink') + '</button> <button class="btn" onclick="leaveForm(null)">' + t('newLv') + '</button></div>';
   try {
+    if (LV === 'falt') return renderFaltas(head, false);
     if (LV === 'bal') return renderBalances(head, await need('balances', { year: LVY }), !isA());
     if (LV === 'hol') return renderHolidays(head, await need('holidays', { year: LVY }), !isA());
     const d = await need('leaves');
@@ -1278,10 +1279,12 @@ async function renderAssist() {
     const meta = CACHE.ameta || (CACHE.ameta = await call('aMeta'));
     PEOPLE_DL = meta.people.map(p => ({ id: p.id, label: p.id + ' — ' + p.nome + (p.dept ? ' · ' + p.dept : ''), nome: p.nome, ent: p.ent }));
     const reqT = meta.types.filter(x => x !== 'Salários'), canPay = meta.types.indexOf('Salários') >= 0;
-    const tabs = (reqT.length ? [['new', t('newReq')], ['mine', t('myReq')]] : []).concat(canPay ? [['pay', '💰 ' + LL('Salários', 'Payroll')]] : []);
+    const canF = (meta.types || []).some(x => ['Justificação', 'Licença', 'Salários'].indexOf(x) >= 0); window._meta = meta;
+    const tabs = (reqT.length ? [['new', t('newReq')], ['mine', t('myReq')]] : []).concat(canF ? [['falt', '📋 ' + LL('Faltas do mês', 'Monthly absences')]] : []).concat(canPay ? [['pay', '💰 ' + LL('Salários', 'Payroll')]] : []);
     if (!tabs.some(x => x[0] === AV)) AV = tabs.length ? tabs[0][0] : 'none';
     const head = '<div class="bar"><b>' + t('hello') + ' ' + esc(meta.name) + '</b><div class="chips">' + tabs.map(x => '<span class="chip ' + (AV === x[0] ? 'on' : '') + '" onclick="AV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span><button class="btn sec sm" onclick="assistLogout()">' + t('logout') + '</button></div>';
     if (AV === 'none') { main.innerHTML = head + '<div class="card" style="padding:16px">' + LL('Ainda não tem acessos. Peça ao Moussa.', 'You have no access yet. Ask Moussa.') + '</div>'; return; }
+    if (AV === 'falt') return renderFaltas(head, true);
     if (AV === 'pay') { const d = await call('payroll', PAYP ? { periodo: PAYP } : {}); renderPay(d); main.insertAdjacentHTML('afterbegin', head); return; }
     if (AV === 'mine') {
       const mine = window._mine = await call('aMine');
@@ -2179,6 +2182,41 @@ async function renderHistLog(head) {
 }
 
 function mineFilter(q) { const k = String(q || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); document.querySelectorAll('#mtab tr[data-k]').forEach(tr => { tr.style.display = !k || tr.dataset.k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(k) >= 0 ? '' : 'none'; }); document.querySelectorAll('.pend .pc').forEach(c => { c.style.display = !k || c.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(k) >= 0 ? '' : 'none'; }); }
+/* Absences of the month: every worker with the dates of each absence — to check before confirming / justifying */
+let FMP = '', FMQ = '', FMD = '';
+const wdS = d => ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'][new Date(d + 'T12:00:00').getDay()];
+const dmS = d => d.slice(8) + '/' + d.slice(5, 7);
+async function renderFaltas(head, asst) {
+  const main = document.getElementById('main');
+  main.innerHTML = head + '<div class="load">…</div>';
+  let d; try { d = await call(asst ? 'aFaltas' : 'faltasMes', FMP ? { pk: FMP } : {}); } catch (e) { return showErr(e); }
+  const canJ = asst && ((window._meta || {}).types || []).indexOf('Justificação') >= 0;
+  const q = FMQ.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+  const depts = [...new Set(d.rows.map(r => r.dept).filter(Boolean))].sort();
+  const rows = d.rows.filter(r => (!FMD || r.dept === FMD) && (!q || String(r.nome + ' ' + r.id + ' ' + r.ent).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').indexOf(q) >= 0));
+  const tF = rows.reduce((a, r) => a + r.faltas.length, 0), tV = rows.reduce((a, r) => a + r.verificar.length, 0), tJ = rows.reduce((a, r) => a + r.justif.length, 0);
+  const chip = (x, cls, tip) => '<span class="st ' + cls + '" style="margin:1px 2px;white-space:nowrap" title="' + esc(tip || '') + '">' + wdS(x.d) + ' ' + dmS(x.d) + '</span>';
+  const pTag = x => x.pedido ? ' <small class="muted">(' + LL('pedido Nº ', 'request Nº ') + x.pedido + ')</small>' : '';
+  main.innerHTML = head +
+    '<div class="bar"><b>' + LL('Faltas do mês por trabalhador', 'Monthly absences per worker') + '</b><select onchange="FMP=this.value;render()">' + d.periodos.map(p => '<option value="' + p + '"' + (p === d.pk ? ' selected' : '') + '>' + p + '</option>').join('') + '</select>' +
+    '<span class="muted">' + fmtD(d.from) + ' → ' + fmtD(d.to) + (d.closed ? ' · ' + LL('mês fechado', 'month closed') : ' · ' + LL('mês aberto', 'open month')) + '</span><span class="sp"></span>' +
+    '<button class="btn sec sm" onclick="window.print()">🖨 ' + LL('Imprimir', 'Print') + '</button></div>' +
+    '<div class="kpis"><div class="kpi bad">' + LL('Faltas por justificar', 'Unjustified absences') + '<b>' + tF + '</b></div><div class="kpi chk">' + LL('A verificar (uma picagem)', 'To check (one punch)') + '<b>' + tV + '</b></div><div class="kpi ok">' + LL('Já justificadas', 'Already justified') + '<b>' + tJ + '</b></div><div class="kpi inf">' + LL('Trabalhadores', 'Workers') + '<b>' + rows.length + '</b></div></div>' +
+    '<div class="bar"><div class="chips"><span class="chip ' + (!FMD ? 'on' : '') + '" onclick="FMD=\'\';render()">' + LL('Todos', 'All') + '</span>' + depts.map(x => '<span class="chip ' + (FMD === x ? 'on' : '') + '" onclick="FMD=\'' + esc(x) + '\';render()">' + esc(x) + '</span>').join('') + '</div><span class="sp"></span>' +
+    '<input type="search" id="fmq" placeholder="🔍 ' + LL('Procurar nome ou ID', 'Search name or ID') + '" value="' + esc(FMQ) + '" oninput="FMQ=this.value;clearTimeout(window._fmt);window._fmt=setTimeout(()=>{render().then(()=>{const e=document.getElementById(\'fmq\');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}})},350)"></div>' +
+    '<div class="muted" style="margin:0 2px 8px">' + LL('Faltas do mês aberto só descontam do saldo de férias quando o mês fechar, se continuarem por justificar. Cor laranja = já há um pedido de justificação à espera.', 'Open-month absences only come off the leave balance when the month is closed, if still unjustified. Orange = a justification request is already waiting.') + '</div>' +
+    '<div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + LL('Departamento', 'Department') + '</th><th>' + LL('Empresa', 'Company') + '</th><th class="n">' + LL('Faltas', 'Absences') + '</th><th>' + LL('Datas das faltas', 'Absence dates') + '</th><th class="n">' + LL('A verificar', 'To check') + '</th><th>' + LL('Datas a verificar', 'Dates to check') + '</th><th>' + LL('Justificadas', 'Justified') + '</th>' + (canJ ? '<th></th>' : '') + '</tr>' +
+    rows.map(r => '<tr><td>' + r.id + '</td><td><b>' + esc(r.nome) + '</b></td><td>' + esc(r.dept) + '</td><td class="muted">' + esc(r.ent) + '</td>' +
+      '<td class="n">' + (r.faltas.length ? '<b style="color:var(--bad)">' + r.faltas.length + '</b>' : '') + '</td>' +
+      '<td style="white-space:normal;min-width:260px;max-width:480px">' + r.faltas.map(x => chip(x, x.pedido ? 's-chk' : 's-bad', x.pedido ? LL('pedido de justificação Nº ', 'justification request Nº ') + x.pedido + LL(' à espera', ' waiting') : LL('falta sem justificação', 'unjustified absence'))).join('') + '</td>' +
+      '<td class="n">' + (r.verificar.length || '') + '</td>' +
+      '<td style="white-space:normal;min-width:120px;max-width:320px">' + r.verificar.map(x => chip(x, 's-chk', LL('entrada ', 'in ') + (String(x.ent).slice(0, 5) || '—') + ' · ' + LL('saída ', 'out ') + (String(x.sai).slice(0, 5) || '—') + (x.pedido ? ' · ' + LL('pedido Nº ', 'request Nº ') + x.pedido : ''))).join('') + '</td>' +
+      '<td style="white-space:normal;max-width:260px">' + r.justif.map(x => chip(x, 's-ok', x.st)).join('') + '</td>' +
+      (canJ ? '<td>' + (r.faltas.some(x => !x.pedido) || r.verificar.some(x => !x.pedido) ? '<button class="btn sec sm" onclick=\'faltaJust(' + r.id + ',' + JSON.stringify(r.faltas.concat(r.verificar).filter(x => !x.pedido).map(x => x.d)) + ')\'>✍ ' + LL('Justificar', 'Justify') + '</button>' : '') + '</td>' : '') + '</tr>').join('') +
+    (rows.length ? '' : '<tr><td colspan="9" class="muted" style="padding:14px">' + LL('Sem faltas neste período', 'No absences in this period') + '</td></tr>') + '</table></div>';
+}
+function faltaJust(id, days) { AF = { tipo: 'Justificação', id: id, days: days.slice() }; AV = 'new'; render(); }
+
 /* delete (cancel) a letter: stays in the history as Anulado, its reference becomes free again */
 async function delLetter(action, n) {
   const m = prompt(LL('Apagar esta carta (Nº ' + n + ')? A referência fica livre outra vez e fica registado no histórico.\nMotivo:', 'Delete this letter (Nº ' + n + ')? Its reference becomes free again and it stays in the history.\nReason:'), '');
