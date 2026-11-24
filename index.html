@@ -114,6 +114,7 @@ main{max-width:none!important;padding:16px 20px}
 @media print{.tw{max-height:none!important;overflow:visible!important}.tw th{position:static!important;box-shadow:none}}
 #main .tw th,#mBody .tw th{cursor:pointer;user-select:none}#main .tw th:hover{background:#e7eaf0}
 .lt .lnota{font-size:12px;margin-top:10px}
+.kpi.kclick{cursor:pointer;transition:transform .08s}.kpi.kclick:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.08)}.kpi.kon{outline:2px solid #1F3864;outline-offset:-2px}
 </style>
 </head>
 <body>
@@ -133,7 +134,9 @@ main{max-width:none!important;padding:16px 20px}
 <script>
 /* Login with Supabase (email + password). After login the app below starts with a short-lived pass that renews itself. */
 const SB_URL = 'https://erxlksuoplobtfbsvypg.supabase.co', SB_PK = 'sb_publishable_M5dLHCm5GFfgzP0g0Ol9lQ_3vjLme_l', FN_URL = SB_URL + '/functions/v1/rh-api';
-const sbc = supabase.createClient(SB_URL, SB_PK, { auth: { persistSession: true, autoRefreshToken: true } });
+/* signed in only while the app is open: closing it signs out (session kept in sessionStorage, never on disk) */
+try { Object.keys(localStorage).filter(k => /^sb-.*-auth-token$/.test(k) || k === 'rh_atok').forEach(k => localStorage.removeItem(k)); } catch (e) {}
+const sbc = supabase.createClient(SB_URL, SB_PK, { auth: { persistSession: true, autoRefreshToken: true, storage: window.sessionStorage } });
 let TOK = '', STARTED = false;
 sbc.auth.onAuthStateChange((ev, s) => { TOK = s ? s.access_token : ''; if (ev === 'SIGNED_OUT' && STARTED) location.reload(); });
 function showLogin(err) { document.getElementById('login').style.display = 'flex'; document.getElementById('lg_err').textContent = err || ''; }
@@ -175,7 +178,7 @@ function startAssist(tok, nome) {
   document.getElementById('login').style.display = 'none'; STARTED = true;
   const s = document.createElement('script'); s.textContent = document.getElementById('appsrc').textContent; document.body.appendChild(s);
   window.ASSIST = { user: nome, pin: '' };
-  window.assistLogout = () => { try { localStorage.removeItem('rh_atok'); } catch (e) {} location.reload(); };
+  window.assistLogout = () => { try { sessionStorage.removeItem('rh_atok'); } catch (e) {} location.reload(); };
 }
 async function doAssist(e) {
   e.preventDefault();
@@ -183,13 +186,13 @@ async function doAssist(e) {
   try {
     const j = await fetch(FN_URL + '?a=alogin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: '__assistLogin', user: nome, pin: document.getElementById('la_p').value }) }).then(r => r.json());
     if (j.error) throw j.error;
-    try { localStorage.setItem('rh_atok', JSON.stringify({ t: j.token, n: j.nome, e: Date.now() + 11.5 * 3600e3 })); localStorage.setItem('rh_lname', nome); } catch (x) {}
+    try { sessionStorage.setItem('rh_atok', JSON.stringify({ t: j.token, n: j.nome, e: Date.now() + 11.5 * 3600e3 })); localStorage.setItem('rh_lname', nome); } catch (x) {}
     startAssist(j.token, j.nome);
   } catch (x) { document.getElementById('la_err').textContent = String(x); b.disabled = false; }
   return false;
 }
 (function boot() {
-  try { const a = JSON.parse(localStorage.getItem('rh_atok') || 'null'); if (a && a.e > Date.now()) return startAssist(a.t, a.n); } catch (e) {}
+  try { const a = JSON.parse(sessionStorage.getItem('rh_atok') || 'null'); if (a && a.e > Date.now()) return startAssist(a.t, a.n); } catch (e) {}
   sbc.auth.getSession().then(({ data }) => {
     if (data.session) return startApp(data.session);
     showLogin(); let m = 'm'; try { m = localStorage.getItem('rh_lmode') || 'm'; } catch (e) {} lmode(m);
@@ -389,8 +392,8 @@ function paintChrome() {
   document.getElementById('nav').innerHTML = (window.ROLE === 'assistant' ? ['req'] : ['today','month','grid','approvals','leave','loans','pay','pending','people','dash','set']).map(v =>
     '<button class="' + (VIEW === v ? 'on' : '') + '" onclick="go(\'' + v + '\')">' + t(v) + (v === 'pending' && pend ? '<span class="badge">' + pend + '</span>' : '') + (v === 'approvals' && nreq ? '<span class="badge">' + nreq + '</span>' : '') + (v === 'people' && window.NDOC ? '<span class="badge">' + window.NDOC + '</span>' : '') + '</button>').join('');
 }
-let EDITP = false;
-function go(v) { VIEW = v; F.q = ''; EDITP = false; paintChrome(); render(); }
+let EDITP = true;
+function go(v) { VIEW = v; F.q = ''; DAYK = ''; paintChrome(); render(); }
 function loading() { document.getElementById('main').innerHTML = '<div class="load">' + t('loading') + '</div>'; }
 function showErr(e) { document.getElementById('main').innerHTML = '<div class="err">' + t('error') + ': ' + esc(e) + '</div>'; }
 let PEOPLE_STALE = false;
@@ -450,16 +453,19 @@ const byName = (n) => !F.q || String(n).toLowerCase().indexOf(F.q.toLowerCase())
 function searchBox() { return '<input type="search" id="q" placeholder="' + t('search') + '" value="' + esc(F.q) + '" oninput="F.q=this.value;render();setTimeout(()=>{const q=document.getElementById(\'q\');if(q){q.focus();q.setSelectionRange(q.value.length,q.value.length)}},0)">'; }
 
 /* ---------- Day (any date) ---------- */
+let DAYK = '';
 function renderDay(d) {
   const rows = d.rows.filter(r => byDept(r, 3) && byName(r[2]));
   const cnt = f => rows.filter(f).length;
+  const KF = { ok: r => WORKED.indexOf(r[6]) >= 0 || (r[6] === 'Verificar' && r[4]), late: r => r[7] > 0, bad: r => r[6] === 'Falta' || r[6] === 'Por entrar', chk: r => r[6] === 'Verificar', inf: r => NOT_DUE.indexOf(r[6]) >= 0 };
   const k = [
-    ['ok', t('present'), cnt(r => WORKED.indexOf(r[6]) >= 0 || (r[6] === 'Verificar' && r[4]))],
-    ['late', t('lateK'), cnt(r => r[7] > 0)],
-    ['bad', d.isToday ? t('absentSoFar') : t('absent'), cnt(r => r[6] === 'Falta')],
-    ['chk', t('toCheck'), cnt(r => r[6] === 'Verificar')],
-    ['inf', t('offLeave'), cnt(r => NOT_DUE.indexOf(r[6]) >= 0)]
+    ['ok', t('present'), cnt(KF.ok)],
+    ['late', t('lateK'), cnt(KF.late)],
+    ['bad', d.isToday ? t('absentSoFar') : t('absent'), cnt(KF.bad)],
+    ['chk', t('toCheck'), cnt(KF.chk)],
+    ['inf', t('offLeave'), cnt(KF.inf)]
   ];
+  if (DAYK && KF[DAYK]) { const f = KF[DAYK]; for (let i = rows.length - 1; i >= 0; i--) if (!f(rows[i])) rows.splice(i, 1); }
   rows.sort((a, b) => (a[6] === 'Falta') - (b[6] === 'Falta') || String(a[3]).localeCompare(b[3]) || String(a[2]).localeCompare(b[2]));
   document.getElementById('main').innerHTML =
     '<div class="bar"><b>' + dow(d.date) + ' ' + fmtDY(d.date) + '</b>' +
@@ -467,11 +473,12 @@ function renderDay(d) {
     (d.isToday ? '' : '<button class="btn sec sm" onclick="DAY=todayStr();DAY2=\'\';render()">' + t('backToday') + '</button>') +
     '<span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span><span class="sp"></span>' +
     (d.isToday ? '<button class="btn" id="rf" onclick="refreshToday()">' + t('refresh') + '</button>' : '') + '</div>' +
-    '<div class="kpis">' + k.map(x => '<div class="kpi ' + x[0] + '">' + x[1] + '<b>' + x[2] + '</b></div>').join('') + '</div>' +
+    '<div class="kpis">' + k.map(x => '<div class="kpi ' + x[0] + ' kclick' + (DAYK === x[0] ? ' kon' : '') + '" onclick="DAYK=DAYK===\'' + x[0] + '\'?\'\':\'' + x[0] + '\';render()" title="' + LL('Clique para ver quem', 'Click to see who') + '">' + x[1] + '<b>' + x[2] + '</b></div>').join('') + '</div>' +
+    (DAYK ? '<div class="bar"><span class="st s-inf">' + LL('A mostrar: ', 'Showing: ') + (k.find(x => x[0] === DAYK) || [0, ''])[1] + ' (' + rows.length + ')</span><button class="btn sec sm" onclick="DAYK=\'\';render()">✕ ' + LL('Mostrar todos', 'Show all') + '</button></div>' : '') +
     '<div class="bar">' + deptChips(d.rows, 3) + '<span class="sp"></span>' + searchBox() + '</div>' +
     '<div class="card tw"><table><tr><th>' + t('name') + '</th><th>' + t('dept') + '</th><th>' + t('in') + '</th><th>' + t('out') + '</th><th>' + t('status') + '</th><th class="n">' + t('late') + '</th><th class="n">' + t('early') + '</th><th></th></tr>' +
     rows.map(r => '<tr><td class="click" onclick="openPerson(' + r[1] + ')"><b>' + esc(r[2]) + '</b></td><td>' + esc(r[3]) + '</td><td>' + hm(r[4]) + '</td><td>' + hm(r[5]) + '</td><td>' +
-      (r[6] === 'Falta' && d.isToday ? '<span class="st s-bad">' + t('absentSoFar') + '</span>' : stTag(r[6])) + '</td><td class="n">' + (r[7] || '') + '</td><td class="n">' + (r[8] || '') +
+      ((r[6] === 'Falta' || r[6] === 'Por entrar') && d.isToday ? '<span class="st s-bad">' + t('absentSoFar') + '</span>' : stTag(r[6]) + (/Em serviço/.test(r[11] || '') ? ' <small class="muted">' + LL('em serviço', 'at work') + '</small>' : '')) + '</td><td class="n">' + (r[7] || '') + '</td><td class="n">' + (r[8] || '') +
       '</td><td><button class="btn sec sm" onclick="openPerson(' + r[1] + ',\'' + r[0] + '\')">' + t('justify') + '</button></td></tr>').join('') +
     '</table></div>';
 }
@@ -541,7 +548,7 @@ function renderPeople(list, al) {
   const rows = list.filter(p => (F.inact || p.estado !== 'Inativo') && (F.dept === 'all' || p.dept === F.dept) && byName(p.nome));
   document.getElementById('main').innerHTML =
     '<div class="bar">' + deptChips(list.filter(p => F.inact || p.estado !== 'Inativo').map(p => [0, 0, 0, p.dept]), 3) + '<span class="sp"></span><label class="muted"><input type="checkbox" ' + (F.inact ? 'checked' : '') + ' onchange="F.inact=this.checked;render()"> ' + t('showInactive') + '</label>' + searchBox() +
-    '<button class="btn sec" onclick="SETV=\'ppl\';go(\'set\')">⚙ ' + LL('Editar em Definições', 'Edit in Settings') + '</button></div>' + docAlertsHtml(al) +
+    '<button class="btn sec" onclick="listsModal()">' + t('lists') + '</button><button class="btn" onclick="personForm(null)">' + t('newPerson') + '</button></div>' + docAlertsHtml(al) +
     '<div class="card tw"><table><tr><th>' + t('id') + '</th><th>' + t('name') + '</th><th>' + t('entity') + '</th><th>' + t('dept') + '</th><th>' + t('role') + '</th><th>' + t('schedule') + '</th><th>' + t('state') + '</th><th>' + t('notes') + '</th></tr>' +
     rows.map(p => '<tr class="click" onclick="openPerson(' + p.id + ')"><td>' + p.id + '</td><td>' + esc(p.nome) + '</td><td>' + coLogo(p.ent, 14) + esc(p.ent) + '</td><td>' + esc(p.dept) + '</td><td>' + esc(p.func) + '</td><td>' + esc(p.hor) +
       '</td><td>' + esc(p.estado) + '</td><td class="muted">' + esc(p.notas) + '</td></tr>').join('') + '</table></div>';
@@ -554,7 +561,7 @@ function modal(title, acts, body) {
   document.getElementById('mActs').innerHTML = acts || '';
   document.getElementById('mBody').innerHTML = body || '<div class="load">' + t('loading') + '</div>';
 }
-function closeModal() { EDITP = false; document.getElementById('modal').classList.remove('on'); if (document.querySelector('#main > .load')) render(); }
+function closeModal() { document.getElementById('modal').classList.remove('on'); if (document.querySelector('#main > .load')) render(); }
 document.getElementById('modal').onclick = e => { if (e.target.id === 'modal') closeModal(); };
 const val = id => { const el = document.getElementById(id); return el ? el.value : ''; };
 const clearInl = () => { const el = document.getElementById('inl'); if (el) el.innerHTML = ''; };
@@ -572,7 +579,7 @@ async function openPerson(id, focusDate) {
     const s = summarize(days)[0] || {};
     const yn = v => v === 'Sim' ? t('yes') : t('no');
     modal(p.nome + ' · ' + id,
-      '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> ' + (EDITP ? '<button class="btn sm" onclick="personForm(CUR.p)">✎ ' + t('edit') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>' : '<button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button>'),
+      '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> ' + (window.ROLE !== 'assistant' ? '<button class="btn sm" onclick="personForm(CUR.p)">✎ ' + t('edit') + '</button> <button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>' : ''),
       '<div id="inl"></div>' +
       '<div class="info">' + [[t('entity'), p.ent], [t('dept'), p.dept], [t('role'), p.func], [t('schedule'), p.hor], [t('exempt'), yn(p.isento)], [t('dayoff'), folgaName(p.folga)], [t('payRule'), prName(p.regra)], [t('contractEnd'), p.fimContrato ? fmtDY(p.fimContrato) : t('none')],
         [t('salary'), p.sal ? Number(p.sal).toLocaleString('pt-PT') : t('none')], [t('days'), (s.worked || 0) + '/' + (s.due || 0)], [t('absences'), s.abs || 0], [t('lateMin'), s.lateM || 0], [t('earlyMin'), s.earlyM || 0], [t('checkN'), s.chk || 0]]
@@ -848,8 +855,8 @@ async function renderLeave() {
   const head = '<div class="bar">' + '<div class="chips">' + tabs.map(x => '<span class="chip ' + (LV === x[0] ? 'on' : '') + '" onclick="LV=\'' + x[0] + '\';render()">' + x[1] + '</span>').join('') + '</div><span class="sp"></span>' +
     '<button class="btn sec sm" onclick="assistLink()">🔗 ' + t('assistLink') + '</button> <button class="btn" onclick="leaveForm(null)">' + t('newLv') + '</button></div>';
   try {
-    if (LV === 'bal') return renderBalances(head, await need('balances', { year: LVY }));
-    if (LV === 'hol') return renderHolidays(head, await need('holidays', { year: LVY }));
+    if (LV === 'bal') return renderBalances(head, await need('balances', { year: LVY }), !isA());
+    if (LV === 'hol') return renderHolidays(head, await need('holidays', { year: LVY }), !isA());
     const d = await need('leaves');
     if (LV === 'req') return renderLeaveReq(head, d);
     return renderLeaveAll(head, d);
@@ -903,7 +910,7 @@ async function leaveForm(l, presetId) {
     (window.ROLE === 'assistant' ? '' : '<label>' + t('status2') + '<select id="lf_st">' + ['Aprovado','Pendente','Rejeitado'].map(s => '<option value="' + s + '"' + ((l ? l.estado : 'Aprovado') === s ? ' selected' : '') + '>' + STW(s) + '</option>').join('') + '</select></label>') +
     '<label class="full">' + t('note') + '<input id="lf_note" value="' + esc(l ? String(l.notas || '').replace(FNJ_RE, '').trim() : '') + '"></label>' +
     '<div class="full muted">ⓘ ' + t('paidHint') + (l ? ' <button class="btn sec sm" style="margin-left:8px" onclick="histShow(\'lf_hist\',{tabelas:[\'LICENCAS\'],chaves:[\'' + l.n + '\']})">📜 ' + LL('Histórico', 'History') + '</button> <span class="muted">' + LL('Registada em ', 'Entered on ') + entD(l.pedidoEm) + (l.pedidoPor ? ' · ' + esc(l.pedidoPor) : '') + '</span>' : '') + '</div><div class="full" id="lf_hist"></div>' +
-    '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
+    '<div class="act">' + (l && window.ROLE !== 'assistant' ? '<button class="btn sec" style="margin-right:auto;color:var(--bad)" onclick="delLetter(\'leaveDel\',' + l.n + ')">🗑 ' + LL('Apagar carta', 'Delete letter') + '</button>' : '') + '<button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lf_btn" onclick="saveLeaveForm(' + (l ? l.n : 0) + ')">' + (window.ROLE === 'assistant' ? t('submit') : t('save')) + '</button></div></div>' + dl;
   FS.lf = { edit: l ? { tipo: l.tipo, dias: Number(l.dias) || 0, fnj: Number(l.fnj) || 0, estado: l.estado, ref: l.ref || '' } : null }; lfMode(); lfShow(); formSync('lf', true);
 }
 function lfMode() { const d = val('lf_m') === 'd'; document.querySelectorAll('.lf_r').forEach(e => e.style.display = d ? 'none' : ''); document.querySelectorAll('.lf_d').forEach(e => e.style.display = d ? 'flex' : 'none'); }
@@ -936,9 +943,9 @@ function renderBalances(head, d, edit) {
   document.getElementById('main').innerHTML = head +
     '<div class="bar">' + t('year') + ' ' + yearSel() + '<span class="muted">' + t('rule').replace('{1}', d.rule.y1).replace('{2}', d.rule.y2) + '</span><span class="sp"></span>' + searchBox() + '</div>' +
     '<div class="bar">' + deptChips(d.rows.map(b => [0, 0, 0, b.dept]), 3) + '</div>' +
-    '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n">' + LL('Faltas inj.', 'Unjust. abs.') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + LL('Saldo real', 'Real balance') + '</th><th class="n">' + LL('Após faltas', 'After absences') + '</th><th>' + t('notes') + '</th></tr>' +
+    '<div id="inlb"></div><div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('entitle') + '</th><th class="n">' + t('carried') + '</th><th class="n">' + t('usedBefore') + '</th><th>' + t('baseDate') + '</th><th class="n">' + t('taken') + '</th><th class="n" title="' + LL('faltas injustificadas de meses já fechados — já descontadas do saldo', 'unjustified absences of closed months — already off the balance') + '">' + LL('Faltas descontadas', 'Absences deducted') + '</th><th class="n" title="' + LL('faltas do mês aberto — só descontam ao fechar o mês, se continuarem injustificadas', 'absences of the open month — only deducted when the month is closed, if still unjustified') + '">' + LL('Faltas do mês (pendentes)', 'Month absences (pending)') + '</th><th class="n">' + t('pendD') + '</th><th class="n">' + LL('Saldo', 'Balance') + '</th><th>' + t('notes') + '</th></tr>' +
     rows.map(b => '<tr' + (edit ? ' class="click" onclick="balForm(' + b.id + ')"' : '') + '><td>' + b.id + '</td><td>' + esc(b.nome) + '</td><td>' + esc(b.dept) + '</td><td class="n">' + b.direito + '</td><td class="n">' + (b.transitado || '') + '</td><td class="n">' + (b.usadosAntes || '') + '</td><td>' + (b.dataBase ? fmtD(b.dataBase) : '') +
-      '</td><td class="n">' + (b.usados || '') + (b.fnj ? ' <small class="muted" title="' + LL('inclui faltas descontadas em cartas', 'includes absences deducted on letters') + '">(' + b.fnj + ' ' + LL('faltas', 'abs.') + ')</small>' : '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="n"><b style="color:' + (b.saldoFaltas !== '' && b.saldoFaltas < 0 ? 'var(--bad)' : 'inherit') + '">' + (b.faltas ? b.saldoFaltas : (b.saldo === '' ? '' : b.saldo)) + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
+      '</td><td class="n">' + (b.usados || '') + (b.fnj ? ' <small class="muted" title="' + LL('inclui faltas descontadas em cartas', 'includes absences deducted on letters') + '">(' + b.fnj + ' ' + LL('faltas', 'abs.') + ')</small>' : '') + '</td><td class="n">' + (b.faltas ? '<span class="st s-bad">' + b.faltas + '</span>' : '') + '</td><td class="n">' + (b.faltasPend ? '<span class="st s-chk" title="' + esc((b.faltasPendDatas || []).map(fmtD).join(', ')) + '">' + b.faltasPend + '</span>' : '') + '</td><td class="n">' + (b.pendentes ? '<span class="st s-chk">' + b.pendentes + '</span>' : '') + '</td><td class="n"><b style="color:' + (b.saldo !== '' && b.saldo < 0 ? 'var(--bad)' : 'inherit') + '">' + b.saldo + '</b></td><td class="muted">' + esc(b.estado) + (b.notas ? ' · ' + esc(b.notas) : '') + '</td></tr>').join('') + '</table></div>';
   window._bal = d;
 }
 function balForm(id) {
@@ -949,8 +956,14 @@ function balForm(id) {
     '<label class="muted">' + t('usedBefore') + ' <input type="number" id="bf_u" value="' + b.usadosAntes + '" style="width:70px"></label>' +
     '<label class="muted">' + t('baseDate') + ' <input type="date" id="bf_b" value="' + b.dataBase + '"></label>' +
     '<input id="bf_n" value="' + esc(b.notas || '') + '" placeholder="' + t('note') + '" style="flex:1;min-width:150px">' +
-    '<button class="btn" onclick="saveBal(' + id + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'inlb\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+    '<button class="btn" onclick="saveBal(' + id + ')">' + t('save') + '</button>' +
+    '<span style="flex-basis:100%"></span><label class="muted"><b>' + LL('Ou escreva o saldo certo de hoje', 'Or type today\'s correct balance') + '</b> <input type="number" step="0.5" id="bf_fix" value="' + (b.saldo === '' ? '' : b.saldo) + '" style="width:80px"></label><button class="btn" onclick="fixBal(' + id + ')">✓ ' + LL('Corrigir saldo', 'Correct balance') + '</button><small class="muted">' + LL('licenças a partir de amanhã continuam a descontar', 'leaves from tomorrow keep deducting') + '</small><button class="btn sec" onclick="document.getElementById(\'inlb\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
   window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+async function fixBal(id) {
+  const v = val('bf_fix'); if (v === '') return toast(t('required'));
+  const tm = new Date(Date.now() + 864e5), tmS = tm.getFullYear() + '-' + String(tm.getMonth() + 1).padStart(2, '0') + '-' + String(tm.getDate()).padStart(2, '0');
+  try { await call('balanceFix', { id: id, saldo: Number(v), before: tmS, ref: LL('correção no separador Saldos', 'corrected in Balances tab') }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
 }
 async function saveBal(id) {
   const b = window._bal.rows.filter(x => x.id === id)[0];
@@ -1101,7 +1114,7 @@ async function loanForm(x, presetId) {
     refField('lo', 'CR', x ? x.ref : '', x ? x.notas : '') +
     '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
-    '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
+    '<div class="act">' + (x ? '<button class="btn sec" style="margin-right:auto;color:var(--bad)" onclick="delLetter(\'loanDel\',' + x.n + ')">🗑 ' + LL('Apagar', 'Delete') + '</button>' : '') + '<button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
     '<datalist id="dl_lent">' + ents.map(e => '<option value="' + esc(e) + '">').join('') + '</datalist>';
   FS.lo = { edit: x || null }; formSync('lo', true);
 }
@@ -1280,8 +1293,9 @@ async function renderAssist() {
         '<label class="btn sec">📷 ' + LL('Enviar carta assinada', 'Send signed letter') + '<input type="file" accept="image/*" capture="environment" onchange="ltrAttach(' + r.n + ',this)"></label>' +
         '<button class="btn sec sm" onclick="ltrCancel(' + r.n + ')">✕ ' + LL('Anular', 'Cancel') + '</button></div><div id="ltv' + r.n + '" class="ocrbox"></div></div>';
       main.innerHTML = head + (drafts.length ? '<div class="card"><h3>' + LL('Cartas por assinar', 'Letters to be signed') + ' (' + drafts.length + ')</h3><div class="pend" style="padding:10px">' + drafts.map(dcard).join('') + '</div></div>' : '') +
-        '<div class="card tw" style="margin-top:14px"><table><tr><th>Nº</th><th>' + t('date') + '</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('decNote') + '</th></tr>' +
-        mine.filter(r => r.estado !== 'Rascunho').map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.em) + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.decNota) + '</td></tr>').join('') + '</table></div>';
+        '<div class="bar" style="margin-top:14px"><input type="search" id="mq" placeholder="🔍 ' + LL('Procurar nome, nº, referência, tipo…', 'Search name, nº, reference, type…') + '" oninput="mineFilter(this.value)" style="flex:1;min-width:220px"></div>' +
+        '<div class="card tw"><table id="mtab"><tr><th>Nº</th><th>' + t('date') + '</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('decNote') + '</th></tr>' +
+        mine.filter(r => r.estado !== 'Rascunho').map(r => '<tr data-k="' + esc([r.n, r.nome, r.tipo, (r.dados || {}).tipo || '', (r.dados || {}).ref || '', r.estado, r.em].join(' ').toLowerCase()) + '"><td>' + r.n + '</td><td>' + esc(r.em) + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.decNota) + '</td></tr>').join('') + '</table></div>';
       if (LTR_NEW && drafts.some(r => r.n === LTR_NEW)) setTimeout(() => ltrPrint(LTR_NEW), 300);
       return;
     }
@@ -1489,6 +1503,7 @@ const SET_NUMS = () => ({
     ['INTERVALO_DUPLO_MIN', LL('Picagens repetidas', 'Repeated punches'), 'min', LL('Picagens dentro deste intervalo contam como uma.', 'Punches within this window count as one.')],
     ['VERIFICAR_ATRASO_MAX_MIN', LL('Entrada muito tardia → Verificar', 'Very late arrival → To check'), 'min', LL('Se a 1ª picagem é mais tarde do que isto, provavelmente faltou a entrada.', 'If the first punch is later than this, the entry punch is probably missing.')],
     ['VERIFICAR_JANELA_MIN', LL('Dia muito curto → Verificar', 'Very short day → To check'), 'min', LL('Se a 1ª e a última picagem distam menos do que isto.', 'If first and last punch are closer than this.')],
+    ['VERIFICAR_APOS_FIM_MIN', LL('«A verificar» depois do fim do turno', '«To check» after the shift ends'), 'min', LL('Hoje, só aparece «A verificar» (picou só entrada ou só saída) depois do fim do horário de cada pessoa + estes minutos. Antes disso fica Presente (em serviço) ou «Ainda sem picagem».', 'Today, «To check» (only one punch) only shows after each person\'s scheduled end + these minutes. Before that it stays Present (at work) or «No punch yet».')],
     ['LATE_ABERTURA', LL('Atraso conta a partir da abertura', 'Lateness counted from the opening'), '0/1', LL('1 = quando a loja / armazém abre atrasado, o atraso dos outros conta a partir da hora em que abriu (1ª entrada do departamento); quem abriu fica com o atraso. 0 = sempre a partir da hora do horário.', '1 = when the shop / warehouse opens late, the others\' lateness counts from when it opened (first entry of the department); the person who opened keeps the lateness. 0 = always from the scheduled time.')],
     ['GM_SABADO_14H_MAX', LL('GM Armazém: sábado às 14:00', 'GM Warehouse: Saturday at 14:00'), LL('vezes', 'times'), LL('Vezes por período que podem sair às 14:00 ao sábado; a seguinte vai para Verificar.', 'Times per period they may leave at 14:00 on Saturday; the next goes to To check.')]],
   pay: [
@@ -1787,7 +1802,7 @@ const fnjTxtOf = nota => { const m = String(nota || '').match(/Faltas descontada
 function ferFields(P, dias, fnj, fnjTxt) {
   const nd = P === 'af' ? 'af_nd' : 'lf_n', ro = ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"';
   return '<label class="' + P + '_fer">' + LL('Saldo real anterior', 'Real previous balance') + '<input type="number" step="0.5" id="' + P + '_sa" data-sys="" oninput="balCalc(\'' + P + '\')"' + (isA() ? ro : '') + '><small class="muted" id="' + P + '_sys"></small></label>' +
-    '<label class="' + P + '_fer">' + LL('Faltas não justificadas — app', 'Unjustified absences — app') + '<input id="' + P + '_fa"' + ro + '><small class="muted">' + LL('marcadas no ponto desde 26/10/2026 — já descontadas sozinhas', 'from the clock since 26/10/2026 — deducted automatically') + '</small></label>' +
+    '<label class="' + P + '_fer">' + LL('Faltas deste mês por justificar', 'This month\'s unjustified absences') + '<input id="' + P + '_fa"' + ro + '><small class="muted">' + LL('não descontam agora — só ao fechar o mês, se continuarem injustificadas', 'not deducted now — only when the month is closed, if still unjustified') + '</small></label>' +
     '<label class="' + P + '_fer">' + LL('Faltas não justificadas — na carta', 'Unjustified absences — on the letter') + '<input type="number" min="0" step="0.5" id="' + P + '_fnj" value="' + esc(fnj || 0) + '" oninput="balCalc(\'' + P + '\')"><small class="muted">' + LL('0 = nada. Faltas antigas que a carta desconta das férias (não repita as da app).', '0 = nothing. Older absences the letter takes off the leave (do not repeat the app ones).') + '</small></label>' +
     '<label class="' + P + '_fer ' + P + '_fnjw">' + LL('Meses / dias dessas faltas', 'Months / days of those absences') + '<input id="' + P + '_fnjt" value="' + esc(fnjTxt || '') + '" placeholder="' + LL('ex.: maio, junho, julho e agosto', 'e.g. May, June, July and August') + '"></label>' +
     '<label class="' + P + '_fer">' + LL('Saldo após faltas', 'Balance after absences') + '<input id="' + P + '_saf"' + ro + '></label>' +
@@ -1796,7 +1811,7 @@ function ferFields(P, dias, fnj, fnjTxt) {
 }
 /* the balances of the leave form: real → after absences (app + letter) → minus days used = new balance */
 function ferNums(P) {
-  const sa = val(P + '_sa'), fa = Number(val(P + '_fa')) || 0, fl = Number(val(P + '_fnj')) || 0, nd = Number(val(P === 'af' ? 'af_nd' : 'lf_n')) || 0, r1 = x => Math.round(x * 10) / 10;
+  const sa = val(P + '_sa'), fa = 0, fl = Number(val(P + '_fnj')) || 0, nd = Number(val(P === 'af' ? 'af_nd' : 'lf_n')) || 0, r1 = x => Math.round(x * 10) / 10;
   if (sa === '') return null;
   const s0 = Number(sa), after = r1(s0 - fa - fl);
   return { sa: s0, fa: fa, fl: fl, nd: nd, after: after, sn: r1(after - nd), snReal: r1(s0 - fl - nd) };
@@ -1820,7 +1835,7 @@ function balCalc(P) {
   const sa = document.getElementById(P + '_sa'), sn = document.getElementById(P + '_sn'); if (!sa || !sn) return;
   const inf0 = PINFO[pidOf(P)] || {}, fa = document.getElementById(P + '_fa');
   if (fa) { const md = val(P + '_m') === 'd', ld = (FS[P] && FS[P].ld && FS[P].ld.length ? FS[P].ld : (md ? (P === 'af' ? AF.days : LDAYS) : [])), de = md ? '' : val(P + '_de'), ate = md ? '' : (val(P + '_ate') || de);   /* days of this leave are not absences */
-    fa.value = inf0.faltasDatas ? inf0.faltasDatas.filter(d => ld.indexOf(d) < 0 && !(de && d >= de && d <= ate)).length : (inf0.faltas || 0); }
+    const pd = (inf0.faltasPendDatas || []).filter(d => ld.indexOf(d) < 0 && !(de && d >= de && d <= ate)); fa.value = pd.length; fa.title = pd.map(fmtD).join(', '); }
   const fw = document.querySelector('.' + P + '_fnjw'); if (fw && isFer(P)) fw.style.display = Number(val(P + '_fnj')) > 0 ? '' : 'none';
   const N = ferNums(P), saf = document.getElementById(P + '_saf'), snr = document.getElementById(P + '_snr');
   sn.value = N ? String(N.sn) : ''; if (saf) saf.value = N ? String(N.after) : '';
@@ -1972,9 +1987,8 @@ function cartaBuild(c) {
     const lt = d.tipo, sa = val('af_sa'), sn = val('af_sn');
     const salK = () => { const N = ferNums('af'); if (!N) return;
       k.push(['Saldo anterior de férias', nDias(N.sa)]);
-      if (N.fa) k.push(['Faltas não justificadas (registo de ponto)', nDias(N.fa)]);
       if (N.fl) k.push(['Faltas não justificadas descontadas' + (val('af_fnjt') ? ' (' + val('af_fnjt') + ')' : ''), nDias(N.fl)]);
-      if (N.fa || N.fl) k.push(['Saldo após faltas', nDias(N.after)]);
+      if (N.fl) k.push(['Saldo após faltas', nDias(N.after)]);
       k.push([lt === 'Férias pagas' ? 'Dias pagos' : 'Dias de férias solicitados', nDias(d.dias)]); k.push(['Saldo actual de férias', nDias(N.sn)]);
       if (N.fl) p.push((N.fl === 1 ? 'Foi descontado ' : 'Foram descontados ') + nDias(N.fl) + ' de faltas não justificadas' + (val('af_fnjt') ? ' (' + val('af_fnjt') + ')' : '') + ' do saldo de férias.'); };
     if (lt === 'Férias') { t0 = 'PEDIDO DE FÉRIAS'; p.push(intro + 'venho por este meio solicitar o gozo de ' + nDias(d.dias) + ' de férias, ' + per() + '.'); ret(); mot(); salK(); }
@@ -2164,6 +2178,14 @@ async function renderHistLog(head) {
   try { const r = await call('histLog', { q: HLQ.q, tabelas: HLQ.tab ? [HLQ.tab] : [], limit: 500 }); const b = document.getElementById('hlb'); if (b) b.innerHTML = '<div class="card">' + histTable(r.rows) + '</div>'; } catch (e) { showErr(e); }
 }
 
+function mineFilter(q) { const k = String(q || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); document.querySelectorAll('#mtab tr[data-k]').forEach(tr => { tr.style.display = !k || tr.dataset.k.normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(k) >= 0 ? '' : 'none'; }); document.querySelectorAll('.pend .pc').forEach(c => { c.style.display = !k || c.textContent.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(k) >= 0 ? '' : 'none'; }); }
+/* delete (cancel) a letter: stays in the history as Anulado, its reference becomes free again */
+async function delLetter(action, n) {
+  const m = prompt(LL('Apagar esta carta (Nº ' + n + ')? A referência fica livre outra vez e fica registado no histórico.\nMotivo:', 'Delete this letter (Nº ' + n + ')? Its reference becomes free again and it stays in the history.\nReason:'), '');
+  if (m === null) return;
+  try { await call(action, { n: n, motivo: m }); invalidate(); closeModal(); toast(LL('Apagada', 'Deleted')); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
+
 /* ---------- Owner: approvals inbox ---------- */
 function renderApprovals(d) {
   const pend = d.rows.filter(r => r.estado === 'Pendente').sort((a, b) => a.n - b.n);
@@ -2284,7 +2306,7 @@ function renderPay(d) {
     '<div class="bar"><b>' + t('pay') + '</b><select onchange="PAYP=this.value;render()">' + d.periods.map(k => '<option value="' + k + '"' + (k === d.periodo ? ' selected' : '') + '>' + k + (d.closedMap[k] ? ' ✓' : '') + '</option>').join('') + '</select>' +
     '<span class="muted">' + fmtDY(d.from) + ' → ' + fmtDY(d.to) + '</span>' +
     (d.closed ? '<span class="st s-ok">' + t('pClosedOn') + ' ' + esc(d.closedAt) + '</span>' + (d.copyUrl ? '<a class="btn sec sm" target="_blank" rel="noopener" href="' + esc(d.copyUrl) + '">' + (LANG === 'pt' ? 'Cópia guardada' : 'Saved copy') + '</a>' : '') : '<span class="st s-chk">' + t('pDraft') + '</span>' + (d.upTo ? '<span class="muted">' + t('pUpTo') + ' ' + fmtD(d.upTo) + '</span>' : '')) +
-    (d.closed ? '' : '<button class="btn sec sm" onclick="payFresh()">' + t('pRecalc') + '</button>') + '<span class="sp"></span><button class="btn sec" id="pxb" onclick="payExport()">' + t('exportS') + '</button>' +
+    (d.closed ? '' : '<button class="btn sec sm" onclick="payFresh()">' + t('pRecalc') + '</button>') + '<span class="sp"></span>' + (isA() ? '' : '<button class="btn sec" onclick="payCompanies()">' + t('pCoInfo') + '</button>') + '<button class="btn sec" id="pxb" onclick="payExport()">' + t('exportS') + '</button>' +
     (d.canReopen ? '<button class="btn sec" onclick="payReopen()">' + t('pReopen') + '</button>' : '') + (d.canClose ? '<button class="btn" onclick="payClose()">' + t('pClose') + '</button>' : '') + '</div>' +
     (d.warn && d.warn.length ? '<div class="card" style="border-color:var(--chk)"><div style="padding:10px 14px"><b>' + t('pToCheck') + ':</b> ' + d.warn.map(payWarn).join(' · ') + '</div></div>' : '') +
     '<div class="kpis"><div class="kpi inf">' + t('pGross') + '<b>' + money(S(rows, 'bruto')) + '</b></div><div class="kpi late">' + t('pInss') + '<b>' + money(S(rows, 'inss')) + '</b></div><div class="kpi bad">' + t('pAdv') + '<b>' + money(S(rows, 'loans')) + '</b></div><div class="kpi ok">' + t('pNet') + '<b>' + money(S(rows, 'liquido')) + '</b></div></div>' +
