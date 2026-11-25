@@ -582,7 +582,7 @@ async function openPerson(id, focusDate) {
     modal(p.nome + ' · ' + id,
       '<button class="btn sec sm" onclick="reportForm(CUR.p.id)">' + t('report') + '</button> ' + (window.ROLE !== 'assistant' ? '<button class="btn sm" onclick="personForm(CUR.p)">✎ ' + t('edit') + '</button> <button class="btn sec sm" onclick="leaveForm(null, CUR.p.id)">' + t('newLeave') + '</button> <button class="btn sec sm" onclick="transferForm()">' + t('transferId') + '</button>' : ''),
       '<div id="inl"></div>' +
-      '<div class="info">' + [[t('entity'), p.ent], [t('dept'), p.dept], [t('role'), p.func], [t('schedule'), p.hor], [t('exempt'), yn(p.isento)], [t('dayoff'), folgaName(p.folga)], [t('payRule'), prName(p.regra)], [t('contractEnd'), p.fimContrato ? fmtDY(p.fimContrato) : t('none')],
+      '<div class="info">' + [[t('entity'), p.ent], [LL('Sexo', 'Sex'), p.sexo === 'F' ? LL('Feminino', 'Female') : p.sexo === 'M' ? LL('Masculino', 'Male') : '—'], [t('dept'), p.dept], [t('role'), p.func], [t('schedule'), p.hor], [t('exempt'), yn(p.isento)], [t('dayoff'), folgaName(p.folga)], [t('payRule'), prName(p.regra)], [t('contractEnd'), p.fimContrato ? fmtDY(p.fimContrato) : t('none')],
         [t('salary'), p.sal ? Number(p.sal).toLocaleString('pt-PT') : t('none')], [t('days'), (s.worked || 0) + '/' + (s.due || 0)], [t('absences'), s.abs || 0], [t('lateMin'), s.lateM || 0], [t('earlyMin'), s.earlyM || 0], [t('checkN'), s.chk || 0]]
         .map(x => '<div><small>' + x[0] + '</small>' + esc(x[1]) + '</div>').join('') + '</div>' +
       (p.notas ? '<div class="info"><div style="grid-column:1/-1"><small>' + t('notes') + '</small>' + esc(p.notas) + '</div></div>' : '') +
@@ -665,6 +665,7 @@ async function personForm(p) {
   const sel = (k, label, opts) => '<label>' + label + '<select id="f_' + k + '">' + opts.map(o => '<option value="' + esc(o[0]) + '"' + (String(p[k] || '') === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>').join('') + '</select></label>';
   document.getElementById('mBody').innerHTML = '<div class="form">' +
     inp('id', t('id') + ' *', 'number', isNew ? '' : 'readonly') + inp('nome', t('name') + ' *') +
+    sel('sexo', LL('Sexo', 'Sex') + ' *', [['', '—'], ['M', LL('Masculino', 'Male')], ['F', LL('Feminino', 'Female')]]) +
     lsel('ent', t('entity'), meta.ent) + lsel('dept', t('dept'), meta.dept) +
     lsel('loc', t('location'), meta.loc) + lsel('func', t('role'), meta.func) +
     sel('hor', t('schedule'), meta.hor.map(h => [h, h])) +
@@ -682,7 +683,7 @@ async function personForm(p) {
     '</div>' + dl('dl_ent', meta.ent) + dl('dl_dept', meta.dept) + dl('dl_loc', meta.loc) + dl('dl_func', meta.func) + dl('dl_contrato', meta.contrato);
 }
 async function savePerson(isNew) {
-  const keys = ['id','nome','ent','dept','loc','func','hor','isento','folga','adm','contrato','sal','outras','inss','nuit','banco','nib','tel','estado','saida','notas','inssBase','ef','regra','fimContrato'];
+  const keys = ['id','nome','ent','dept','loc','func','hor','isento','folga','adm','contrato','sal','outras','inss','nuit','banco','nib','tel','estado','saida','notas','inssBase','ef','regra','fimContrato','sexo'];
   const p = { isNew: isNew }; keys.forEach(k => p[k] = val('f_' + k));
   if (!p.id || !p.nome.trim()) return toast(t('required'));
   document.getElementById('pbtn').disabled = true;
@@ -1195,7 +1196,9 @@ async function showReport(id) {
 }
 /* iPhone/iPad (and the installed app) prepare the print AFTER window.print() returns, so the print view must stay until the print sheet is closed */
 const IOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-function printWith(cls, cleanup) {
+function printWith(cls, cleanup, title) {
+  const t0_ = document.title; if (title) document.title = String(title).replace(/[\\/:*?"<>|]+/g, '-').trim();
+  const c00 = cleanup; cleanup = () => { document.title = t0_; if (c00) c00(); };
   document.body.classList.add(cls);
   const vp = document.querySelector('meta[name=viewport]'), vp0 = vp ? vp.getAttribute('content') : null;
   if (vp && IOS) vp.setAttribute('content', 'width=820, initial-scale=0.45');
@@ -1206,7 +1209,7 @@ function printWith(cls, cleanup) {
   if (!IOS) window.addEventListener('afterprint', end);
   setTimeout(() => { t0 = Date.now(); window.print(); document.addEventListener('pointerdown', late, true); if (!IOS) setTimeout(end, 60000); }, 150);
 }
-function printModal() { printWith('pm'); }
+function printModal() { const h = document.querySelector('#modal .mh b, #modal h2, #modal .mt'); printWith('pm', null, h ? h.textContent : ''); }
 
 async function transferForm() {
   const p = CUR.p; const meta = CACHE.meta || (CACHE.meta = await call('meta'));
@@ -1320,7 +1323,11 @@ function assistFields(meta) {
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
   const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onblur="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
   const doc = (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '');
-  const btn = '<div class="act full" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn" id="af_g" onclick="assistDraft()">🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign') + '</button>' +
+  const upOnly = AF.tipo === 'Justificação' || AF.tipo === 'Horas extra';
+  const btnUp = '<label class="full">📎 ' + (AF.tipo === 'Horas extra' ? LL('Foto da página do livro de horas extra (assinada)', 'Photo of the overtime book page (signed)') : LL('Foto do documento de justificação (atestado, declaração, carta…)', 'Photo of the justification document (certificate, statement, letter…)')) + ' *<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"></label>' +
+    '<label>' + t('ref') + ' / ' + LL('nº do documento', 'document nº') + '<input id="af_ref" placeholder="' + LL('opcional', 'optional') + '"></label>' +
+    '<div class="act full" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn" id="af_b" onclick="assistSubmit()">📤 ' + LL('Enviar para aprovação', 'Send for approval') + '</button><small class="muted">' + LL('Não é gerada nenhuma carta: o documento em papel já existe — só a foto vai com o pedido.', 'No letter is generated: the paper document already exists — only its photo goes with the request.') + '</small></div>';
+  const btn = upOnly ? btnUp : '<div class="act full" style="flex-direction:column;align-items:stretch;gap:8px"><button class="btn" id="af_g" onclick="assistDraft()">🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign') + '</button>' +
     '<small class="muted">' + LL('A app faz a carta com todos os dados e um código QR. Imprima, o trabalhador assina, e envie a foto em «Os meus pedidos».', 'The app makes the letter with all the data and a QR code. Print it, the employee signs, then send the photo in «My requests».') + '</small>' +
     '<details class="ltx"><summary class="muted" style="cursor:pointer">' + LL('Exceção: a carta já foi feita fora da app', 'Exception: the letter was made outside the app') + '</summary>' +
     '<label class="full" style="margin-top:8px">' + t('photo') + '<input type="file" id="af_f" accept="image/*,application/pdf" capture="environment"' + (AF.tipo === 'Licença' || AF.tipo === 'Adiantamento' ? ' onchange="afOcr()"' : '') + '><div id="af_ocr" class="ocrbox"></div></label>' +
@@ -1950,6 +1957,7 @@ async function assistSubmit() {
     if (chk.ok && chk.checks.some(c => c.ok === 'warn')) dados.nota = (dados.nota ? dados.nota + ' · ' : '') + LL('⚠ Nº da referência não lido na carta — confirmar', '⚠ Reference number not read on the letter — check');
     if (!chk.ok) { document.getElementById('af_ocr').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast(chk.unreadable ? LL('Foto ilegível — tire outra foto da carta', 'Photo unreadable — take another photo') : LL('A carta não corresponde ao pedido — corrija os pontos a vermelho', 'The letter does not match the request — fix the points in red')); }
   }
+  if ((AF.tipo === 'Justificação' || AF.tipo === 'Horas extra') && !((document.getElementById('af_f') || {}).files || [])[0]) return toast(LL('Junte a foto do documento', 'Attach the photo of the document'));
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
   try {
     const file = await readDoc(document.getElementById('af_f'));
@@ -1976,16 +1984,17 @@ const nDias = n => { const v = Number(n) || 0; return String(v).replace('.', ','
 function cartaBuild(c) {
   const meta = CACHE.ameta || {}, pe = (meta.people || []).find(x => x.id === c.id) || {}, emp = (meta.empresas || {})[pe.ent] || { nome: pe.ent || '', morada: '' };
   const empN = emp.nome || pe.ent || '', fd = fmtDY, d = c.dados, motivo = (val('af_cm') || '').trim();
-  const intro = 'Eu, ' + pe.nome + ', trabalhador(a) da ' + empN + ', com o nº ' + c.id + (pe.dept ? ', do sector ' + pe.dept : '') + ', ';
+  const sx = pe.sexo, trab = sx === 'F' ? 'trabalhadora' : sx === 'M' ? 'trabalhador' : 'trabalhador(a)', sgT = sx === 'F' ? 'A Trabalhadora' : sx === 'M' ? 'O Trabalhador' : 'O(A) Trabalhador(a)', B = x => '**' + x + '**';
+  const intro = 'Eu, ' + B(pe.nome) + ', ' + trab + ' da ' + empN + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + pe.dept : '') + ', ';
   const city = /maputo|matola|nampula|beira/i.test(pe.loc || '') ? String(pe.loc).replace(/^./, x => x.toUpperCase()) : 'Maputo';
   const dateL = (c.needRef && val('af_dc')) || todayStr();
-  let t0 = '', p = [], k = [], s = ['O(A) Trabalhador(a)', 'A Direcção'];
+  let t0 = '', p = [], k = [], s = [sgT, 'A Direcção'];
   const per = () => { const ld = (FS.af && FS.af.ld) || [];
     if (/^Férias/.test(d.tipo || '') && ld.length) { const cont = ld.every((x, i) => !i || (new Date(x) - new Date(ld[i - 1])) / 864e5 <= 2);   /* holidays may sit inside */
-      return cont ? (ld.length === 1 ? 'no dia ' + fd(ld[0]) : 'no período de ' + fd(ld[0]) + ' a ' + fd(ld[ld.length - 1])) : 'nos dias ' + eList(ld.map(fd)); }
+      return cont ? (ld.length === 1 ? 'no dia ' + B(fd(ld[0])) : 'no período de ' + B(fd(ld[0])) + ' a ' + B(fd(ld[ld.length - 1]))) : 'nos dias ' + B(eList(ld.map(fd))); }
     const ds = d.datas && d.datas.length ? d.datas : null;
-    return ds && ds.length > 1 ? 'nos dias ' + eList(ds.map(fd)) : (ds ? 'no dia ' + fd(ds[0]) : d.de === d.ate || !d.ate ? 'no dia ' + fd(d.de) : 'no período de ' + fd(d.de) + ' a ' + fd(d.ate)); };
-  const ret = () => { const r = val('af_ret'); if (r) p.push('Regressarei ao trabalho no dia ' + fd(r) + '.'); };
+    return ds && ds.length > 1 ? 'nos dias ' + B(eList(ds.map(fd))) : (ds ? 'no dia ' + B(fd(ds[0])) : d.de === d.ate || !d.ate ? 'no dia ' + B(fd(d.de)) : 'no período de ' + B(fd(d.de)) + ' a ' + B(fd(d.ate))); };
+  const ret = () => { const r = val('af_ret'); if (r) p.push('Regressarei ao trabalho no dia ' + B(fd(r)) + '.'); };
   const mot = () => { if (motivo) p.push('Motivo: ' + motivo + (/[.!?]$/.test(motivo) ? '' : '.')); };
   if (AF.tipo === 'Licença') {
     const lt = d.tipo, sa = val('af_sa'), sn = val('af_sn');
@@ -1995,11 +2004,11 @@ function cartaBuild(c) {
       if (N.fl) k.push(['Saldo após faltas', nDias(N.after)]);
       k.push([lt === 'Férias pagas' ? 'Dias pagos' : 'Dias de férias solicitados', nDias(d.dias)]); k.push(['Saldo actual de férias', nDias(N.sn)]);
       if (N.fl) p.push((N.fl === 1 ? 'Foi descontado ' : 'Foram descontados ') + nDias(N.fl) + ' de faltas não justificadas' + (val('af_fnjt') ? ' (' + val('af_fnjt') + ')' : '') + ' do saldo de férias.'); };
-    if (lt === 'Férias') { t0 = 'PEDIDO DE FÉRIAS'; p.push(intro + 'venho por este meio solicitar o gozo de ' + nDias(d.dias) + ' de férias, ' + per() + '.'); ret(); mot(); salK(); }
+    if (lt === 'Férias') { t0 = 'PEDIDO DE FÉRIAS'; p.push(intro + 'venho por este meio solicitar o gozo de ' + B(nDias(d.dias)) + ' de férias, ' + per() + '.'); ret(); mot(); salK(); }
     else if (lt === 'Férias pagas') {
       const v = Number((document.getElementById('af_fv') || { dataset: {} }).dataset.v) || 0, pp = payPeriods().find(x => x.de === val('af_pp')), fdb = document.getElementById('af_fd');
       t0 = 'PEDIDO DE PAGAMENTO DE FÉRIAS';
-      p.push(intro + 'venho por este meio solicitar o pagamento de ' + nDias(d.dias) + ' de férias não gozadas, no valor de ' + mt(v) + ' MT, a pagar no salário de ' + (pp ? pp.label.replace(/\s*\(.*$/, '').replace(/ (\d{4})$/, ' de $1') : fd(d.de)) + '.');
+      p.push(intro + 'venho por este meio solicitar o pagamento de ' + B(nDias(d.dias)) + ' de férias não gozadas, no valor de ' + B(mt(v) + ' MT') + ', a pagar no salário de ' + (pp ? pp.label.replace(/\s*\(.*$/, '').replace(/ (\d{4})$/, ' de $1') : fd(d.de)) + '.');
       if (fdb && fdb.checked) p.push('Autorizo que este valor seja utilizado para o pagamento da minha dívida para com a empresa.');
       mot(); salK(); k.push(['Valor', mt(v) + ' MT']);
     } else if (lt === 'Dispensa') { t0 = 'PEDIDO DE DISPENSA'; p.push(intro + 'venho por este meio solicitar dispensa do trabalho ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); p.push('Tenho conhecimento de que os dias de dispensa são descontados do meu salário.'); ret(); }
@@ -2015,7 +2024,7 @@ function cartaBuild(c) {
     const onde = fo === 'Bónus' ? 'no meu bónus, em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(pb) + ' MT'
       : fo === 'Salário e bónus' ? 'em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT no salário e ' + mt(pb) + ' MT no bónus'
       : 'no meu salário em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT';
-    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + mt(d.total) + ' MT, a descontar ' + onde + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
+    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + B(mt(d.total) + ' MT') + ', a descontar ' + onde + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
     if (toda) p.push('A prestação passa a cobrir toda a minha dívida (saldo anterior de ' + mt(prev) + ' MT + este valor = ' + mt(prev + (Number(d.total) || 0)) + ' MT).');
     if (fo !== 'Salário') p.push('Quando não houver bónus num mês, a parte do bónus fica para o mês seguinte.');
     p.push('Autorizo a empresa a efectuar os respectivos descontos' + (fo === 'Bónus' ? ' no meu bónus.' : fo === 'Salário e bónus' ? ' no meu salário e no meu bónus.' : ' no meu salário.'));
@@ -2023,14 +2032,14 @@ function cartaBuild(c) {
   } else if (AF.tipo === 'Pagamento') {
     const prev = (PINFO[c.id] || {}).divida || 0, v = Number(d.valor) || 0, fm = { 'Numerário': 'em numerário', 'Transferência': 'por transferência bancária', 'Depósito': 'por depósito bancário' }[d.forma] || '';
     t0 = 'PAGAMENTO DE DÍVIDA';
-    p.push(intro + 'venho por este meio entregar o valor de ' + mt(v) + ' MT' + (fm ? ', ' + fm : '') + ', para pagamento ' + (v >= prev - 0.005 ? 'total' : 'parcial') + ' da minha dívida para com a empresa.');
+    p.push(intro + 'venho por este meio entregar o valor de ' + B(mt(v) + ' MT') + (fm ? ', ' + fm : '') + ', para pagamento ' + (v >= prev - 0.005 ? 'total' : 'parcial') + ' da minha dívida para com a empresa.');
     k = [['Saldo anterior da dívida', mt(prev) + ' MT'], ['Valor pago', mt(v) + ' MT'], ['Saldo actual da dívida', mt(Math.max(0, prev - v)) + ' MT']];
-    s = ['O(A) Trabalhador(a)', 'Recebido por'];
+    s = [sgT, 'Recebido por'];
   } else if (AF.tipo === 'Horas extra') {
     t0 = 'DECLARAÇÃO DE HORAS EXTRAORDINÁRIAS';
-    p.push('Declara-se que ' + pe.nome + ', trabalhador(a) da ' + empN + ', com o nº ' + c.id + (pe.dept ? ', do sector ' + pe.dept : '') + ', prestou ' + String(d.horas).replace('.', ',') + (Number(d.horas) === 1 ? ' hora' : ' horas') + ' de trabalho extraordinário no dia ' + fd(d.data) + (d.inicio && d.fim ? ', das ' + d.inicio + ' às ' + d.fim : '') + (d.responsavel ? ', a pedido de ' + d.responsavel : '') + '.');
+    p.push('Declara-se que ' + B(pe.nome) + ', ' + trab + ' da ' + empN + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + pe.dept : '') + ', prestou ' + B(String(d.horas).replace('.', ',') + (Number(d.horas) === 1 ? ' hora' : ' horas')) + ' de trabalho extraordinário no dia ' + B(fd(d.data)) + (d.inicio && d.fim ? ', das ' + d.inicio + ' às ' + d.fim : '') + (d.responsavel ? ', a pedido de ' + d.responsavel : '') + '.');
     if (d.motivo) p.push('Motivo: ' + d.motivo + (/[.!?]$/.test(d.motivo) ? '' : '.'));
-    s = ['O(A) Trabalhador(a)', 'O(A) Responsável' + (d.responsavel ? ' (' + d.responsavel + ')' : '')];
+    s = [sgT, 'O(A) Responsável' + (d.responsavel ? ' (' + d.responsavel + ')' : '')];
   } else if (AF.tipo === 'Justificação') {
     t0 = d.estado ? 'JUSTIFICAÇÃO DE FALTA' : 'JUSTIFICAÇÃO DE ATRASO';
     p.push(intro + 'venho por este meio justificar ' + (d.estado ? 'a minha ausência' : 'o meu atraso') + ((d.datas || []).length > 1 ? ' nos dias ' : ' no dia ') + eList((d.datas || []).map(fd)) + '.'); mot();
@@ -2044,8 +2053,8 @@ function ltrHtml(c, n, qr) {
   const lg = c.co && LOGO[c.co];
   return '<div class="lt"><div class="lh">' + (lg ? '<img src="' + lg + '" alt="">' : '') + '<div class="le"><b>' + esc(c.emp.nome) + '</b>' + (c.emp.morada ? '<br>' + esc(c.emp.morada) : '') + (c.emp.nuit ? '<br>NUIT ' + esc(c.emp.nuit) : '') + '</div></div>' +
     '<div class="lr"><span>' + (c.ref ? 'Ref.: <b>' + esc(c.ref) + '</b>' : 'Pedido Nº <b>' + n + '</b>') + '</span><span>Código: <b>' + ltrCode(n, c.h) + '</b></span></div>' +
-    '<h2>' + esc(c.t) + '</h2>' + c.p.map(x => '<p>' + esc(x) + '</p>').join('') +
-    (c.k.length ? '<table>' + c.k.map(r => '<tr><td>' + esc(r[0]) + '</td><td class="v">' + esc(r[1]) + '</td></tr>').join('') + '</table>' : '') +
+    '<h2>' + esc(c.t) + '</h2>' + c.p.map(x => '<p>' + esc(x).replace(/\*\*(.+?)\*\*/g, '<b>$1</b>') + '</p>').join('') +
+    (c.k.length ? '<table>' + c.k.map(r => '<tr><td>' + esc(r[0]) + '</td><td class="v"><b>' + esc(r[1]) + '</b></td></tr>').join('') + '</table>' : '') +
     (c.nota ? '<p class="lnota"><b>NOTA:</b> ' + esc(c.nota) + '</p>' : '') +
     '<div class="ld">' + esc(c.lugar) + '</div><div class="ls">' + c.s.map(x => '<div>' + esc(x) + '</div>').join('') + '</div>' +
     '<div class="lf">Carta gerada pelo Sistema RH Madi · Pedido Nº ' + n + '. Qualquer alteração à mão anula esta carta.</div>' +
@@ -2057,7 +2066,7 @@ async function printLetter(c, n) {
   catch (e) { toast(String(e.message || e)); }
   let box = document.getElementById('ltr');
   if (!box) { box = document.createElement('div'); box.id = 'ltr'; document.body.appendChild(box); }
-  box.innerHTML = ltrHtml(c, n, qr); printWith('ltrm');
+  box.innerHTML = ltrHtml(c, n, qr); printWith('ltrm', null, (c.nome || 'Carta') + (c.ref ? ' - ' + c.ref : ' - Pedido ' + n));
 }
 let LTR_NEW = 0;
 async function assistDraft() {
@@ -2327,8 +2336,8 @@ function renderPay(d) {
   const n0 = x => x ? String(Math.round(x * 100) / 100) : '<span class="muted">—</span>';
   const fl = r => (r.flags || []).map(f => '<span class="st s-' + (f === 'neg' || f === 'sal' ? 'bad' : 'chk') + '">' + t('f_' + f) + '</span>').join(' ');
   const rules = Object.keys(d.cfg).reduce((s, k) => s.split('{' + k + '}').join(d.cfg[k]), t('pRules'));
-  const inssCell = r => d.closed ? m0(r.inss) : '<input type="number" step="0.01" min="0" class="pinss' + (r.inssMan ? ' man' : '') + '" value="' + (r.inssMan ? r.inss : '') + '" placeholder="' + money(r.inssAuto) + '" title="' + t('pInssHint') + '" onclick="event.stopPropagation()" onchange="payInss(' + r.id + ',this.value)">';
-  const line = (r, i) => '<tr class="click" onclick="payDetail(' + r.id + ')"><td class="n muted">' + (i + 1) + '</td><td class="n muted">' + r.id + '</td><td class="pn"><b>' + esc(r.nome) + '</b> ' + fl(r) + '</td><td class="n">' + (r.ef === 30 ? '<span class="muted">30</span>' : '<b>' + r.ef + '</b>') + '</td><td title="' + esc(r.func || '') + '">' + esc(String(r.func || '').split(' — ')[0]) + '</td>' +
+  const inssCell = r => '<span title="' + LL('INSS vem das regras da pessoa (Base INSS; 0 = isento) — muda-se na ficha da pessoa', 'INSS comes from the person\'s rules (INSS base; 0 = exempt) — change it on the person\'s record') + '">' + m0(r.inss) + '</span>';
+  const line = (r, i) => '<tr class="click" onclick="payDetail(' + r.id + ')"><td class="n muted">' + (i + 1) + '</td><td class="n muted">' + r.id + '</td><td class="pn"><b>' + esc(r.nome) + '</b> ' + fl(r) + '</td><td class="n">' + (r.ef === 30 ? '<span class="muted">30</span>' : '<b>' + r.ef + '</b>') + '</td><td title="' + esc(r.func || '') + '">' + esc(String(r.func || '').split(/\s*[—–]\s*|\s+-\s+/)[0].trim()) + '</td>' +
     '<td class="n">' + m0(r.base) + '</td><td class="n">' + n0(r.heH) + '</td><td class="n">' + m0(r.vHE) + '</td><td class="n">' + m0(oth(r)) + '</td><td class="n"><b>' + money(r.bruto) + '</b></td>' +
     '<td class="n">' + n0(r.faltas) + '</td><td class="n">' + m0(r.vFaltas) + '</td><td class="n">' + n0(r.lateMin) + '</td><td class="n">' + m0(r.vAtraso) + '</td><td class="n">' + m0(r.outros) + '</td><td class="n">' + inssCell(r) + '</td>' +
     '<td class="n">' + m0(r.saldoAnt) + '</td><td class="n">' + m0(r.contraida) + '</td><td class="n">' + m0(r.loans) + '</td><td class="n">' + m0(r.saldoAtual) + '</td>' +
@@ -2375,7 +2384,7 @@ function payDetail(id) {
     debt +
     (r.nota ? '<div class="info"><div style="grid-column:1/-1"><small>' + t('notes') + '</small>' + esc(r.nota) + '</div></div>' : '') +
     
-    (d.closed ? '' : '<div class="card noprint" style="margin:12px 14px"><h3>' + t('pManual') + '</h3><div class="form">' + inp('bonus', t('pBonus'), r.bonus) + inp('subs', t('pAllow'), r.subs) + inp('ef', t('pEf'), r.efMan, t('pEfH')) + inp('outros', t('pOth'), r.outros) + inp('inss', t('pInssM'), r.inssMan ? r.inss : '', money(r.inssAuto || 0) + ' · ' + t('pAutoW')) +
+    (d.closed ? '' : '<div class="card noprint" style="margin:12px 14px"><h3>' + t('pManual') + '</h3><div class="form">' + inp('bonus', t('pBonus'), r.bonus) + inp('subs', t('pAllow'), r.subs) + inp('ef', t('pEf'), r.efMan, t('pEfH')) + inp('outros', t('pOth'), r.outros) + 
       inp('faltas', LL('Dias de faltas', 'Absence days'), r.faltasMan, (r.faltasAuto || 0) + ' · ' + t('pAutoW')) + inp('atraso', LL('Minutos de atraso', 'Late minutes'), r.atrasoMan, (r.lateAuto || 0) + ' · ' + t('pAutoW')) +
       '<label>' + t('role') + '<select id="pm_func"><option value="">—</option>' + (d.funcs || []).concat(r.func && (d.funcs || []).indexOf(r.func) < 0 ? [r.func] : []).map(f => '<option' + (f === r.func ? ' selected' : '') + '>' + esc(f) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="pm_nota" value="' + esc(r.nota) + '"></label><div class="act"><button class="btn" id="pm_b" onclick="paySave(' + r.id + ')">' + t('save') + '</button></div></div></div>') +
@@ -2385,7 +2394,7 @@ async function paySave(id) {
   const d = window._pay, r = d.rows.filter(x => x.id === id)[0];
   document.getElementById('pm_b').disabled = true;
   try {
-    await call('paySave', { periodo: d.periodo, id: id, nome: r.nome, bonus: val('pm_bonus'), subs: val('pm_subs'), ef: val('pm_ef'), outros: val('pm_outros'), nota: val('pm_nota'), inss: val('pm_inss'), faltas: val('pm_faltas'), atraso: val('pm_atraso'), func: val('pm_func') });
+    await call('paySave', { periodo: d.periodo, id: id, nome: r.nome, bonus: val('pm_bonus'), subs: val('pm_subs'), ef: val('pm_ef'), outros: val('pm_outros'), nota: val('pm_nota'), inss: '', faltas: val('pm_faltas'), atraso: val('pm_atraso'), func: val('pm_func') });
     invalidate(); toast(t('saved')); await render(); payDetail(id);
   } catch (e) { toast(t('error') + ': ' + e); document.getElementById('pm_b').disabled = false; }
 }
@@ -2501,7 +2510,7 @@ function printReceipts(ids) {
   for (let i = 0; i < items.length; i += 6) html += '<div class="rp">' + items.slice(i, i + 6).map(x => rcpHtml(x[0], x[1])).join('') + '</div>';
   let box = document.getElementById('rcp');
   if (!box) { box = document.createElement('div'); box.id = 'rcp'; document.body.appendChild(box); }
-  box.innerHTML = html; printWith('rcpm', () => { box.innerHTML = ''; });
+  box.innerHTML = html; printWith('rcpm', () => { box.innerHTML = ''; }, (list.length === 1 ? 'Recibo - ' + list[0].nome : 'Recibos') + ' - ' + d.periodo);
 }
 
 
