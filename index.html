@@ -1985,7 +1985,7 @@ function cartaBuild(c) {
   const meta = CACHE.ameta || {}, pe = (meta.people || []).find(x => x.id === c.id) || {}, emp = (meta.empresas || {})[pe.ent] || { nome: pe.ent || '', morada: '' };
   const empN = emp.nome || pe.ent || '', fd = fmtDY, d = c.dados, motivo = (val('af_cm') || '').trim();
   const sx = pe.sexo, trab = sx === 'F' ? 'trabalhadora' : sx === 'M' ? 'trabalhador' : 'trabalhador(a)', sgT = sx === 'F' ? 'A Trabalhadora' : sx === 'M' ? 'O Trabalhador' : 'O(A) Trabalhador(a)', B = x => '**' + x + '**';
-  const intro = 'Eu, ' + B(pe.nome) + ', ' + trab + ' da ' + empN + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + pe.dept : '') + ', ';
+  const intro = 'Eu, ' + B(pe.nome) + ', ' + trab + ' da ' + B(empN) + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + B(pe.dept) : '') + ', ';
   const city = /maputo|matola|nampula|beira/i.test(pe.loc || '') ? String(pe.loc).replace(/^./, x => x.toUpperCase()) : 'Maputo';
   const dateL = (c.needRef && val('af_dc')) || todayStr();
   let t0 = '', p = [], k = [], s = [sgT, 'A Direcção'];
@@ -2008,27 +2008,29 @@ function cartaBuild(c) {
     else if (lt === 'Férias pagas') {
       const v = Number((document.getElementById('af_fv') || { dataset: {} }).dataset.v) || 0, pp = payPeriods().find(x => x.de === val('af_pp')), fdb = document.getElementById('af_fd');
       t0 = 'PEDIDO DE PAGAMENTO DE FÉRIAS';
-      p.push(intro + 'venho por este meio solicitar o pagamento de ' + B(nDias(d.dias)) + ' de férias não gozadas, no valor de ' + B(mt(v) + ' MT') + ', a pagar no salário de ' + (pp ? pp.label.replace(/\s*\(.*$/, '').replace(/ (\d{4})$/, ' de $1') : fd(d.de)) + '.');
+      p.push(intro + 'venho por este meio solicitar o pagamento de ' + B(nDias(d.dias)) + ' de férias não gozadas, no valor de ' + B(mt(v) + ' MT') + ', a pagar no salário de ' + B(pp ? pp.label.replace(/\s*\(.*$/, '').replace(/ (\d{4})$/, ' de $1') : fd(d.de)) + '.');
       if (fdb && fdb.checked) p.push('Autorizo que este valor seja utilizado para o pagamento da minha dívida para com a empresa.');
       mot(); salK(); k.push(['Valor', mt(v) + ' MT']);
-    } else if (lt === 'Dispensa') { t0 = 'PEDIDO DE DISPENSA'; p.push(intro + 'venho por este meio solicitar dispensa do trabalho ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); p.push('Tenho conhecimento de que os dias de dispensa são descontados do meu salário.'); ret(); }
-    else if (lt === 'Sem vencimento') { t0 = 'PEDIDO DE LICENÇA SEM VENCIMENTO'; p.push(intro + 'venho por este meio solicitar licença sem vencimento ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); p.push('Tenho conhecimento de que estes dias não são remunerados.'); ret(); }
-    else if (lt === 'Falta justificada') { t0 = 'JUSTIFICAÇÃO DE FALTA'; p.push(intro + 'venho por este meio justificar a minha ausência ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); }
-    else if (lt === 'Baixa médica') { t0 = 'COMUNICAÇÃO DE BAIXA MÉDICA'; p.push(intro + 'venho por este meio comunicar a minha ausência por baixa médica ' + per() + ', num total de ' + nDias(d.dias) + ', conforme o atestado médico em anexo.'); mot(); ret(); }
+    } else if (lt === 'Dispensa') { t0 = 'PEDIDO DE DISPENSA'; p.push(intro + 'venho por este meio solicitar dispensa do trabalho ' + per() + ', num total de ' + B(nDias(d.dias)) + '.'); mot(); p.push('Tenho conhecimento de que os dias de dispensa são descontados do meu salário.'); ret(); }
+    else if (lt === 'Sem vencimento') { t0 = 'PEDIDO DE LICENÇA SEM VENCIMENTO'; p.push(intro + 'venho por este meio solicitar licença sem vencimento ' + per() + ', num total de ' + B(nDias(d.dias)) + '.'); mot(); p.push('Tenho conhecimento de que estes dias não são remunerados.'); ret(); }
+    else if (lt === 'Falta justificada') { t0 = 'JUSTIFICAÇÃO DE FALTA'; p.push(intro + 'venho por este meio justificar a minha ausência ' + per() + ', num total de ' + B(nDias(d.dias)) + '.'); mot(); }
+    else if (lt === 'Baixa médica') { t0 = 'COMUNICAÇÃO DE BAIXA MÉDICA'; p.push(intro + 'venho por este meio comunicar a minha ausência por baixa médica ' + per() + ', num total de ' + B(nDias(d.dias)) + ', conforme o atestado médico em anexo.'); mot(); ret(); }
     else { const nm = { 'Licença de parto': 'licença de maternidade', 'Licença de paternidade': 'licença de paternidade', 'Luto': 'licença por luto', 'Casamento': 'licença de casamento' }[lt] || 'licença';
-      t0 = 'PEDIDO DE ' + nm.toUpperCase(); p.push(intro + 'venho por este meio solicitar ' + nm + ' ' + per() + ', num total de ' + nDias(d.dias) + '.'); mot(); ret(); }
+      t0 = 'PEDIDO DE ' + nm.toUpperCase(); p.push(intro + 'venho por este meio solicitar ' + nm + ' ' + per() + ', num total de ' + B(nDias(d.dias)) + '.'); mot(); ret(); }
   } else if (AF.tipo === 'Adiantamento') {
     const adv = d.tipo !== 'Empréstimo', np = Number(d.nprest) || 1, ini = String(d.inicio || ''), prev = Number((document.getElementById('af_sd') || { dataset: {} }).dataset.v) || 0;
     t0 = adv ? 'PEDIDO DE ADIANTAMENTO' : 'PEDIDO DE EMPRÉSTIMO';
     const fo = d.fonte || 'Salário', toda = d.modo === 'toda' && prev > 0, pb = Number(d.prestB) || 0, ps = Number(d.prest) || 0;
-    const onde = fo === 'Bónus' ? 'no meu bónus, em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(pb) + ' MT'
-      : fo === 'Salário e bónus' ? 'em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT no salário e ' + mt(pb) + ' MT no bónus'
-      : 'no meu salário em ' + np + (np === 1 ? ' prestação' : ' prestações mensais') + ' de ' + mt(ps) + ' MT';
-    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + B(mt(d.total) + ' MT') + ', a descontar ' + onde + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4) : '') + '.');
-    if (toda) p.push('A prestação passa a cobrir toda a minha dívida (saldo anterior de ' + mt(prev) + ' MT + este valor = ' + mt(prev + (Number(d.total) || 0)) + ' MT).');
+    const nP = B(np + (np === 1 ? ' prestação' : ' prestações mensais'));
+    const onde = fo === 'Bónus' ? 'no meu bónus, em ' + nP + ' de ' + B(mt(pb) + ' MT')
+      : fo === 'Salário e bónus' ? 'em ' + nP + ' de ' + B(mt(ps) + ' MT') + ' no salário e ' + B(mt(pb) + ' MT') + ' no bónus'
+      : 'no meu salário em ' + nP + ' de ' + B(mt(ps) + ' MT');
+    p.push(intro + 'venho por este meio solicitar ' + (adv ? 'um adiantamento salarial' : 'um empréstimo') + ' no valor de ' + B(mt(d.total) + ' MT') + ', a descontar ' + onde + (/^\d{4}-\d{2}$/.test(ini) ? ', a partir do salário de ' + B(MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4)) : '') + '.');
+    if (toda) p.push('A prestação passa a cobrir toda a minha dívida (saldo anterior de ' + B(mt(prev) + ' MT') + ' + este valor = ' + B(mt(prev + (Number(d.total) || 0)) + ' MT') + ').');
     if (fo !== 'Salário') p.push('Quando não houver bónus num mês, a parte do bónus fica para o mês seguinte.');
     p.push('Autorizo a empresa a efectuar os respectivos descontos' + (fo === 'Bónus' ? ' no meu bónus.' : fo === 'Salário e bónus' ? ' no meu salário e no meu bónus.' : ' no meu salário.'));
     k = [['Saldo anterior da dívida', mt(prev) + ' MT'], ['Valor solicitado', mt(d.total) + ' MT'], ['Novo saldo da dívida', mt(prev + (Number(d.total) || 0)) + ' MT']];
+    k.push(['Nº de prestações', String(np)]); if (fo !== 'Bónus') k.push(['Prestação mensal (salário)', mt(ps) + ' MT']); if (fo !== 'Salário') k.push(['Prestação mensal (bónus)', mt(pb) + ' MT']); if (/^\d{4}-\d{2}$/.test(ini)) k.push(['1º desconto', MES_PT[Number(ini.slice(5)) - 1] + ' de ' + ini.slice(0, 4)]);
   } else if (AF.tipo === 'Pagamento') {
     const prev = (PINFO[c.id] || {}).divida || 0, v = Number(d.valor) || 0, fm = { 'Numerário': 'em numerário', 'Transferência': 'por transferência bancária', 'Depósito': 'por depósito bancário' }[d.forma] || '';
     t0 = 'PAGAMENTO DE DÍVIDA';
@@ -2037,12 +2039,12 @@ function cartaBuild(c) {
     s = [sgT, 'Recebido por'];
   } else if (AF.tipo === 'Horas extra') {
     t0 = 'DECLARAÇÃO DE HORAS EXTRAORDINÁRIAS';
-    p.push('Declara-se que ' + B(pe.nome) + ', ' + trab + ' da ' + empN + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + pe.dept : '') + ', prestou ' + B(String(d.horas).replace('.', ',') + (Number(d.horas) === 1 ? ' hora' : ' horas')) + ' de trabalho extraordinário no dia ' + B(fd(d.data)) + (d.inicio && d.fim ? ', das ' + d.inicio + ' às ' + d.fim : '') + (d.responsavel ? ', a pedido de ' + d.responsavel : '') + '.');
+    p.push('Declara-se que ' + B(pe.nome) + ', ' + trab + ' da ' + B(empN) + ', com o nº ' + B(c.id) + (pe.dept ? ', do sector ' + B(pe.dept) : '') + ', prestou ' + B(String(d.horas).replace('.', ',') + (Number(d.horas) === 1 ? ' hora' : ' horas')) + ' de trabalho extraordinário no dia ' + B(fd(d.data)) + (d.inicio && d.fim ? ', das ' + d.inicio + ' às ' + d.fim : '') + (d.responsavel ? ', a pedido de ' + d.responsavel : '') + '.');
     if (d.motivo) p.push('Motivo: ' + d.motivo + (/[.!?]$/.test(d.motivo) ? '' : '.'));
     s = [sgT, 'O(A) Responsável' + (d.responsavel ? ' (' + d.responsavel + ')' : '')];
   } else if (AF.tipo === 'Justificação') {
     t0 = d.estado ? 'JUSTIFICAÇÃO DE FALTA' : 'JUSTIFICAÇÃO DE ATRASO';
-    p.push(intro + 'venho por este meio justificar ' + (d.estado ? 'a minha ausência' : 'o meu atraso') + ((d.datas || []).length > 1 ? ' nos dias ' : ' no dia ') + eList((d.datas || []).map(fd)) + '.'); mot();
+    p.push(intro + 'venho por este meio justificar ' + (d.estado ? 'a minha ausência' : 'o meu atraso') + ((d.datas || []).length > 1 ? ' nos dias ' : ' no dia ') + B(eList((d.datas || []).map(fd))) + '.'); mot();
   }
   const nota = AF.tipo === 'Licença' ? 'Faltas não justificadas serão descontadas no salário e nas férias; se já gozou as férias, serão descontadas nas férias do ano seguinte, nos termos do n.º 1 do artigo 115 da Lei do Trabalho.' : '';
   const out = { t: t0, p: p, k: k, s: s, nota: nota, ref: c.ref || '', nome: pe.nome, id: c.id, ent: pe.ent || '', emp: { nome: empN, morada: emp.morada || '', nuit: emp.nuit || '' }, co: coCode(pe.ent), lugar: city + ', ' + longD(dateL) };
