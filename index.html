@@ -1295,9 +1295,11 @@ async function renderAssist() {
       const drafts = mine.filter(r => r.estado === 'Rascunho');
       const dcard = r => '<div class="pc"' + (r.n === LTR_NEW ? ' style="border:2px solid #2e7d32"' : '') + '><div class="row">' + rtTag(r.tipo) + '<b>' + esc(r.nome) + '</b><span class="muted">Nº ' + r.n + ' · ' + esc(r.em) + ((r.dados || {}).ref ? ' · ' + esc(r.dados.ref) : '') + '</span></div>' +
         '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
+        ((r.dados || {}).devolvido ? '<div class="row" style="background:#fdecea;border-radius:8px;padding:6px 10px"><b style="color:#c62828">↩ ' + LL('Devolvido em ', 'Returned on ') + esc(r.dados.devolvido.em) + (r.dados.devolvido.nota ? ': ' + esc(r.dados.devolvido.nota) : '') + '</b><span class="muted">' + LL('Corrija e envie a foto nova.', 'Fix it and send the new photo.') + '</span></div>' : '') +
         (r.n === LTR_NEW ? '<div class="row"><b style="color:#2e7d32">✓ ' + LL('Carta criada. 1) Imprimir  2) O trabalhador assina  3) Enviar a foto da carta assinada', 'Letter created. 1) Print  2) Employee signs  3) Send the photo of the signed letter') + '</b></div>' : '') +
-        '<div class="row ltrow"><button class="btn" onclick="ltrPrint(' + r.n + ')">🖨 ' + LL('Imprimir', 'Print') + '</button>' +
-        '<label class="btn sec">📷 ' + LL('Enviar carta assinada', 'Send signed letter') + '<input type="file" accept="image/*" capture="environment" onchange="ltrAttach(' + r.n + ',this)"></label>' +
+        ((r.dados || {}).carta ? '<div class="row ltrow"><button class="btn" onclick="ltrPrint(' + r.n + ')">🖨 ' + LL('Imprimir', 'Print') + '</button>' +
+        '<label class="btn sec">📷 ' + LL('Enviar carta assinada', 'Send signed letter') + '<input type="file" accept="image/*" capture="environment" onchange="ltrAttach(' + r.n + ',this)"></label>'
+        : '<div class="row ltrow"><label class="btn">📷 ' + LL('Enviar a foto do documento', 'Send the photo of the document') + '<input type="file" accept="image/*,application/pdf" capture="environment" onchange="docAttach(' + r.n + ',this)"></label>') +
         '<button class="btn sec sm" onclick="ltrCancel(' + r.n + ')">✕ ' + LL('Anular', 'Cancel') + '</button></div><div id="ltv' + r.n + '" class="ocrbox"></div></div>';
       main.innerHTML = head + (drafts.length ? '<div class="card"><h3>' + LL('Cartas por assinar', 'Letters to be signed') + ' (' + drafts.length + ')</h3><div class="pend" style="padding:10px">' + drafts.map(dcard).join('') + '</div></div>' : '') +
         '<div class="bar" style="margin-top:14px"><input type="search" id="mq" placeholder="🔍 ' + LL('Procurar nome, nº, referência, tipo…', 'Search name, nº, reference, type…') + '" oninput="mineFilter(this.value)" style="flex:1;min-width:220px"></div>' +
@@ -2266,12 +2268,21 @@ function renderApprovals(d) {
       (c.prazo ? '<div style="background:#fdecea;border:2px solid #c62828;border-radius:10px;padding:10px 12px;margin:6px 0;color:#8e1b1b"><b style="font-size:15px">⚠ ' + (/^entregue/.test(c.prazo) ? LL('JUSTIFICAÇÃO ENTREGUE FORA DO PRAZO', 'JUSTIFICATION HANDED IN LATE') : LL('JUSTIFICAÇÃO REGISTADA TARDE', 'JUSTIFICATION ENTERED LATE')) + '</b><br><span>' + esc(c.prazo) + '</span><br><small>' + LL('Pode aprovar ou rejeitar — decida com atenção.', 'You can approve or reject — decide carefully.') + '</small></div>' : '') +
       (x.nota ? '<div class="row">' + (/saldo|balan/i.test(x.nota) ? '<span class="st s-bad">⚠ ' + LL('Verificar saldo', 'Check balance') + '</span> ' : '') + '<span class="muted">' + LL('Nota', 'Note') + ': ' + esc(x.nota) + '</span></div>' : '') + (info ? '<div class="row muted">' + info + '</div>' : '') +
       '<div class="row"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">' + t('viewDoc') + '</button>' + (x.verif ? '<span class="st s-ok">✓ ' + LL('Carta da app · código confirmado', 'App letter · code confirmed') + '</span>' : x.carta ? '' : '<span class="st s-chk">' + LL('Carta feita fora da app', 'Letter made outside the app') + '</span>') + edit + '</div>' +
-      '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
+      '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="reqReturn(' + r.n + ')" title="' + LL('Volta para a assistente em «Cartas por assinar», com a mesma carta e referência — ela só envia a foto nova', 'Goes back to the assistant under «Letters to be signed», same letter and reference — she only sends the new photo') + '">↩ ' + LL('Devolver para corrigir / assinar', 'Return to fix / sign') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
   };
   document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('approvals') + '</b><span class="sp"></span><button class="btn sec" onclick="assistAdmin()">' + t('assistants') + '</button></div>' +
     (pend.length ? '<div class="pend">' + pend.map(card).join('') + '</div>' : '<div class="card"><div class="load">' + t('noApprovals') + '</div></div>') +
     (done.length ? '<div class="card tw" style="margin-top:14px"><h3>' + t('recent') + '</h3><table><tr><th>Nº</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('subBy') + '</th><th>' + t('decNote') + '</th><th></th></tr>' +
       done.map(r => '<tr><td>' + r.n + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td>' + esc(r.por) + '</td><td class="muted">' + esc(r.decNota) + '</td><td><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">📄</button></td></tr>').join('') + '</table></div>' : '');
+}
+async function docAttach(n, input) {
+  if (!input.files || !input.files[0]) return;
+  try { const f = await readDoc(input); await call('aAttach', { n: n, file: f, verif: '' }); toast(t('sent') + ' · Nº ' + n); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); input.value = ''; }
+}
+async function reqReturn(n) {
+  let note = val('ap_note' + n);
+  if (!note) { note = prompt(LL('Motivo da devolução (a assistente vai ver):', 'Reason for returning it (the assistant will see it):'), LL('Carta sem assinatura', 'Letter not signed')); if (note === null) return; }
+  try { await call('reqReturn', { n: n, nota: note }); invalidate(); toast(LL('Devolvido à assistente', 'Returned to the assistant')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
 }
 async function decideReq(n, dec) {
   const r = window._req.rows.filter(x => x.n === n)[0]; const dados = {};
