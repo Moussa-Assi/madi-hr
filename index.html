@@ -3,13 +3,14 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Madi HR</title>
+<title>Madigroup HR</title>
 <meta name="robots" content="noindex">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png?v=2">
+<link rel="icon" type="image/png" href="icon-192.png?v=2">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-title" content="Madi RH">
+<meta name="apple-mobile-web-app-title" content="Madigroup HR">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="theme-color" content="#1F3864">
 <meta name="referrer" content="no-referrer">
@@ -128,7 +129,7 @@ main{max-width:none!important;padding:16px 20px}
 <div class="toast" id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
 <style>#login{position:fixed;inset:0;background:#f3f4f6;display:flex;align-items:center;justify-content:center;z-index:50;padding:16px}#login .box{background:#fff;padding:28px 24px;border-radius:12px;width:100%;max-width:360px;box-shadow:0 4px 24px rgba(0,0,0,.08)}#login h2{margin:0 0 4px;color:var(--pri,#23365e);font-size:20px}#login label{display:block;font-size:13px;color:#374151}#login input{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}#login button{width:100%;padding:12px;border:0;border-radius:8px;background:var(--pri,#23365e);color:#fff;font-weight:600;font-size:15px;cursor:pointer}#login button:disabled{opacity:.6}#login .e{color:#b91c1c;font-size:13px;min-height:18px;margin-bottom:8px}#login .s{color:#6b7280;font-size:13px;margin-bottom:18px}#login .tabs{display:flex;gap:6px;margin:10px 0 18px}#login .tabs button{flex:1;background:#eef0f4;color:#374151;font-weight:600;font-size:13px;padding:9px}#login .tabs button.on{background:var(--pri,#23365e);color:#fff}#login select{width:100%;padding:11px;margin:6px 0 14px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;background:#fff}</style>
-<div id="login" style="display:none"><div class="box"><h2>Madi HR</h2><div class="tabs"><button type="button" id="lt_m" class="on" onclick="lmode('m')">Gestor · Manager</button><button type="button" id="lt_a" onclick="lmode('a')">Assistente · Assistant</button></div>
+<div id="login" style="display:none"><div class="box"><h2>Madigroup HR</h2><div class="tabs"><button type="button" id="lt_m" class="on" onclick="lmode('m')">Gestor · Manager</button><button type="button" id="lt_a" onclick="lmode('a')">Assistente · Assistant</button></div>
 <form id="lgf_m" onsubmit="return doLogin(event)"><label>Email<input id="lg_e" type="email" autocomplete="username" required></label><label>Palavra-passe · Password<input id="lg_p" type="password" autocomplete="current-password" required></label><div class="e" id="lg_err"></div><button id="lg_b">Entrar · Sign in</button></form>
 <form id="lgf_a" style="display:none" onsubmit="return doAssist(event)"><label>Nome · Name<select id="la_n"></select></label><label>PIN<input id="la_p" type="password" inputmode="numeric" autocomplete="off" required></label><div class="e" id="la_err"></div><button id="la_b">Entrar · Sign in</button></form></div></div>
 <script>
@@ -201,7 +202,7 @@ async function doAssist(e) {
 </script>
 <script type="text/plain" id="appsrc">
 const T = {
-  pt: { app:'Sistema RH Madi', set:'⚙ Definições', today:'Dia', month:'Mês', pending:'Pendentes', people:'Pessoas', dash:'Painel',
+  pt: { app:'Madigroup HR', set:'⚙ Definições', today:'Dia', month:'Mês', pending:'Pendentes', people:'Pessoas', dash:'Painel',
     loading:'A carregar…', refresh:'Atualizar agora', lastSync:'Última sincronização', all:'Todos', search:'Procurar nome…',
     name:'Nome', dept:'Departamento', in:'Entrada', out:'Saída', status:'Estado', late:'Atraso', early:'Saída antec.',
     present:'Presentes', lateK:'Atrasados', absentSoFar:'Ainda sem picagem', absent:'Faltas', toCheck:'A verificar', offLeave:'Folga / licença',
@@ -248,7 +249,7 @@ const T = {
     wEnded:'O período ainda não terminou', wChk:'{n} dia(s) ainda em "Verificar"', wReq:'{n} pedido(s) por aprovar', wSal:'{n} pessoa(s) sem salário', wEnt:'{n} sem entidade', wEst:'{n} com saldo de adiantamento estimado', wNeg:'{n} com salário líquido negativo',
     f_sal:'Sem salário', f_ent:'Sem entidade', f_chk:'Verificar', f_est:'Adiant. estimado', f_neg:'Negativo', payGo:'Descontos confirmam-se em Salários →', pCompany:'Entidade', pToCheck:'A rever',
     pRules:'Regras: bruto = base ÷ 30 × dias efetivos + horas extra + outras rem. · INSS {a}% do salário base · dia de falta = base ÷ 30 · minuto de atraso = base ÷ {h} ÷ 60 · hora extra = base ÷ {h} × {n} (domingo × {s}) · Galerie Madi: {g} em vez de {h}. Alteram-se na folha CONFIG.' },
-  en: { app:'Madi HR System', set:'⚙ Settings', today:'Day', month:'Month', pending:'To resolve', people:'People', dash:'Dashboard',
+  en: { app:'Madigroup HR', set:'⚙ Settings', today:'Day', month:'Month', pending:'To resolve', people:'People', dash:'Dashboard',
     loading:'Loading…', refresh:'Refresh now', lastSync:'Last sync', all:'All', search:'Search name…',
     name:'Name', dept:'Department', in:'In', out:'Out', status:'Status', late:'Late', early:'Left early',
     present:'Present', lateK:'Late', absentSoFar:'No punch yet', absent:'Absences', toCheck:'To check', offLeave:'Off / leave',
