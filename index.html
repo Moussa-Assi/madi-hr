@@ -405,7 +405,7 @@ async function need(key, p) {
   if (CACHE[ck]) return CACHE[ck];
   loading();
   CACHE[ck] = await call(key, p);
-  if (key === 'month') CACHE.month = CACHE[ck];
+  if (key === 'month' && !(p && p.prev)) CACHE.month = CACHE[ck];
   paintChrome();
   return CACHE[ck];
 }
@@ -432,7 +432,7 @@ async function render() {
   try {
     if (VIEW === 'today') return (DAY2 && DAY2 > DAY) ? renderRange(await need('range', { from: DAY, to: DAY2 })) : renderDay(await need('day', { date: DAY }));
     if (VIEW === 'grid') { if (!G.from) { const m = await need('month'); G.from = m.from; G.to = m.to < todayStr() ? m.to : todayStr(); } return renderGrid(await need('range', { from: G.from, to: G.to })); }
-    if (VIEW === 'month') return renderMonth(await need('month'));
+    if (VIEW === 'month') return renderMonth(await need('month', window.MPREV ? { prev: 1 } : undefined));
     if (VIEW === 'leave') return renderLeave();
     if (VIEW === 'loans') { await peopleDL(); return renderLoans(await need('loans')); }
     if (VIEW === 'req') return renderAssist();
@@ -504,12 +504,14 @@ function summarize(rows) {
   return Object.values(m);
 }
 function renderMonth(d) {
-  let list = summarize(d.rows.filter(r => byDept(r, 3))).filter(s => byName(s.nome));
+  let list = summarize(d.rows.filter(r => byDept(r, 3) && r[6] !== 'Por entrar')).filter(s => byName(s.nome));
   if (F.flags) list = list.filter(s => s.abs || s.chk || s.lateM || s.earlyM);
   list.sort((a, b) => String(a.dept).localeCompare(b.dept) || String(a.nome).localeCompare(b.nome));
   const c = (v, cls) => v ? '<span class="st s-' + cls + '">' + v + '</span>' : '<span class="muted">0</span>';
   document.getElementById('main').innerHTML =
-    '<div class="bar"><b>' + t('period') + ': ' + fmtD(d.from) + ' → ' + fmtD(d.to) + '</b><span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span></div>' +
+    '<div class="bar"><b>' + t('period') + ': ' + fmtD(d.from) + ' → ' + fmtD(d.to) + '</b><span class="muted">' + t('lastSync') + ': ' + esc(d.lastSync) + '</span><span class="sp"></span>' +
+      (d.prev ? '<div class="chips"><span class="chip' + (window.MPREV ? '' : ' on') + '" onclick="window.MPREV=0;render()">' + LL('Período atual', 'Current period') + '</span><span class="chip' + (window.MPREV ? ' on' : '') + '" onclick="window.MPREV=1;render()">' + LL('Período anterior', 'Previous period') + ' (' + fmtD(d.prev.from) + ' → ' + fmtD(d.prev.to) + ')</span></div>' : '') + '</div>' +
+    (!list.length && !d.isPrev && !d.rows.filter(r => r[6] !== 'Por entrar').length ? '<div class="card"><div class="load">' + LL('O período começou hoje — ainda ninguém picou. Os números aparecem à medida que as pessoas entram. Veja o período anterior no botão acima.', 'The period started today — nobody has punched in yet. Figures appear as people arrive. See the previous period with the button above.') + '</div></div>' : '') +
     '<div class="bar">' + deptChips(d.rows, 3) + '<span class="sp"></span><label class="muted"><input type="checkbox" ' + (F.flags ? 'checked' : '') + ' onchange="F.flags=this.checked;render()"> ' + t('withFlags') + '</label>' + searchBox() + '</div>' +
     '<div class="card tw"><table><tr><th>' + t('name') + '</th><th>' + t('dept') + '</th><th class="n">' + t('days') + '</th><th class="n">' + t('absences') + '</th><th class="n">' + t('lateN') + '</th><th class="n">' + t('lateMin') +
     '</th><th class="n">' + t('earlyN') + '</th><th class="n">' + t('earlyMin') + '</th><th class="n">' + t('checkN') + '</th><th class="n">' + t('extra') + '</th></tr>' +
@@ -520,9 +522,9 @@ function renderMonth(d) {
 
 /* ---------- Pending ---------- */
 function renderPending(d) {
-  const rows = d.rows.filter(r => r[6] === 'Verificar' && byDept(r, 3)).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : String(a[2]).localeCompare(b[2]));
+  const rows = d.rows.concat(d.pendPrev || []).filter(r => r[6] === 'Verificar' && byDept(r, 3)).sort((a, b) => a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : String(a[2]).localeCompare(b[2]));
   document.getElementById('main').innerHTML =
-    newPeopleHtml() + '<div class="bar"><span class="muted">' + t('pendHint') + '</span></div><div class="bar">' + deptChips(d.rows.filter(r => r[6] === 'Verificar'), 3) + '</div>' +
+    newPeopleHtml() + '<div class="bar"><span class="muted">' + t('pendHint') + '</span></div>' + ((d.pendPrev || []).length ? '<div class="bar"><span class="st s-chk">' + LL((d.pendPrev.length) + ' por resolver do período anterior (' + fmtD(d.prev.from) + ' → ' + fmtD(d.prev.to) + ') — resolva antes de fechar os salários', (d.pendPrev.length) + ' to resolve from the previous period (' + fmtD(d.prev.from) + ' → ' + fmtD(d.prev.to) + ') — resolve before closing payroll') + '</span></div>' : '') + '<div class="bar">' + deptChips(d.rows.concat(d.pendPrev || []).filter(r => r[6] === 'Verificar'), 3) + '</div>' +
     (rows.length ? '<div class="pend">' + rows.map((r, i) =>
       '<div class="pc"><div class="row"><b class="click" onclick="openPerson(' + r[1] + ')">' + esc(r[2]) + '</b><span class="muted">' + esc(r[3]) + ' · ' + dow(r[0]) + ' ' + fmtD(r[0]) + '</span></div>' +
       '<div class="row muted">' + t('in') + ': <b>' + (hm(r[4]) || '—') + '</b> &nbsp; ' + t('out') + ': <b>' + (hm(r[5]) || '—') + '</b>' +
@@ -959,8 +961,8 @@ function balForm(id) {
     '<label class="muted">' + t('usedBefore') + ' <input type="number" id="bf_u" value="' + b.usadosAntes + '" style="width:70px"></label>' +
     '<label class="muted">' + t('baseDate') + ' <input type="date" id="bf_b" value="' + b.dataBase + '"></label>' +
     '<input id="bf_n" value="' + esc(b.notas || '') + '" placeholder="' + t('note') + '" style="flex:1;min-width:150px">' +
-    '<button class="btn" onclick="saveBal(' + id + ')">' + t('save') + '</button>' +
-    '<span style="flex-basis:100%"></span><label class="muted"><b>' + LL('Ou escreva o saldo certo de hoje', 'Or type today\'s correct balance') + '</b> <input type="number" step="0.5" id="bf_fix" value="' + (b.saldo === '' ? '' : b.saldo) + '" style="width:80px"></label><button class="btn" onclick="fixBal(' + id + ')">✓ ' + LL('Corrigir saldo', 'Correct balance') + '</button><small class="muted">' + LL('licenças a partir de amanhã continuam a descontar', 'leaves from tomorrow keep deducting') + '</small><button class="btn sec" onclick="document.getElementById(\'inlb\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
+    '<span style="flex-basis:100%"></span><label class="muted"><b>' + LL('Saldo certo de hoje (opcional)', 'Today\'s correct balance (optional)') + '</b> <input type="number" step="0.5" id="bf_fix" placeholder="' + (b.saldo === '' ? '' : b.saldo) + '" style="width:90px"></label><small class="muted" style="max-width:420px">' + LL('Deixe vazio para guardar só os campos acima. Se escrever um número, o Direito e o Transitado ficam como estão e a diferença fica em «Usados antes» (licenças a partir de amanhã continuam a descontar).', 'Leave empty to save only the fields above. If you type a number, Entitlement and Carried stay as they are and the difference goes to «Used before» (leaves from tomorrow keep deducting).') + '</small>' +
+    '<button class="btn" onclick="saveBal(' + id + ')">' + t('save') + '</button><button class="btn sec" onclick="document.getElementById(\'inlb\').innerHTML=\'\'">' + t('cancel') + '</button></div>';
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 async function fixBal(id) {
@@ -970,6 +972,12 @@ async function fixBal(id) {
 }
 async function saveBal(id) {
   const b = window._bal.rows.filter(x => x.id === id)[0];
+  const fx = val('bf_fix');
+  if (fx !== '' && Number(fx) !== Number(b.saldo)) {
+    const tm = new Date(Date.now() + 864e5), tmS = tm.getFullYear() + '-' + String(tm.getMonth() + 1).padStart(2, '0') + '-' + String(tm.getDate()).padStart(2, '0');
+    try { await call('balanceFix', { id: id, saldo: Number(fx), before: tmS, direito: val('bf_d'), transitado: val('bf_t'), notas: val('bf_n'), ref: LL('correção no separador Saldos', 'corrected in Balances tab') }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+    return;
+  }
   try { await call('balanceSave', { row: b.row, id: id, nome: b.nome, year: window._bal.year, direito: val('bf_d'), transitado: val('bf_t'), usadosAntes: val('bf_u'), dataBase: val('bf_b'), notas: val('bf_n') }); invalidate(); toast(t('saved')); render(); } catch (e) { toast(t('error') + ': ' + e); }
 }
 function renderHolidays(head, d, edit) {
