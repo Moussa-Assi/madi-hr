@@ -1763,6 +1763,7 @@ function letterCheck(show) {
   if (!unreadable) {
     const dates = ocrDates(t), nums = ocrNums(String(t).replace(/[a-z]{2}\s*\/\s*[a-z]{2}\s*\/[\d\s\/]+/gi, ' ').replace(/\d{1,2}\s*[\/\-.]\s*\d{1,2}\s*[\/\-.]\s*\d{2,4}/g, ' ')), has = n => n !== '' && n != null && nums.some(v => Math.abs(v - Number(n)) < 0.011), fd = d => d ? d.split('-').reverse().join('/') : '—';
     add(LL('Nome', 'Name'), !!p && nameIn(p.nome, t), p ? p.nome : '—');
+    if (refLetter()) {   /* Dispensa, atestado, luto, maternity…: no reference, no letter-date list, no leave balance → only name, period and days are checked */
     add(LL('Data da carta', 'Letter date'), !!val('af_dc') && dates.has(val('af_dc')), fd(val('af_dc')));
     const ref = getRef('af'), ct = compact(t);
     let refOk = !!ref && ct.indexOf(compact(ref)) >= 0, refInf = ref || '—';
@@ -1771,6 +1772,7 @@ function letterCheck(show) {
       if (m && new RegExp(compact(m[1] + m[2]) + '[0-9a-z]{0,4}' + compact(m[4])).test(ct)) { refOk = 'warn'; refInf = ref + ' — ' + LL('o número não foi lido (escrito à mão?). Confirme na carta; o pedido vai marcado para o Moussa.', 'the number could not be read (handwritten?). Check the letter; the request is flagged for Moussa.'); }
     }
     add(LL('Referência', 'Reference'), refOk, refInf);
+    }
     if (AF.tipo === 'Licença' && isFP('af')) {
       const v = Number((document.getElementById('af_fv') || {}).dataset ? document.getElementById('af_fv').dataset.v : 0) || 0;
       add(LL('Valor', 'Amount'), v > 0 && nums.some(n => Math.abs(n - v) <= 1), v ? money(v) : '—');
@@ -1781,9 +1783,11 @@ function letterCheck(show) {
       const md = val('af_m') === 'd', days = md ? AF.days : [val('af_de'), val('af_ate') || val('af_de')];
       add(LL('Período', 'Period'), days.length > 0 && days.every(d => d && dates.has(d)), md ? days.map(fd).join(', ') : fd(days[0]) + ' → ' + fd(days[1]));
       add(LL('Nº de dias', 'Nº of days'), has(val('af_nd')), val('af_nd'));
+      if (isFer('af')) {
       const sn = saldoNums(t, 400), F = ferApp();
       if (sn.length) add(LL('Saldo de férias', 'Leave balance'), saldoOk(sn, F.app, F.extra), LL('carta: ', 'letter: ') + sn.join(' / ') + ' · app: ' + F.txt);
       else add(LL('Saldo de férias', 'Leave balance'), null, LL('não indicado na carta', 'not on the letter'));
+      }
     } else {
       add(LL('Valor', 'Amount'), has(val('af_tot')), money(val('af_tot') || 0));
       add(LL('Nº de prestações', 'Nº of instalments'), has(val('af_np')), val('af_np'));
@@ -1793,14 +1797,19 @@ function letterCheck(show) {
       else add(LL('Saldo da dívida', 'Debt balance'), null, LL('não indicado na carta', 'not on the letter'));
     }
   }
-  const ok = !unreadable && C.every(c => c.ok !== false);
-  if (show && box) box.innerHTML = unreadable
+  const ok = !unreadable && C.every(c => c.ok !== false), soft = !refLetter();
+  if (show && box && soft && !ok) box.innerHTML = '<div class="ocr bad"><b>⚠ ' + (unreadable ? LL('A app não conseguiu ler bem a carta', 'The app could not read the letter well') : LL('A carta não confere em todos os pontos', 'The letter does not match on every point')) + '</b>' +
+      C.map(c => '<div>' + (c.ok === true ? '✓' : c.ok === false ? '✗' : '–') + ' ' + c.label + ': <span class="muted">' + esc(c.info) + '</span></div>').join('') +
+      '<small class="muted">' + LL('Pode enviar (carta sem referência). O pedido vai marcado para o Moussa confirmar. Se puder, corrija o formulário ou tire uma foto mais nítida.', 'You can send it (letter without reference). The request is flagged for Moussa to check. If you can, fix the form or take a sharper photo.') + '</small></div>';
+  else if (show && box) box.innerHTML = unreadable
     ? '<div class="ocr bad"><b>✗ ' + LL('Foto ilegível', 'Photo unreadable') + '</b><br>' + LL('Tire outra foto: carta inteira, boa luz, sem sombra, de frente.', 'Take another photo: whole letter, good light, no shadow, straight on.') + '</div>'
     : '<div class="ocr ' + (ok ? 'good' : 'bad') + '"><b>' + (ok ? '✓ ' + LL('A carta corresponde ao pedido', 'The letter matches the request') : '✗ ' + LL('A carta não corresponde — não pode enviar', 'The letter does not match — cannot submit')) + '</b>' +
       C.map(c => '<div>' + (c.ok === true ? '✓' : c.ok === false ? '✗' : c.ok === 'warn' ? '⚠' : '–') + ' ' + c.label + ': <span class="muted">' + esc(c.info) + '</span></div>').join('') +
       (ok ? '' : '<small class="muted">' + LL('Corrija o formulário para ficar igual à carta, ou tire uma foto mais nítida. Saldo diferente: escreva na nota e fale com o Moussa.', 'Fix the form to match the letter, or take a sharper photo. Different balance: note it and talk to Moussa.') + '</small>') + '</div>';
   return { ok: ok, unreadable: unreadable, checks: C };
 }
+/* letters with a reference (férias, férias pagas, advances) are checked strictly; the others (Dispensa, reports…) only on name, period and days */
+const refLetter = () => AF.tipo === 'Adiantamento' || (AF.tipo === 'Licença' && isFer('af'));
 document.addEventListener('input', e => { if (OCR.text && /^af_/.test((e.target && e.target.id) || '')) letterCheck(true); });
 document.addEventListener('change', e => { if (OCR.text && /^af_/.test((e.target && e.target.id) || '') && e.target.id !== 'af_f') setTimeout(() => letterCheck(true), 50); });
 /* ---------- references (FA/TS/01/11/26), leave balance and loan instalments ---------- */
@@ -1968,6 +1977,10 @@ async function assistSubmit() {
     if (!chk.ok) { document.getElementById('af_ocr').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast(chk.unreadable ? LL('Foto ilegível — tire outra foto da carta', 'Photo unreadable — take another photo') : LL('A carta não corresponde ao pedido — corrija os pontos a vermelho', 'The letter does not match the request — fix the points in red')); }
   }
   if ((AF.tipo === 'Justificação' || AF.tipo === 'Horas extra') && !((document.getElementById('af_f') || {}).files || [])[0]) return toast(LL('Junte a foto do documento', 'Attach the photo of the document'));
+  if (!needRef && AF.tipo === 'Licença' && OCR.text && OCR.file === ((document.getElementById('af_f') || {}).files || [])[0]) {   /* no-reference letter: never blocked, but flagged when it does not match */
+    const chk = letterCheck(true);
+    if (!chk.ok) dados.nota = (dados.nota ? dados.nota + ' · ' : '') + LL('⚠ A carta não confere com o pedido (', '⚠ Letter does not match the request (') + chk.checks.filter(c => c.ok === false).map(c => c.label).join(', ') + (chk.unreadable ? LL('foto pouco legível', 'photo hard to read') : '') + ') — ' + LL('confirmar', 'check');
+  }
   const b = document.getElementById('af_b'); b.disabled = true; b.textContent = t('sending');
   try {
     const file = await readDoc(document.getElementById('af_f'));
