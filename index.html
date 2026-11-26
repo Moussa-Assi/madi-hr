@@ -2242,6 +2242,8 @@ async function renderFaltas(head, asst) {
   main.innerHTML = head + '<div class="load">…</div>';
   let d; try { d = await call(asst ? 'aFaltas' : 'faltasMes', FMP ? { pk: FMP } : {}); } catch (e) { return showErr(e); }
   const canJ = asst && ((window._meta || {}).types || []).indexOf('Justificação') >= 0;
+  const ownJ = !asst && !d.closed, oDays = r => r.faltas.concat(r.verificar).filter(x => !x.pedido && x.d <= JUST_SEM_FOTO_ATE).map(x => x.d);   /* owner: justify without photo, only up to the November 2026 period */
+  window._fm = d;
   const q = FMQ.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
   const depts = [...new Set(d.rows.map(r => r.dept).filter(Boolean))].sort();
   const rows = d.rows.filter(r => (!FMD || r.dept === FMD) && (!q || String(r.nome + ' ' + r.id + ' ' + r.ent).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').indexOf(q) >= 0));
@@ -2256,15 +2258,40 @@ async function renderFaltas(head, asst) {
     '<div class="bar"><div class="chips"><span class="chip ' + (!FMD ? 'on' : '') + '" onclick="FMD=\'\';render()">' + LL('Todos', 'All') + '</span>' + depts.map(x => '<span class="chip ' + (FMD === x ? 'on' : '') + '" onclick="FMD=\'' + esc(x) + '\';render()">' + esc(x) + '</span>').join('') + '</div><span class="sp"></span>' +
     '<input type="search" id="fmq" placeholder="🔍 ' + LL('Procurar nome ou ID', 'Search name or ID') + '" value="' + esc(FMQ) + '" oninput="FMQ=this.value;clearTimeout(window._fmt);window._fmt=setTimeout(()=>{render().then(()=>{const e=document.getElementById(\'fmq\');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length)}})},350)"></div>' +
     '<div class="muted" style="margin:0 2px 8px">' + LL('Faltas do mês aberto só descontam do saldo de férias quando o mês fechar, se continuarem por justificar. Cor laranja = já há um pedido de justificação à espera.', 'Open-month absences only come off the leave balance when the month is closed, if still unjustified. Orange = a justification request is already waiting.') + '</div>' +
-    '<div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + LL('Departamento', 'Department') + '</th><th>' + LL('Empresa', 'Company') + '</th><th class="n">' + LL('Faltas', 'Absences') + '</th><th>' + LL('Datas das faltas', 'Absence dates') + '</th><th class="n">' + LL('A verificar', 'To check') + '</th><th>' + LL('Datas a verificar', 'Dates to check') + '</th><th>' + LL('Justificadas', 'Justified') + '</th>' + (canJ ? '<th></th>' : '') + '</tr>' +
+    '<div class="card tw"><table><tr><th>ID</th><th>' + t('name') + '</th><th>' + LL('Departamento', 'Department') + '</th><th>' + LL('Empresa', 'Company') + '</th><th class="n">' + LL('Faltas', 'Absences') + '</th><th>' + LL('Datas das faltas', 'Absence dates') + '</th><th class="n">' + LL('A verificar', 'To check') + '</th><th>' + LL('Datas a verificar', 'Dates to check') + '</th><th>' + LL('Justificadas', 'Justified') + '</th>' + (canJ || ownJ ? '<th></th>' : '') + '</tr>' +
     rows.map(r => '<tr><td>' + r.id + '</td><td><b>' + esc(r.nome) + '</b></td><td>' + esc(r.dept) + '</td><td class="muted">' + esc(r.ent) + '</td>' +
       '<td class="n">' + (r.faltas.length ? '<b style="color:var(--bad)">' + r.faltas.length + '</b>' : '') + '</td>' +
       '<td style="white-space:normal;min-width:260px;max-width:480px">' + r.faltas.map(x => chip(x, x.pedido ? 's-chk' : 's-bad', x.pedido ? LL('pedido de justificação Nº ', 'justification request Nº ') + x.pedido + LL(' à espera', ' waiting') : LL('falta sem justificação', 'unjustified absence'))).join('') + '</td>' +
       '<td class="n">' + (r.verificar.length || '') + '</td>' +
       '<td style="white-space:normal;min-width:120px;max-width:320px">' + r.verificar.map(x => chip(x, 's-chk', LL('entrada ', 'in ') + (String(x.ent).slice(0, 5) || '—') + ' · ' + LL('saída ', 'out ') + (String(x.sai).slice(0, 5) || '—') + (x.pedido ? ' · ' + LL('pedido Nº ', 'request Nº ') + x.pedido : ''))).join('') + '</td>' +
       '<td style="white-space:normal;max-width:260px">' + r.justif.map(x => chip(x, 's-ok', x.st)).join('') + '</td>' +
-      (canJ ? '<td>' + (r.faltas.some(x => !x.pedido) || r.verificar.some(x => !x.pedido) ? '<button class="btn sec sm" onclick=\'faltaJust(' + r.id + ',' + JSON.stringify(r.faltas.concat(r.verificar).filter(x => !x.pedido).map(x => x.d)) + ')\'>✍ ' + LL('Justificar', 'Justify') + '</button>' : '') + '</td>' : '') + '</tr>').join('') +
+      (canJ ? '<td>' + (r.faltas.some(x => !x.pedido) || r.verificar.some(x => !x.pedido) ? '<button class="btn sec sm" onclick=\'faltaJust(' + r.id + ',' + JSON.stringify(r.faltas.concat(r.verificar).filter(x => !x.pedido).map(x => x.d)) + ')\'>✍ ' + LL('Justificar', 'Justify') + '</button>' : '') + '</td>' : '') +
+      (ownJ ? '<td>' + (oDays(r).length ? '<button class="btn sec sm" onclick="ownJust(' + r.id + ')" title="' + LL('sem foto — só até ao período de novembro', 'no photo — only up to the November period') + '">✍ ' + LL('Justificar', 'Justify') + '</button>' : '') + '</td>' : '') + '</tr>').join('') +
     (rows.length ? '' : '<tr><td colspan="9" class="muted" style="padding:14px">' + LL('Sem faltas neste período', 'No absences in this period') + '</td></tr>') + '</table></div>';
+}
+/* Owner: regularise the November 2026 backlog without a photo. From the December period (26/11 on) every justification comes from Yorna with its photo. */
+const JUST_SEM_FOTO_ATE = '2026-11-25';
+const OWNJ_ST = ['Falta justificada', 'Baixa médica', 'Dispensa', 'Presente', 'Confirmado', 'Serviço externo', 'Mercado'];
+function ownJust(id) {
+  const r = (window._fm.rows || []).find(x => x.id === id); if (!r) return;
+  const days = r.faltas.map(x => [x, 'F']).concat(r.verificar.map(x => [x, 'V'])).filter(a => !a[0].pedido && a[0].d <= JUST_SEM_FOTO_ATE).sort((a, b) => a[0].d < b[0].d ? -1 : 1);
+  modal('✍ ' + LL('Justificar', 'Justify') + ' · ' + r.nome, '', '');
+  document.getElementById('mBody').innerHTML = '<div class="form">' +
+    '<div class="full muted">' + LL('Sem foto — regularização do período de novembro. A partir de dezembro, cada justificação vem da Yorna com a foto.', 'No photo — clearing the November period. From December, each justification comes from Yorna with its photo.') + '</div>' +
+    '<div class="full">' + days.map(a => '<label style="display:inline-flex;gap:6px;align-items:center;margin:0 14px 6px 0;font-weight:400"><input type="checkbox" class="oj_d" value="' + a[0].d + '" data-old="' + (a[1] === 'F' ? 'Falta' : 'Verificar') + '" checked> ' + wdS(a[0].d) + ' ' + dmS(a[0].d) + ' <span class="st ' + (a[1] === 'F' ? 's-bad' : 's-chk') + '">' + (a[1] === 'F' ? LL('falta', 'absence') : LL('a verificar', 'to check')) + '</span></label>').join('') + '</div>' +
+    '<label>' + LL('Novo estado', 'New status') + ' *<select id="oj_st">' + stOpts(OWNJ_ST) + '</select></label>' +
+    '<label class="full">' + LL('Motivo', 'Reason') + ' *<input id="oj_m" maxlength="200" placeholder="' + LL('ex.: justificação entregue em papel', 'e.g. justification handed in on paper') + '"></label>' +
+    '<div class="act"><button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="oj_b" onclick="ownJustSave(' + id + ')">' + t('save') + '</button></div></div>';
+}
+async function ownJustSave(id) {
+  const r = (window._fm.rows || []).find(x => x.id === id), st = val('oj_st'), m = val('oj_m').trim();
+  const sel = [...document.querySelectorAll('.oj_d:checked')].map(e => [e.value, e.dataset.old]);
+  if (!sel.length || !st || !m) return toast(t('required'));
+  const b = document.getElementById('oj_b'); b.disabled = true;
+  try {
+    for (const [d, old] of sel) await call('resolve', { id: id, date: d, nome: r.nome, st: st, old: old, motivo: LL('Sem foto (regularização nov/2026): ', 'No photo (Nov 2026 clean-up): ') + m });
+    invalidate(); closeModal(); toast(t('saved') + ' · ' + sel.length + ' ' + LL('dia(s)', 'day(s)')); render();
+  } catch (e) { toast(t('error') + ': ' + (e.message || e)); b.disabled = false; }
 }
 function faltaJust(id, days) { AF = { tipo: 'Justificação', id: id, days: days.slice() }; AV = 'new'; render(); }
 
