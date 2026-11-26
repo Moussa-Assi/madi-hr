@@ -1114,26 +1114,32 @@ async function loanForm(x, presetId) {
   const dl = await peopleDL();
   const ents = [...new Set((PEOPLE_DL || []).map(p => p.ent).filter(Boolean))].sort();   /* one official name per company (from the people list) */
   const v2 = (k, d) => esc(x && x[k] != null ? x[k] : d);
+  const prev0 = x ? loanPrevOf(x.notas) : 0, r2 = v => Math.round(v * 100) / 100;
   document.getElementById('mBody').innerHTML = '<div class="form">' +
     '<label>' + t('person') + ' *' + personSelect('lo_p', x ? x.id : presetId) + '</label>' +
     '<label>' + t('loanType') + '<select id="lo_t"><option value="Adiantamento"' + (x && x.tipo === 'Adiantamento' ? ' selected' : '') + '>' + t('advance') + '</option><option value="Empréstimo"' + (!x || x.tipo !== 'Adiantamento' ? ' selected' : '') + '>' + t('loan') + '</option></select></label>' +
     '<label>' + t('date') + '<input type="date" id="lo_d" value="' + v2('data', todayStr()) + '"></label>' +
-    loanFields('lo', 'lo_v', 'lo_i', v2('total', ''), v2('prest', ''), v2('nprest', ''), x) +
+    loanFields('lo', 'lo_v', 'lo_i', x ? String(r2((Number(x.total) || 0) - prev0)) : '', v2('prest', ''), v2('nprest', ''), x) +
     '<label>' + t('firstDed') + '<input type="month" id="lo_s" value="' + v2('inicio', (CACHE.loans || {}).periodo || '') + '"></label>' +
-    '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '"></label>' +
+    '<label>' + t('paidBefore') + '<input type="number" step="0.01" id="lo_pb" value="' + v2('pagoAntes', 0) + '" oninput="loanCalc(\'lo\',\'lo_v\',\'lo_i\')"></label>' +
     '<label>' + t('entity') + '<select id="lo_e"><option value="">' + LL('— a da pessoa —', '— the person\'s company —') + '</option>' + ents.concat(x && x.ent && ents.indexOf(x.ent) < 0 ? [x.ent] : []).map(e => '<option' + (x && x.ent === e ? ' selected' : '') + '>' + esc(e) + '</option>').join('') + '</select></label>' +
     refField('lo', 'CR', x ? x.ref : '', x ? x.notas : '') +
     '<label>' + t('status2') + '<select id="lo_st">' + ['Ativo', 'Suspenso', 'Liquidado'].map(s => '<option value="' + s + '"' + ((x ? x.estado : 'Ativo') === s ? ' selected' : '') + '>' + LSTW(s) + '</option>').join('') + '</select></label>' +
     '<label class="full">' + t('notes') + '<input id="lo_n" value="' + v2('notas', '') + '"></label>' +
     '<div class="act">' + (x ? '<button class="btn sec" style="margin-right:auto;color:var(--bad)" onclick="delLetter(\'loanDel\',' + x.n + ')">🗑 ' + LL('Apagar', 'Delete') + '</button>' : '') + '<button class="btn sec" onclick="closeModal()">' + t('cancel') + '</button><button class="btn" id="lo_btn" onclick="saveLoan(' + (x ? x.n : 0) + ')">' + t('save') + '</button></div></div>' + dl +
     '<datalist id="dl_lent">' + ents.map(e => '<option value="' + esc(e) + '">').join('') + '</datalist>';
-  FS.lo = { edit: x || null }; formSync('lo', true);
+  FS.lo = { edit: x || null, prev: prev0, conf: x ? r2((Number(x.paid) || 0) - (Number(x.pagoAntes) || 0)) : 0 }; formSync('lo', true);
 }
 async function saveLoan(n) {
   const id = pid(val('lo_p'));
   const p = { n: n || '', id: id, tipo: val('lo_t'), data: val('lo_d'), total: val('lo_v'), prest: val('lo_i'), inicio: val('lo_s'), pagoAntes: val('lo_pb'), ent: val('lo_e'), ref: getRef('lo'), nprest: val('lo_np'), estado: val('lo_st'), notas: tagNote(val('lo_n'), 'Carta', val('lo_dc')), ...loanOpt('lo') };
   if (p.fonte !== 'Salário' && !(Number(p.prestB) > 0)) return toast(LL('Escreva a prestação do bónus', 'Enter the bonus instalment'));
   if (!id || !p.total) return toast(t('required'));
+  if (n && FS.lo && FS.lo.edit && !isA()) {   /* editing: the debt = previous balance (before this letter) + amount credited */
+    const pv = Math.round((Number(val('lo_sd')) || 0) * 100) / 100, cr = Number(val('lo_v')) || 0;
+    p.total = Math.round((pv + cr) * 100) / 100;
+    if (pv !== FS.lo.prev) { p.notas = String(p.notas || '').replace(LOAN_PREV_RE, '').replace(/^\s*·\s*/, '').trim(); if (pv) p.notas = (p.notas ? p.notas + ' · ' : '') + 'Saldo anterior: ' + pv.toFixed(2) + ' + novo ' + cr.toFixed(2); }
+  }
   document.getElementById('lo_btn').disabled = true;
   try { await call('loanSave', p); invalidate(); CACHE.loans = await call('loans'); toast(t('saved')); loanPerson(id); render(); } catch (e) { toast(t('error') + ': ' + e); document.getElementById('lo_btn').disabled = false; }
 }
@@ -1848,7 +1854,8 @@ function ferNums(P) {
 }
 function loanFields(P, tot, pre, vt, vp, vn, x) {
   const f = 'loanCalc(\'' + P + '\',\'' + tot + '\',\'' + pre + '\')', ro = ' readonly tabindex="-1" style="background:var(--soft,#f4f4f4)"', fo = (x && x.fonte) || 'Salário';
-  return '<label>' + LL('Saldo anterior (dívida)', 'Previous balance (debt)') + '<input id="' + P + '_sd"' + ro + '><small class="muted" id="' + P + '_sdi"></small></label>' +
+  const sdEd = P === 'lo' && x && !isA();
+  return '<label>' + (sdEd ? LL('Saldo anterior (antes desta carta)', 'Previous balance (before this letter)') : LL('Saldo anterior (dívida)', 'Previous balance (debt)')) + '<input id="' + P + '_sd"' + (sdEd ? ' type="number" step="0.01" oninput="this.dataset.v=this.value;' + f + '"' : ro) + '><small class="muted" id="' + P + '_sdi"></small></label>' +
     '<label>' + LL('Valor a creditar', 'Amount credited') + ' *<input type="number" step="0.01" id="' + tot + '" value="' + vt + '" oninput="' + f + '"></label>' +
     '<label class="' + P + '_mdw">' + LL('Prestações sobre', 'Instalments on') + '<select id="' + P + '_md" onchange="' + f + '"><option value="nova">' + LL('Só a nova dívida (a prestação antiga continua)', 'The new debt only (the old instalment goes on)') + '</option><option value="toda">' + LL('Toda a dívida (atualiza a prestação)', 'The whole debt (updates the instalment)') + '</option></select></label>' +
     '<label>' + LL('Descontar de', 'Deduct from') + '<select id="' + P + '_fo" onchange="' + f + '">' + [['Salário', LL('Salário', 'Salary')], ['Bónus', LL('Bónus', 'Bonus')], ['Salário e bónus', LL('Salário e bónus', 'Salary and bonus')]].map(o => '<option value="' + o[0] + '"' + (o[0] === fo ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
@@ -1857,6 +1864,8 @@ function loanFields(P, tot, pre, vt, vp, vn, x) {
     '<label class="' + P + '_sw">' + LL('Prestação do salário (por mês)', 'Salary instalment (per month)') + '<input type="number" step="0.01" id="' + pre + '" value="' + vp + '"' + (isA() ? ro : '') + '></label>' +
     '<label>' + LL('Novo saldo (dívida)', 'New balance (debt)') + '<input id="' + P + '_ns" readonly tabindex="-1" style="font-weight:700;background:var(--soft,#f4f4f4)"><small class="muted" id="' + P + '_nsi"></small></label>';
 }
+const LOAN_PREV_RE = /\s*·?\s*(?:Saldo anterior: [\d.]+ \+ novo [\d.]+|Inclui saldo anterior [\d.]+(?: \([^)]*\))? \+ novo [\d.]+)/g;
+const loanPrevOf = nota => { const m = String(nota || '').match(/(?:Saldo anterior:|Inclui saldo anterior) ([\d.]+)/); return m ? Number(m[1]) || 0 : 0; };
 const loanOpt = P => ({ modo: val(P + '_md') || 'nova', fonte: val(P + '_fo') || 'Salário', prestB: val(P + '_pbn') });
 const isFer = P => /^Férias/.test(val(P === 'af' ? 'af_lt' : 'lf_t'));
 function ferShow(P) { fpShow(P); const f = isFer(P); document.querySelectorAll('.' + P + '_fer').forEach(e => e.style.display = f ? '' : 'none'); if (P !== 'lo' && !(P === 'af' && AF.tipo === 'Adiantamento')) document.querySelectorAll('.' + P + '_refw').forEach(e => e.style.display = f ? '' : 'none'); balCalc(P); }
@@ -1878,7 +1887,9 @@ function loanCalc(P, tot, pre) {
   const v = Number(val(tot)) || 0, np = Number(val(P + '_np')) || 0, pe = document.getElementById(pre), pb = document.getElementById(P + '_pbn');
   const sd = document.getElementById(P + '_sd'), ns = document.getElementById(P + '_ns'), prev = sd && sd.dataset.v ? Number(sd.dataset.v) || 0 : 0, ed = FS[P] && FS[P].edit;
   const mdw = document.querySelector('.' + P + '_mdw'); if (mdw) mdw.style.display = !ed && prev > 0 ? '' : 'none';
-  const toda = !ed && prev > 0 && val(P + '_md') === 'toda', fo = val(P + '_fo') || 'Salário', base = toda ? prev + v : v, r2 = x => Math.round(x * 100) / 100;
+  const r2 = x => Math.round(x * 100) / 100, edOwn = ed && P === 'lo' && !isA(), conf = edOwn ? (FS[P].conf || 0) : 0, pbv = edOwn ? Number(val(P + '_pb')) || 0 : 0;
+  const rest = edOwn ? r2(prev + v - pbv - conf) : 0;   /* editing: what is still owed = previous balance + credited − paid before − deductions already confirmed in the app */
+  const toda = !ed && prev > 0 && val(P + '_md') === 'toda', fo = val(P + '_fo') || 'Salário', base = edOwn ? Math.max(0, rest) : toda ? prev + v : v;
   document.querySelectorAll('.' + P + '_bw').forEach(e => e.style.display = fo === 'Salário' ? 'none' : '');
   document.querySelectorAll('.' + P + '_sw').forEach(e => e.style.display = fo === 'Bónus' ? 'none' : '');
   if (base && np > 0) {
@@ -1887,10 +1898,11 @@ function loanCalc(P, tot, pre) {
     else if (fo === 'Salário e bónus') { const b = pb ? Math.min(Number(pb.value) || 0, per) : 0; if (pe) pe.value = r2(per - b).toFixed(2); }
     else if (pe) pe.value = per.toFixed(2);
   }
-  if (ns && sd) ns.value = sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money(prev + (ed ? 0 : v));
+  if (ns && sd) ns.value = edOwn ? money(rest) : sd.dataset.v === undefined || sd.dataset.v === '' ? '' : money(prev + (ed ? 0 : v));
   const inf = PINFO[pidOf(P)] || {}, sdi = document.getElementById(P + '_sdi'), nsi = document.getElementById(P + '_nsi');
   if (sdi) sdi.textContent = prev > 0 && !ed ? LL('desconto mensal atual: ', 'current monthly deduction: ') + money(inf.prestMes || 0) + (inf.prestMesB ? ' + ' + LL('bónus ', 'bonus ') + money(inf.prestMesB) : '') : '';
-  if (nsi) { const s = Number(val(pre)) || 0, b = fo === 'Salário' ? 0 : Number(val(P + '_pbn')) || 0;
+  if (nsi && edOwn) { const s = Number(val(pre)) || 0; nsi.textContent = LL('= anterior ', '= previous ') + money(prev) + ' + ' + LL('creditado ', 'credited ') + money(v) + ' − ' + LL('pago antes ', 'paid before ') + money(pbv) + (conf ? ' − ' + LL('descontos já na app ', 'deductions already in the app ') + money(conf) : '') + (s ? ' · ' + LL('por mês: ', 'per month: ') + money(s) : ''); }
+  else if (nsi) { const s = Number(val(pre)) || 0, b = fo === 'Salário' ? 0 : Number(val(P + '_pbn')) || 0;
     nsi.textContent = !v ? '' : LL('por mês: ', 'per month: ') + (toda || !prev ? (fo === 'Bónus' ? '' : money(s)) + (b ? (fo === 'Bónus' ? '' : ' + ') + LL('bónus ', 'bonus ') + money(b) : '') + (toda ? ' — ' + LL('uma só prestação para toda a dívida', 'one instalment for the whole debt') : '')
       : money((inf.prestMes || 0) + s) + (b + (inf.prestMesB || 0) ? ' + ' + LL('bónus ', 'bonus ') + money(b + (inf.prestMesB || 0)) : '') + ' (' + LL('antiga + nova', 'old + new') + ')'); }
 }
@@ -1926,7 +1938,8 @@ async function formSync(P, newPerson) {
     sa.dataset.sys = String(s); sa.value = String(s);
   }
   const sd = document.getElementById(P + '_sd');
-  if (sd) { sd.dataset.v = String(inf.divida || 0); sd.value = money(inf.divida || 0); }
+  if (sd && P === 'lo' && FS.lo && FS.lo.edit && !isA()) { if (!sd.dataset.set) { sd.dataset.set = 1; sd.dataset.v = String(FS.lo.prev || 0); sd.value = String(FS.lo.prev || 0); } }
+  else if (sd) { sd.dataset.v = String(inf.divida || 0); sd.value = money(inf.divida || 0); }
   if (P !== 'lo') {
     const nd = document.getElementById(P === 'af' ? 'af_nd' : 'lf_n');
     const md = val(P + '_m') === 'd', days = P === 'af' ? AF.days : LDAYS;
