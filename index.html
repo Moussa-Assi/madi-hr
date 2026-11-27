@@ -2634,6 +2634,17 @@ function otDec(n) {
   return { linhas: linhas, horas: Math.round(linhas.reduce((t, x) => t + x.horas, 0) * 100) / 100 };
 }
 function otApTot(n, k) { let t = 0; for (let i = 0; i < k; i++) t += hmParse(val('ap_h' + n + '_' + i)); const e = document.getElementById('aptot' + n); if (e) e.textContent = hmH(t); }
+/* only what matters for the declared period: stops from 30 min before the start to 1 h after the end; if the truck never moved, say where it stood */
+function otStopsTxt(stops, ini, fim, mp) {
+  const mi = v => { const z = String(v || '').match(/(\d{1,2}):(\d{2})/); return z ? Number(z[1]) * 60 + Number(z[2]) : null; };
+  const a = mi(ini), b0 = mi(fim); if (a === null || b0 === null || !stops || !stops.length) return '';
+  const b = b0 <= a ? b0 + 1440 : b0, from = a - 30, to = b + 60;
+  const sel = stops.filter(s => { const d = mi(s.de), e = s.ate ? mi(s.ate) : 1440 * 2; return d !== null && d <= to && e >= from; });
+  const parked = sel.length === 1 && mi(sel[0].de) <= a && (!sel[0].ate || mi(sel[0].ate) >= b);
+  if (parked) return '<div style="margin-top:4px">🅿️ ' + LL('Parada em ', 'Parked at ') + mp(sel[0]) + ' ' + LL('desde as ', 'since ') + esc(sel[0].de) + (sel[0].ate ? LL(' até ', ' until ') + esc(sel[0].ate) : '') + ' — <b>' + LL('não andou entre ' + ini + ' e ' + fim, 'did not move between ' + ini + ' and ' + fim) + '</b></div>';
+  if (!sel.length) return '';
+  return '<div style="margin-top:4px">' + LL('No período: ', 'In the period: ') + sel.map(s => esc(s.de) + (s.ate ? '–' + esc(s.ate) : '→') + ' ' + mp(s) + (s.min ? ' (' + s.min + ' min)' : '')).join(' · ') + '</div>';
+}
 async function otGpsLoad(n, x, i) {
   const line = i !== undefined, el = document.getElementById('gps' + n + (line ? '_' + i : '')), hid = 'ap_h' + n + (line ? '_' + i : ''); if (!el) return;
   try {
@@ -2645,7 +2656,7 @@ async function otGpsLoad(n, x, i) {
       : '<span class="st s-bad">⚠ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e NÃO voltou à empresa', 'left the client at ' + g.saidaCliente + ' and did NOT return to the company') + (g.fimCarro ? ' — ' + LL('motor desligado às ', 'engine off at ') + g.fimCarro.t + ' ' + mp(g.fimCarro) : '') + '</span>';
     el.innerHTML = '🚚 <b>' + esc(g.reg) + '</b> · ' + verdict +
       (g.horasVerif !== undefined && g.horasVerif !== null ? ' · ' + LL('GPS', 'GPS') + ': <b>' + hmH(g.horasVerif) + '</b>' + (document.getElementById(hid) ? '' : ' ' + LL('contam pelo GPS', 'count by GPS')) + (!document.getElementById(hid) ? '' : ' <button class="btn sec sm" onclick="document.getElementById(\'' + hid + '\').value=\'' + hmH(g.horasVerif) + '\';' + (line ? 'otApTot(' + n + ',' + (((window._req || {}).rows || []).find(z => z.n === n) || { dados: { linhas: [] } }).dados.linhas.length + ')' : '') + '">' + LL('usar', 'use') + '</button>') : '') +
-      '<div style="margin-top:4px">' + g.stops.map(s => esc(s.de) + (s.ate ? '–' + esc(s.ate) : '→') + ' ' + mp(s) + (s.min ? ' (' + s.min + ' min)' : '')).join(' · ') + '</div>';
+      otStopsTxt(g.stops, x.inicio, x.fim, mp);
   } catch (e) { el.innerHTML = '🚚 ' + esc(e.message || e); }
 }
 async function otApproveAll() {
