@@ -1522,7 +1522,7 @@ function absTable(P) {
 /* =========================== ⚙ SETTINGS =========================== */
 let SETV = 'co';
 const SET_SECTIONS = () => [['ppl', LL('Pessoas', 'People')], ['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
-  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')], ['tg', '🔔 Telegram'], ['log', LL('Histórico', 'History log')]];
+  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')], ['tg', '🔔 Telegram'], ['ct', '🚚 Cartrack'], ['log', LL('Histórico', 'History log')]];
 const SET_NUMS = () => ({
   att: [
     ['TOLERANCIA_ATRASO_MIN', LL('Tolerância de atraso', 'Late tolerance'), 'min', LL('O atraso só conta quando a entrada é X min ou mais depois da hora.', 'Late only counts when arrival is X min or more after start time.')],
@@ -1585,6 +1585,7 @@ function renderSettings(d) {
   else if (SETV === 'ppl') { body = ''; setAsync = 'ppl'; }
   else if (SETV === 'log') { body = ''; setAsync = 'log'; }
   else if (SETV === 'tg') { body = ''; setAsync = 'tg'; }
+  else if (SETV === 'ct') { body = ''; setAsync = 'ct'; }
   else if (SETV === 'hol' && (setAsync = 'hol')) body = '<div class="card" style="padding:14px"><p>' + LL('Feriados e tolerâncias de ponto por ano e por cidade (Todos, Maputo, Nampula, Beira).', 'Holidays and tolerance days per year and city (All, Maputo, Nampula, Beira).') + '</p><button class="btn" onclick="LV=\'hol\';go(\'leave\')">' + LL('Abrir feriados →', 'Open holidays →') + '</button></div>';
   else if (SETV === 'lst') body = '<div class="card" style="padding:14px"><p>' + LL('Listas usadas nos formulários: empresas, departamentos, localizações, funções e tipos de documento. Mudar um nome atualiza todas as pessoas.', 'Lists used in forms: companies, departments, locations, roles and document types. Renaming updates every person.') + '</p><button class="btn" onclick="listsModal()">' + LL('Editar listas', 'Edit lists') + '</button></div>';
   else if (SETV === 'hik') {
@@ -1613,6 +1614,7 @@ async function setFill(k, head) {
     if (k === 'ppl') return renderSetPeople(head, await need('people'));
     if (k === 'log') return renderHistLog(head);
     if (k === 'tg') return renderTg(head);
+    if (k === 'ct') return renderCt(head);
   } catch (e) { showErr(e); }
 }
 function renderSetPeople(head, list) {
@@ -2293,6 +2295,31 @@ async function renderTg(head, poll) {
     (d.inbox.length ? d.inbox.map((x, i) => '<tr><td>' + esc(x.tg) + (byChat[x.chat] ? ' <span class="st s-ok">' + esc(byChat[x.chat]) + '</span>' : '') + '</td><td class="muted">' + esc(x.text) + '</td><td class="muted">' + when(x.em) + '</td><td><select id="tgs' + i + '"><option value="">—</option>' + d.names.map(n => '<option' + (byChat[x.chat] === n ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select> <button class="btn sm" onclick="const v=val(\'tgs' + i + '\');if(v)tgAct(\'link\',{nome:v,chat:\'' + esc(x.chat) + '\'})">' + LL('Ligar', 'Link') + '</button></td></tr>').join('')
       : '<tr><td colspan="4" class="muted" style="padding:12px">' + LL('Ainda ninguém. Depois de ela escrever ao bot, carregue em «Atualizar» (o Telegram guarda as mensagens 24 h).', 'Nobody yet. After she writes to the bot, press «Refresh» (Telegram keeps messages for 24 h).') + '</td></tr>') + '</table></div>';
   main.dataset.head = head;
+}
+/* Settings → Cartrack: the Fleet API credentials (Fleetweb → Settings → API Settings → Administrator credentials). Saved on the server only. */
+async function renderCt(head) {
+  const main = document.getElementById('main');
+  let st = { configured: false }; try { if (typeof sbc !== 'undefined') { const r = await sbc.rpc('hr_cartrack_status'); if (!r.error) st = r.data; } } catch (e) {}
+  main.innerHTML = head + '<div class="card" style="padding:14px"><h3 style="margin-top:0">🚚 Cartrack — ' + LL('ligação à frota', 'fleet connection') + '</h3>' +
+    '<p class="muted" style="margin:0 0 10px">' + LL('Serve para confirmar as horas extra e os dias «a verificar» dos motoristas com as viagens reais das viaturas (de onde saiu, onde parou e quanto tempo, a que horas voltou).', 'Used to confirm drivers\' overtime and «to check» days with the vehicles\' real trips (where they left from, where they stopped and for how long, when they came back).') + '</p>' +
+    '<p style="margin:0 0 12px">' + (st.configured ? '<span class="st s-ok">✓ ' + LL('Credenciais guardadas', 'Credentials saved') + '</span> <span class="muted">' + LL('utilizador', 'username') + ': ' + esc(st.user) + '</span>' : '<span class="st s-bad">' + LL('Ainda não ligado', 'Not connected yet') + '</span>') + '</p>' +
+    '<div class="form"><label>' + LL('Utilizador da API (Administrator username)', 'API username (Administrator username)') + '<input id="ct_u" autocomplete="off" value="' + esc(st.user || '') + '"></label>' +
+    '<label>' + LL('Palavra-passe da API (gerada em API Settings)', 'API password (generated in API Settings)') + '<input id="ct_p" type="password" autocomplete="new-password" placeholder="' + (st.configured ? LL('••••• (guardada — escreva só para mudar)', '••••• (saved — type only to change)') : '') + '"></label>' +
+    '<div class="act full"><button class="btn" onclick="ctSave()">' + t('save') + '</button><button class="btn sec" onclick="ctTest()"' + (st.configured ? '' : ' disabled') + '>⚡ ' + LL('Testar ligação', 'Test connection') + '</button></div></div>' +
+    '<div id="ct_out" style="margin-top:12px"></div></div>';
+  main.dataset.head = head;
+}
+async function ctSave() {
+  const u = val('ct_u').trim(), p = val('ct_p');
+  if (!u || !p) return toast(LL('Escreva o utilizador e a palavra-passe da API', 'Enter the API username and password'));
+  try { const r = await sbc.rpc('hr_cartrack_set', { u: u, pw: p }); if (r.error) throw new Error(r.error.message); toast(t('saved')); await renderCt(document.getElementById('main').dataset.head || ''); ctTest(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
+async function ctTest() {
+  const o = document.getElementById('ct_out'); if (!o) return; o.innerHTML = '<div class="load">' + t('loading') + '</div>';
+  try {
+    const r = await call('cartrack', { op: 'test' });
+    o.innerHTML = '<div class="st s-ok" style="margin-bottom:8px">✓ ' + LL('Ligado — ' + r.n + ' viatura(s) na conta', 'Connected — ' + r.n + ' vehicle(s) on the account') + '</div><table class="tab"><tr><th>' + LL('Matrícula', 'Plate') + '</th><th>' + t('name') + '</th></tr>' + r.vehicles.map(v => '<tr><td><b>' + esc(v.reg) + '</b></td><td>' + esc(v.nome) + '</td></tr>').join('') + '</table>';
+  } catch (e) { o.innerHTML = '<div class="err">' + esc(e.message || e) + '</div>'; }
 }
 async function tgAct(act, p) {
   try { await tgCall(act, p); toast(act === 'test' ? LL('Teste enviado', 'Test sent') : t('saved')); renderTg(document.getElementById('main').dataset.head); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
