@@ -1256,7 +1256,7 @@ function reqSummary(r) {
   if (r.tipo === 'Licença') return esc(stName(d.tipo)) + ' · ' + (d.datas && d.datas.length > 1 ? d.datas.map(fmtD).join(', ') : fmtD(d.de) + (d.ate && d.ate !== d.de ? ' → ' + fmtD(d.ate) : '')) + ' · ' + d.dias + ' ' + t('nDays').toLowerCase() + (d.saldoAnt !== undefined && d.saldoAnt !== '' ? ' · ' + LL('saldo', 'balance') + ' ' + d.saldoAnt + ' → ' + (d.saldoAnt - Number(d.dias || 0)) : '');
   if (r.tipo === 'Adiantamento') return (d.tipo === 'Empréstimo' ? t('loan') : t('advance')) + ' ' + money(d.total) + ' · ' + (d.nprest ? d.nprest + ' × ' : t('inst') + ' ') + money(d.prest) + ' · ' + esc(d.inicio);
   if (r.tipo === 'Pagamento') return '<b>' + money(d.valor) + '</b> MT · ' + esc(d.forma || '');
-  if (r.tipo === 'Horas extra') return fmtD(d.data) + ' · <b>' + d.horas + ' h</b>' + (d.inicio ? ' (' + esc(d.inicio) + '–' + esc(d.fim) + ')' : '') + (d.responsavel ? ' · ' + esc(d.responsavel) : '') + (d.motivo ? ' · ' + esc(d.motivo) : '');
+  if (r.tipo === 'Horas extra') return fmtD(d.data) + ' · <b>' + d.horas + ' h</b>' + (d.declaradas && d.declaradas !== d.horas ? ' <span class="muted">(' + LL('de', 'of') + ' ' + d.declaradas + ' h · ' + esc(d.base || '') + ')</span>' : '') + (d.inicio ? ' · ' + esc(d.inicio) + '–' + esc(d.fim) : '') + (d.tipo === 'intervalo' ? ' · ' + LL('intervalo', 'break') : '') + (d.onde ? ' · 📍 ' + esc(d.onde) : '') + (d.viatura ? ' · 🚚 ' + esc(d.viatura) : '') + (d.motivo ? ' · ' + esc(d.motivo) : '') + (d.notas ? ' · <i>' + esc(d.notas) + '</i>' : '') + (d.responsavel ? ' · ' + esc(d.responsavel) : '');
   return '';
 }
 
@@ -1993,8 +1993,13 @@ function otFields(meta) {
     '<label>' + t('date') + ' *<input type="date" id="ot_d" value="' + yS + '" max="' + todayStr() + '" onchange="otCalc()"></label>' +
     '<label>' + t('startT') + ' *<input type="time" id="ot_i" onchange="otCalc()"></label>' +
     '<label>' + t('endT') + ' *<input type="time" id="ot_f" onchange="otCalc()"></label>' +
-    '<label>' + t('hours') + '<input id="ot_h" readonly style="background:#f3f4f6;font-weight:700"><small class="muted" id="ot_hi"></small></label>' +
-    '<label class="full">' + LL('Motivo / trabalho feito', 'Reason / work done') + ' *<input id="ot_m" maxlength="200" placeholder="' + LL('ex.: descarga do contentor, entrega ao cliente X', 'e.g. container unloading, delivery to client X') + '"></label>' +
+    '<label>' + LL('Duração', 'Duration') + '<input id="ot_h" readonly style="background:#f3f4f6;font-weight:700"><small class="muted" id="ot_hi"></small></label>' +
+    '<label>' + LL('Quando', 'When') + ' *<select id="ot_t" onchange="otCalc()"><option value="depois">' + LL('Depois do horário', 'After hours') + '</option><option value="antes">' + LL('Antes do horário', 'Before hours') + '</option><option value="intervalo">' + LL('Na hora de intervalo', 'During the break') + '</option><option value="folga">' + LL('Domingo / feriado / folga', 'Sunday / holiday / day off') + '</option></select></label>' +
+    '<label>' + LL('Onde (cliente / local)', 'Where (client / place)') + ' *<input id="ot_w" maxlength="120" placeholder="' + LL('ex.: Supermercado VIP Sommerschield', 'e.g. VIP Supermarket Sommerschield') + '"></label>' +
+    '<label>' + LL('Viatura (matrícula)', 'Vehicle (plate)') + '<select id="ot_v"><option value="">' + LL('— sem viatura —', '— no vehicle —') + '</option>' + (meta.viaturas || []).map(v => '<option value="' + esc(v.reg) + '">' + esc(v.reg) + (v.nome ? ' · ' + esc(v.nome) : '') + '</option>').join('') + '</select></label>' +
+    '<label class="full">' + LL('Porquê / trabalho feito', 'Why / work done') + ' *<input id="ot_m" maxlength="200" placeholder="' + LL('ex.: montagem no cliente, descarga do contentor', 'e.g. installation at the client, container unloading') + '"></label>' +
+    '<label class="full">' + LL('Notas adicionais', 'Additional notes') + '<input id="ot_x" maxlength="300"></label>' +
+    '<div class="full muted" style="font-size:12px">' + LL('A app conta só o tempo fora do horário do trabalhador (ou o intervalo). Com viatura, as horas são confirmadas pelo GPS da Cartrack. Regra: terminado o serviço, a viatura volta e fica estacionada na empresa — as horas contam até à chegada à empresa; a ida para casa não é paga.', 'The app counts only time outside the worker\'s schedule (or the break). With a vehicle, hours are confirmed by the Cartrack GPS. Rule: after the job the vehicle returns and is parked at the company — hours count until it arrives at the company; the trip home is not paid.') + '</div>' +
     '<div class="full"><b>' + LL('Quem trabalhou', 'Who worked') + ' *</b> <span class="muted" id="ot_n"></span> <input type="search" placeholder="' + LL('Procurar nome', 'Search name') + '" oninput="otFilter(this.value)" style="max-width:220px;margin-left:8px">' +
     depts.map(d => '<div style="margin:8px 0 2px"><b class="muted">' + esc(d) + '</b></div><div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + ppl.filter(p => (p.dept || '—') === d).map(p => '<label class="ot_p" data-k="' + esc(String(p.nome).toLowerCase()) + '" style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" class="ot_c" value="' + p.id + '" onchange="otCalc()"> ' + esc(p.nome) + '</label>').join('') + '</div>').join('') + '</div>' +
     '<div class="act full" style="flex-direction:column;align-items:stretch;gap:6px"><button class="btn" id="af_b" onclick="otSubmit()">📤 ' + LL('Enviar para aprovação', 'Send for approval') + '</button><small class="muted">' + LL('Fica registado com o seu nome e a hora. A app compara com a máquina de ponto.', 'Saved with your name and the time. The app compares it with the fingerprint machine.') + '</small></div>';
@@ -2008,18 +2013,19 @@ function otHours() {
 function otCalc() {
   const h = otHours(), n = document.querySelectorAll('.ot_c:checked').length, d = val('ot_d');
   const e = document.getElementById('ot_h'); if (e) e.value = h ? String(h).replace('.', ',') + ' h' : '';
-  const sun = d && new Date(d + 'T12:00:00').getDay() === 0, hi = document.getElementById('ot_hi'); if (hi) hi.textContent = d ? (sun ? LL('domingo × 2', 'Sunday × 2') : LL('seg–sáb × 1,5', 'Mon–Sat × 1.5')) : '';
+  const sun = d && new Date(d + 'T12:00:00').getDay() === 0, hi = document.getElementById('ot_hi'); if (hi) hi.textContent = (d ? (sun ? LL('domingo × 2', 'Sunday × 2') : LL('seg–sáb × 1,5', 'Mon–Sat × 1.5')) : '') + ' · ' + LL('conta só fora do horário', 'only outside the schedule counts');
   const nn = document.getElementById('ot_n'); if (nn) nn.textContent = n ? '(' + n + ')' : '';
 }
 function otFilter(q) { q = String(q || '').toLowerCase(); document.querySelectorAll('.ot_p').forEach(l => l.style.display = !q || l.dataset.k.indexOf(q) >= 0 ? '' : 'none'); }
 async function otSubmit() {
   const d = val('ot_d'), a = val('ot_i'), b = val('ot_f'), m = val('ot_m').trim(), h = otHours(), ids = [...document.querySelectorAll('.ot_c:checked')].map(x => Number(x.value));
-  if (!d || !a || !b || !m || !ids.length || !h) return toast(t('required'));
+  const tp = val('ot_t') || 'depois', w = val('ot_w').trim(), vv = val('ot_v'), nx = val('ot_x').trim();
+  if (!d || !a || !b || !m || !w || !ids.length || !h) return toast(t('required'));
   if (h > 16) return toast(LL('Mais de 16 h — verifique as horas', 'More than 16 h — check the times'));
   const btn = document.getElementById('af_b'); btn.disabled = true; btn.textContent = t('sending');
   const ns = [];
   try {
-    for (const id of ids) { const r = await call('aSubmit2', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m } }); ns.push(r.n); }
+    for (const id of ids) { const r = await call('aSubmit2', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m, tipo: tp, onde: w, viatura: vv, notas: nx } }); ns.push(r.n); }
     toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
   } catch (e) { toast(t('error') + ': ' + (e.message || e) + (ns.length ? ' · ' + LL('já enviados: Nº ', 'already sent: Nº ') + ns.join(', ') : '')); btn.disabled = false; btn.textContent = t('submit'); }
 }
@@ -2427,7 +2433,8 @@ function renderApprovals(d) {
         info += f === null ? '' : o === null ? ' · <span class="st s-chk">' + LL('saída não picada — não confirmado pela máquina', 'no exit punch — not confirmed by the machine') + '</span>'
           : f - o > 30 ? ' · <span class="st s-late">⚠ ' + LL('declarou até ' + x.fim + ', a máquina mostra saída às ' + hm(mq.sai) + ' (trabalho fora?)', 'declared until ' + x.fim + ', machine shows exit at ' + hm(mq.sai) + ' (work outside?)') + '</span>'
           : ' · <span class="st s-ok">✓ ' + LL('confere com a máquina', 'matches the machine') + '</span>'; }
-      edit += '<span data-otn="' + r.n + '" hidden></span>'; }
+      edit += '<span data-otn="' + r.n + '" hidden></span>';
+      if (x.viatura) { info += '<div id="gps' + r.n + '" class="muted" style="margin-top:6px">🚚 ' + LL('A ler o GPS da Cartrack…', 'Reading the Cartrack GPS…') + '</div>'; setTimeout(() => otGpsLoad(r.n, x), 50); } }
     if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
       info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
@@ -2451,6 +2458,20 @@ async function reqReturn(n) {
   let note = val('ap_note' + n);
   if (!note) { note = prompt(LL('Motivo da devolução (a assistente vai ver):', 'Reason for returning it (the assistant will see it):'), LL('Carta sem assinatura', 'Letter not signed')); if (note === null) return; }
   try { await call('reqReturn', { n: n, nota: note }); invalidate(); toast(LL('Devolvido à assistente', 'Returned to the assistant')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
+/* Cartrack GPS for one overtime line: where the car stopped, when it left the client, whether it came back to the company */
+async function otGpsLoad(n, x) {
+  const el = document.getElementById('gps' + n); if (!el) return;
+  try {
+    const g = await call('cartrack', { op: 'ot', n: n });
+    const mp = s => s.la !== null && s.la !== undefined ? '<a href="https://maps.google.com/?q=' + s.la + ',' + s.lo + '" target="_blank" rel="noopener">' + (s.zona ? esc(s.zona) : LL('ver no mapa', 'see on map')) + '</a>' : '';
+    const verdict = !g.saidaCliente ? '<span class="st s-chk">' + LL('sem paragem em cliente depois de ', 'no client stop after ') + esc(x.inicio) + '</span>'
+      : g.voltou ? '<span class="st s-ok">✓ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e chegou à empresa às ' + g.chegada, 'left the client at ' + g.saidaCliente + ' and reached the company at ' + g.chegada) + '</span>'
+      : '<span class="st s-bad">⚠ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e NÃO voltou à empresa', 'left the client at ' + g.saidaCliente + ' and did NOT return to the company') + (g.fimCarro ? ' — ' + LL('motor desligado às ', 'engine off at ') + g.fimCarro.t + ' ' + mp(g.fimCarro) : '') + '</span>';
+    el.innerHTML = '🚚 <b>' + esc(g.reg) + '</b> · ' + verdict +
+      (g.horasVerif !== undefined && g.horasVerif !== null ? ' · ' + LL('horas confirmadas pelo GPS', 'hours confirmed by GPS') + ': <b>' + g.horasVerif + ' h</b> <button class="btn sec sm" onclick="document.getElementById(\'ap_h' + n + '\').value=\'' + g.horasVerif + '\'">' + LL('usar', 'use') + '</button>' : '') +
+      '<div style="margin-top:4px">' + g.stops.map(s => esc(s.de) + (s.ate ? '–' + esc(s.ate) : '→') + ' ' + mp(s) + (s.min ? ' (' + s.min + ' min)' : '')).join(' · ') + '</div>';
+  } catch (e) { el.innerHTML = '🚚 ' + esc(e.message || e); }
 }
 async function otApproveAll() {
   const ns = [...document.querySelectorAll('[data-otn]')].map(e => Number(e.dataset.otn));
