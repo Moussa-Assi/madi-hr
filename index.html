@@ -2000,6 +2000,7 @@ async function renderOtOwner() {
     const pend = rows.filter(r => r.estado === 'Pendente').length;
     const dc = r => '<div class="pc"' + (r.n === LTR_NEW ? ' style="border:2px solid #2e7d32"' : '') + '><div class="row">' + rtTag(r.tipo) + '<b>' + esc(r.nome) + '</b><span class="muted">Nº ' + r.n + ' · ' + esc(r.em) + '</span></div>' +
       '<div class="row"><span>' + reqSummary(r) + '</span></div>' +
+      ((r.dados && r.dados.linhas) || []).map((ln, i) => ln.viatura ? '<div class="row" id="gps' + r.n + '_' + i + '" style="font-size:13px">🚚 ' + esc(ln.viatura) + ' · ' + fmtD(ln.data).slice(0, 5) + ' · ' + LL('a ler o GPS…', 'reading GPS…') + '</div>' : '').join('') +
       '<div class="row ltrow"><button class="btn" onclick="ltrPrint(' + r.n + ')">🖨 ' + LL('Imprimir', 'Print') + '</button>' +
       '<label class="btn sec">📷 ' + LL('Enviar carta assinada', 'Send signed letter') + '<input type="file" accept="image/*" capture="environment" onchange="ltrAttach(' + r.n + ',this)"></label>' +
       '<button class="btn sec sm" onclick="ltrCancel(' + r.n + ')">✕ ' + LL('Anular', 'Cancel') + '</button></div><div id="ltv' + r.n + '" class="ocrbox"></div></div>';
@@ -2008,6 +2009,7 @@ async function renderOtOwner() {
       '<div class="bar" style="margin-top:16px"><h3 style="margin:0">' + LL('Horas extra registadas', 'Overtime entered') + '</h3><span class="sp"></span>' + (pend ? '<button class="btn" onclick="go(\'approvals\')">' + pend + ' ' + LL('à espera — aprovar', 'waiting — approve') + '</button>' : '') + '</div>' +
       '<div class="card tw"><table><tr><th>Nº</th><th>' + t('person') + '</th><th>' + LL('Detalhe', 'Detail') + '</th><th>' + t('status2') + '</th><th>' + LL('Registado por', 'Entered by') + '</th></tr>' +
       (rows.length ? rows.map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.por || '') + '</td></tr>').join('') : '<tr><td colspan="5" class="muted" style="padding:12px">' + LL('Ainda não há horas extra registadas.', 'No overtime entered yet.') + '</td></tr>') + '</table></div>';
+    mine.forEach(r => ((r.dados && r.dados.linhas) || []).forEach((ln, i) => { if (ln.viatura) setTimeout(() => otGpsLoad(r.n, ln, i), 100 + i * 400); }));
     if (LTR_NEW && mine.some(r => r.n === LTR_NEW)) setTimeout(() => ltrPrint(LTR_NEW), 300);
   } catch (e) { showErr(e); }
 }
@@ -2642,7 +2644,7 @@ async function otGpsLoad(n, x, i) {
       : g.voltou ? '<span class="st s-ok">✓ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e chegou à empresa às ' + g.chegada, 'left the client at ' + g.saidaCliente + ' and reached the company at ' + g.chegada) + '</span>'
       : '<span class="st s-bad">⚠ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e NÃO voltou à empresa', 'left the client at ' + g.saidaCliente + ' and did NOT return to the company') + (g.fimCarro ? ' — ' + LL('motor desligado às ', 'engine off at ') + g.fimCarro.t + ' ' + mp(g.fimCarro) : '') + '</span>';
     el.innerHTML = '🚚 <b>' + esc(g.reg) + '</b> · ' + verdict +
-      (g.horasVerif !== undefined && g.horasVerif !== null ? ' · ' + LL('GPS', 'GPS') + ': <b>' + hmH(g.horasVerif) + '</b> <button class="btn sec sm" onclick="document.getElementById(\'' + hid + '\').value=\'' + hmH(g.horasVerif) + '\';' + (line ? 'otApTot(' + n + ',' + (((window._req || {}).rows || []).find(z => z.n === n) || { dados: { linhas: [] } }).dados.linhas.length + ')' : '') + '">' + LL('usar', 'use') + '</button>' : '') +
+      (g.horasVerif !== undefined && g.horasVerif !== null ? ' · ' + LL('GPS', 'GPS') + ': <b>' + hmH(g.horasVerif) + '</b>' + (document.getElementById(hid) ? '' : ' ' + LL('contam pelo GPS', 'count by GPS')) + (!document.getElementById(hid) ? '' : ' <button class="btn sec sm" onclick="document.getElementById(\'' + hid + '\').value=\'' + hmH(g.horasVerif) + '\';' + (line ? 'otApTot(' + n + ',' + (((window._req || {}).rows || []).find(z => z.n === n) || { dados: { linhas: [] } }).dados.linhas.length + ')' : '') + '">' + LL('usar', 'use') + '</button>') : '') +
       '<div style="margin-top:4px">' + g.stops.map(s => esc(s.de) + (s.ate ? '–' + esc(s.ate) : '→') + ' ' + mp(s) + (s.min ? ' (' + s.min + ' min)' : '')).join(' · ') + '</div>';
   } catch (e) { el.innerHTML = '🚚 ' + esc(e.message || e); }
 }
