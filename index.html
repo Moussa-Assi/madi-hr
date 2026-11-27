@@ -1986,6 +1986,7 @@ function afCollect() {
 }
 /* ---------- Overtime book in the app: the department responsible enters it once (date, from–to, workers, reason) → Moussa approves → payroll ---------- */
 function otFields(meta) {
+  OT_SEL = [];
   const ppl = (meta.people || []).slice().sort((a, b) => String(a.dept).localeCompare(String(b.dept)) || String(a.nome).localeCompare(String(b.nome)));
   const depts = [...new Set(ppl.map(p => p.dept || '—'))];
   const yest = new Date(Date.now() - 864e5), yS = yest.getFullYear() + '-' + String(yest.getMonth() + 1).padStart(2, '0') + '-' + String(yest.getDate()).padStart(2, '0');
@@ -2000,8 +2001,9 @@ function otFields(meta) {
     '<label class="full">' + LL('Porquê / trabalho feito', 'Why / work done') + ' *<input id="ot_m" maxlength="200" placeholder="' + LL('ex.: montagem no cliente, descarga do contentor', 'e.g. installation at the client, container unloading') + '"></label>' +
     '<label class="full">' + LL('Notas adicionais', 'Additional notes') + '<input id="ot_x" maxlength="300"></label>' +
     '<div class="full muted" style="font-size:12px">' + LL('A app conta só o tempo fora do horário do trabalhador (ou o intervalo). Com viatura, as horas são confirmadas pelo GPS da Cartrack. Regra: terminado o serviço, a viatura volta e fica estacionada na empresa — as horas contam até à chegada à empresa; a ida para casa não é paga.', 'The app counts only time outside the worker\'s schedule (or the break). With a vehicle, hours are confirmed by the Cartrack GPS. Rule: after the job the vehicle returns and is parked at the company — hours count until it arrives at the company; the trip home is not paid.') + '</div>' +
-    '<div class="full"><b>' + LL('Quem trabalhou', 'Who worked') + ' *</b> <span class="muted" id="ot_n"></span> <input type="search" placeholder="' + LL('Procurar nome', 'Search name') + '" oninput="otFilter(this.value)" style="max-width:220px;margin-left:8px">' +
-    depts.map(d => '<div style="margin:8px 0 2px"><b class="muted">' + esc(d) + '</b></div><div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + ppl.filter(p => (p.dept || '—') === d).map(p => '<label class="ot_p" data-k="' + esc(String(p.nome).toLowerCase()) + '" style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" class="ot_c" value="' + p.id + '" onchange="otCalc()"> ' + esc(p.nome) + '</label>').join('') + '</div>').join('') + '</div>' +
+    '<div class="full"><b>' + LL('Quem trabalhou', 'Who worked') + ' *</b> <span class="muted" id="ot_n"></span>' +
+    '<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:260px">' + personSelect('ot_p', '') + '</div><button class="btn sec" style="margin-top:8px" onclick="otAdd()">+ ' + LL('Adicionar', 'Add') + '</button></div>' +
+    '<div id="ot_sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div></div>' +
     '<div class="act full" style="flex-direction:column;align-items:stretch;gap:6px"><button class="btn" id="af_b" onclick="otSubmit()">📤 ' + LL('Enviar para aprovação', 'Send for approval') + '</button><small class="muted">' + LL('Fica registado com o seu nome e a hora. A app compara com a máquina de ponto.', 'Saved with your name and the time. The app compares it with the fingerprint machine.') + '</small></div>';
 }
 function otHours() {
@@ -2011,14 +2013,27 @@ function otHours() {
   return Math.round(m / 60 * 100) / 100;
 }
 function otCalc() {
-  const h = otHours(), n = document.querySelectorAll('.ot_c:checked').length, d = val('ot_d');
+  const h = otHours(), n = OT_SEL.length, d = val('ot_d');
   const e = document.getElementById('ot_h'); if (e) e.value = h ? String(h).replace('.', ',') + ' h' : '';
   const sun = d && new Date(d + 'T12:00:00').getDay() === 0, hi = document.getElementById('ot_hi'); if (hi) hi.textContent = (d ? (sun ? LL('domingo × 2', 'Sunday × 2') : LL('seg–sáb × 1,5', 'Mon–Sat × 1.5')) : '') + ' · ' + LL('conta só fora do horário', 'only outside the schedule counts');
   const nn = document.getElementById('ot_n'); if (nn) nn.textContent = n ? '(' + n + ')' : '';
 }
+let OT_SEL = [];
+function otAdd() {
+  const id = Number(val('ot_p')); if (!id) return toast(LL('Escolha a pessoa na lista', 'Choose the person from the list'));
+  if (OT_SEL.indexOf(id) < 0) OT_SEL.push(id);
+  const s = document.getElementById('ot_p'); if (s) s.value = ''; const q = document.getElementById('ot_p_q'); if (q) { q.value = ''; ppF('ot_p'); }
+  otDraw();
+}
+function otDel(id) { OT_SEL = OT_SEL.filter(x => x !== id); otDraw(); }
+function otDraw() {
+  const box = document.getElementById('ot_sel'); if (!box) return;
+  box.innerHTML = OT_SEL.map(id => { const p = (PEOPLE_DL || []).find(x => x.id === id); return '<span class="chip on" style="cursor:default">' + esc(p ? p.id + ' — ' + p.nome : id) + ' <b style="cursor:pointer;margin-left:6px" onclick="otDel(' + id + ')">×</b></span>'; }).join('');
+  otCalc();
+}
 function otFilter(q) { q = String(q || '').toLowerCase(); document.querySelectorAll('.ot_p').forEach(l => l.style.display = !q || l.dataset.k.indexOf(q) >= 0 ? '' : 'none'); }
 async function otSubmit() {
-  const d = val('ot_d'), a = val('ot_i'), b = val('ot_f'), m = val('ot_m').trim(), h = otHours(), ids = [...document.querySelectorAll('.ot_c:checked')].map(x => Number(x.value));
+  const d = val('ot_d'), a = val('ot_i'), b = val('ot_f'), m = val('ot_m').trim(), h = otHours(), ids = OT_SEL.slice();
   const tp = val('ot_t') || 'depois', w = val('ot_w').trim(), vv = val('ot_v'), nx = val('ot_x').trim();
   if (!d || !a || !b || !m || !w || !ids.length || !h) return toast(t('required'));
   if (h > 16) return toast(LL('Mais de 16 h — verifique as horas', 'More than 16 h — check the times'));
@@ -2026,7 +2041,7 @@ async function otSubmit() {
   const ns = [];
   try {
     for (const id of ids) { const r = await call('aSubmit2', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m, tipo: tp, onde: w, viatura: vv, notas: nx } }); ns.push(r.n); }
-    toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
+    toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); OT_SEL = []; AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
   } catch (e) { toast(t('error') + ': ' + (e.message || e) + (ns.length ? ' · ' + LL('já enviados: Nº ', 'already sent: Nº ') + ns.join(', ') : '')); btn.disabled = false; btn.textContent = t('submit'); }
 }
 async function assistSubmit() {
