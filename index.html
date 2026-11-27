@@ -1336,6 +1336,7 @@ async function assistLogin() {
 }
 function assistLogout() { window.ASSIST = null; try { sessionStorage.removeItem('rh_assist'); } catch (e) {} CACHE = {}; render(); }
 function assistFields(meta) {
+  if (AF.tipo === 'Horas extra') return otFields(meta);
   const per = '<label>' + t('person') + ' *' + personSelect('af_p', AF.id) + '</label>';
   const days = '<div class="full" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input type="date" id="af_day" onblur="afAdd()"><button class="btn sec sm" onclick="afAdd()">' + t('addDay') + '</button><span id="af_days"></span></div>';
   const doc = (AF.tipo === 'Licença' ? refField('af', 'FA') : AF.tipo === 'Adiantamento' ? refField('af', 'CR') : '');
@@ -1981,6 +1982,45 @@ function afCollect() {
   if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
   return { id: id, dados: dados, ref: ref, needRef: needRef };
 }
+/* ---------- Overtime book in the app: the department responsible enters it once (date, from–to, workers, reason) → Moussa approves → payroll ---------- */
+function otFields(meta) {
+  const ppl = (meta.people || []).slice().sort((a, b) => String(a.dept).localeCompare(String(b.dept)) || String(a.nome).localeCompare(String(b.nome)));
+  const depts = [...new Set(ppl.map(p => p.dept || '—'))];
+  const yest = new Date(Date.now() - 864e5), yS = yest.getFullYear() + '-' + String(yest.getMonth() + 1).padStart(2, '0') + '-' + String(yest.getDate()).padStart(2, '0');
+  return '<div class="full muted">' + LL('O livro de horas extra é agora a app: registe uma vez — data, horas e quem trabalhou. Não há papel nem foto. O Moussa aprova e o valor vai sozinho para os salários.', 'The overtime book is now the app: enter it once — date, times and who worked. No paper, no photo. Moussa approves and it goes to payroll by itself.') + '</div>' +
+    '<label>' + t('date') + ' *<input type="date" id="ot_d" value="' + yS + '" max="' + todayStr() + '" onchange="otCalc()"></label>' +
+    '<label>' + t('startT') + ' *<input type="time" id="ot_i" onchange="otCalc()"></label>' +
+    '<label>' + t('endT') + ' *<input type="time" id="ot_f" onchange="otCalc()"></label>' +
+    '<label>' + t('hours') + '<input id="ot_h" readonly style="background:#f3f4f6;font-weight:700"><small class="muted" id="ot_hi"></small></label>' +
+    '<label class="full">' + LL('Motivo / trabalho feito', 'Reason / work done') + ' *<input id="ot_m" maxlength="200" placeholder="' + LL('ex.: descarga do contentor, entrega ao cliente X', 'e.g. container unloading, delivery to client X') + '"></label>' +
+    '<div class="full"><b>' + LL('Quem trabalhou', 'Who worked') + ' *</b> <span class="muted" id="ot_n"></span> <input type="search" placeholder="' + LL('Procurar nome', 'Search name') + '" oninput="otFilter(this.value)" style="max-width:220px;margin-left:8px">' +
+    depts.map(d => '<div style="margin:8px 0 2px"><b class="muted">' + esc(d) + '</b></div><div style="display:flex;flex-wrap:wrap;gap:4px 14px">' + ppl.filter(p => (p.dept || '—') === d).map(p => '<label class="ot_p" data-k="' + esc(String(p.nome).toLowerCase()) + '" style="display:inline-flex;gap:6px;align-items:center;font-weight:400"><input type="checkbox" class="ot_c" value="' + p.id + '" onchange="otCalc()"> ' + esc(p.nome) + '</label>').join('') + '</div>').join('') + '</div>' +
+    '<div class="act full" style="flex-direction:column;align-items:stretch;gap:6px"><button class="btn" id="af_b" onclick="otSubmit()">📤 ' + LL('Enviar para aprovação', 'Send for approval') + '</button><small class="muted">' + LL('Fica registado com o seu nome e a hora. A app compara com a máquina de ponto.', 'Saved with your name and the time. The app compares it with the fingerprint machine.') + '</small></div>';
+}
+function otHours() {
+  const a = val('ot_i'), b = val('ot_f'); if (!a || !b) return 0;
+  let m = (Number(b.slice(0, 2)) * 60 + Number(b.slice(3, 5))) - (Number(a.slice(0, 2)) * 60 + Number(a.slice(3, 5)));
+  if (m <= 0) m += 1440;   // past midnight
+  return Math.round(m / 60 * 100) / 100;
+}
+function otCalc() {
+  const h = otHours(), n = document.querySelectorAll('.ot_c:checked').length, d = val('ot_d');
+  const e = document.getElementById('ot_h'); if (e) e.value = h ? String(h).replace('.', ',') + ' h' : '';
+  const sun = d && new Date(d + 'T12:00:00').getDay() === 0, hi = document.getElementById('ot_hi'); if (hi) hi.textContent = d ? (sun ? LL('domingo × 2', 'Sunday × 2') : LL('seg–sáb × 1,5', 'Mon–Sat × 1.5')) : '';
+  const nn = document.getElementById('ot_n'); if (nn) nn.textContent = n ? '(' + n + ')' : '';
+}
+function otFilter(q) { q = String(q || '').toLowerCase(); document.querySelectorAll('.ot_p').forEach(l => l.style.display = !q || l.dataset.k.indexOf(q) >= 0 ? '' : 'none'); }
+async function otSubmit() {
+  const d = val('ot_d'), a = val('ot_i'), b = val('ot_f'), m = val('ot_m').trim(), h = otHours(), ids = [...document.querySelectorAll('.ot_c:checked')].map(x => Number(x.value));
+  if (!d || !a || !b || !m || !ids.length || !h) return toast(t('required'));
+  if (h > 16) return toast(LL('Mais de 16 h — verifique as horas', 'More than 16 h — check the times'));
+  const btn = document.getElementById('af_b'); btn.disabled = true; btn.textContent = t('sending');
+  const ns = [];
+  try {
+    for (const id of ids) { const r = await call('aSubmit2', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m } }); ns.push(r.n); }
+    toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
+  } catch (e) { toast(t('error') + ': ' + (e.message || e) + (ns.length ? ' · ' + LL('já enviados: Nº ', 'already sent: Nº ') + ns.join(', ') : '')); btn.disabled = false; btn.textContent = t('submit'); }
+}
 async function assistSubmit() {
   const c = afCollect(); if (!c) return;
   const id = c.id, dados = c.dados, ref = c.ref, needRef = c.needRef;
@@ -2355,7 +2395,12 @@ function renderApprovals(d) {
     if (r.tipo === 'Pagamento') { edit = '<label class="muted">' + LL('Valor pago', 'Amount paid') + ' <input type="number" step="0.01" id="ap_v' + r.n + '" value="' + esc(x.valor) + '" style="width:110px"></label>';
       info = LL('Saldo anterior', 'Previous balance') + ': <b>' + money(c.divida) + '</b> − ' + money(x.valor) + ' → ' + LL('Novo saldo', 'New balance') + ': <b>' + money(Math.max(0, (Number(c.divida) || 0) - (Number(x.valor) || 0))) + '</b>'; }
     if (r.tipo === 'Horas extra') { edit = '<label class="muted">' + t('hours') + ' <input type="number" step="0.25" id="ap_h' + r.n + '" value="' + esc(x.horas) + '" style="width:80px"></label>';
-      const mq = c.maquina; info = t('machine') + ': ' + (mq ? t('in') + ' ' + hm(mq.ent) + ' · ' + t('out') + ' ' + hm(mq.sai) + ' · ' + stTag(mq.st) + (mq.extra ? ' · ' + mq.extra + ' h' : '') : '—'); }
+      const mq = c.maquina; info = t('machine') + ': ' + (mq ? t('in') + ' ' + hm(mq.ent) + ' · ' + t('out') + ' ' + hm(mq.sai) + ' · ' + stTag(mq.st) + (mq.extra ? ' · ' + mq.extra + ' h' : '') : '—');
+      { const mi = v => { const z = String(v || '').match(/(\d{1,2}):(\d{2})/); return z ? Number(z[1]) * 60 + Number(z[2]) : null; }, f = mi(x.fim), o = mq ? mi(mq.sai) : null;
+        info += f === null ? '' : o === null ? ' · <span class="st s-chk">' + LL('saída não picada — não confirmado pela máquina', 'no exit punch — not confirmed by the machine') + '</span>'
+          : f - o > 30 ? ' · <span class="st s-late">⚠ ' + LL('declarou até ' + x.fim + ', a máquina mostra saída às ' + hm(mq.sai) + ' (trabalho fora?)', 'declared until ' + x.fim + ', machine shows exit at ' + hm(mq.sai) + ' (work outside?)') + '</span>'
+          : ' · <span class="st s-ok">✓ ' + LL('confere com a máquina', 'matches the machine') + '</span>'; }
+      edit += '<span data-otn="' + r.n + '" hidden></span>'; }
     if (r.tipo === 'Justificação') { edit = '<select id="ap_st' + r.n + '"><option value="">' + t('onlyMin') + '</option>' + stOpts(d.justStatuses, x.estado) + '</select><label class="muted">' + t('lateOv') + ' <input type="number" id="ap_min' + r.n + '" value="' + esc(x.min) + '" style="width:70px"></label>';
       info = t('machine') + ': ' + (c.dias || []).map(z => fmtD(z[0]) + ' ' + (z[1] ? stTag(z[1].st) + (z[1].ent ? ' ' + hm(z[1].ent) : '') : '—')).join(' · '); }
     return '<div class="pc"><div class="row">' + rtTag(r.tipo) + '<b class="click" onclick="openPerson(' + r.id + ')">' + esc(r.nome) + '</b><span class="muted">ID ' + r.id + ' · Nº ' + r.n + ' · ' + t('subBy') + ' ' + esc(r.por) + ' · ' + esc(r.em) + (x.ref ? ' · ' + t('ref') + ' ' + esc(x.ref) : '') + '</span></div>' +
@@ -2366,6 +2411,7 @@ function renderApprovals(d) {
       '<div class="row"><input id="ap_note' + r.n + '" placeholder="' + t('decNote') + '" style="flex:1;min-width:180px"><button class="btn" onclick="decideReq(' + r.n + ',\'Aprovado\')">' + t('approve') + '</button><button class="btn sec" onclick="reqReturn(' + r.n + ')" title="' + LL('Volta para a assistente em «Cartas por assinar», com a mesma carta e referência — ela só envia a foto nova', 'Goes back to the assistant under «Letters to be signed», same letter and reference — she only sends the new photo') + '">↩ ' + LL('Devolver para corrigir / assinar', 'Return to fix / sign') + '</button><button class="btn sec" onclick="decideReq(' + r.n + ',\'Rejeitado\')">' + t('reject') + '</button></div></div>';
   };
   document.getElementById('main').innerHTML = '<div class="bar"><b>' + t('approvals') + '</b><span class="sp"></span><button class="btn sec" onclick="assistAdmin()">' + t('assistants') + '</button></div>' +
+    (pend.some(r => r.tipo === 'Horas extra') ? '<div class="bar"><span class="muted">' + pend.filter(r => r.tipo === 'Horas extra').length + ' ' + LL('linha(s) de horas extra à espera', 'overtime line(s) waiting') + '</span><span class="sp"></span><button class="btn" onclick="otApproveAll()">✓ ' + LL('Aprovar todas as horas extra', 'Approve all overtime') + '</button></div>' : '') +
     (pend.length ? '<div class="pend">' + pend.map(card).join('') + '</div>' : '<div class="card"><div class="load">' + t('noApprovals') + '</div></div>') +
     (done.length ? '<div class="card tw" style="margin-top:14px"><h3>' + t('recent') + '</h3><table><tr><th>Nº</th><th>' + t('type') + '</th><th>' + t('person') + '</th><th></th><th>' + t('status2') + '</th><th>' + t('subBy') + '</th><th>' + t('decNote') + '</th><th></th></tr>' +
       done.map(r => '<tr><td>' + r.n + '</td><td>' + rtTag(r.tipo) + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td>' + esc(r.por) + '</td><td class="muted">' + esc(r.decNota) + '</td><td style="white-space:nowrap"><button class="btn sec sm" onclick="viewDoc(' + r.n + ')">📄</button>' + (r.estado === 'Rejeitado' ? ' <button class="btn sec sm" onclick="reqReturn(' + r.n + ')" title="' + LL('Reabre esta carta: volta para a assistente em «Cartas por assinar», com a mesma carta, código e referência — ela só envia a foto outra vez', 'Reopen this letter: goes back to the assistant under «Letters to be signed», same letter, code and reference — she only sends the photo again') + '">↩ ' + LL('Reabrir', 'Reopen') + '</button>' : '') + '</td></tr>').join('') + '</table></div>' : '');
@@ -2378,6 +2424,12 @@ async function reqReturn(n) {
   let note = val('ap_note' + n);
   if (!note) { note = prompt(LL('Motivo da devolução (a assistente vai ver):', 'Reason for returning it (the assistant will see it):'), LL('Carta sem assinatura', 'Letter not signed')); if (note === null) return; }
   try { await call('reqReturn', { n: n, nota: note }); invalidate(); toast(LL('Devolvido à assistente', 'Returned to the assistant')); window.NREQ = Math.max(0, (window.NREQ || 1) - 1); render(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
+async function otApproveAll() {
+  const ns = [...document.querySelectorAll('[data-otn]')].map(e => Number(e.dataset.otn));
+  if (!ns.length || !confirm(LL('Aprovar ' + ns.length + ' linha(s) de horas extra?', 'Approve ' + ns.length + ' overtime line(s)?'))) return;
+  let ok = 0; for (const n of ns) { try { await call('requestDecide', { n: n, decision: 'Aprovado', nota: val('ap_note' + n), dados: { horas: val('ap_h' + n) }, lateOk: true }); ok++; } catch (e) {} }
+  toast(t('saved') + ' · ' + ok + '/' + ns.length); invalidate(); render();
 }
 async function decideReq(n, dec) {
   const r = window._req.rows.filter(x => x.n === n)[0]; const dados = {};
@@ -2418,6 +2470,7 @@ async function assistAdmin() {
         '<label>' + t('newPin') + '<input type="password" inputmode="numeric" id="as_pin' + i + '" maxlength="8"></label>' +
         '<div class="full"><span class="muted">' + t('canSubmit') + ':</span> ' + a.types.map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_t' + i + '" value="' + esc(x) + '"' + (u.types.indexOf(x) >= 0 ? ' checked' : '') + '> ' + esc(rtName(x)) + '</label>').join('') + '</div>' +
         '<div class="full"><span class="muted">' + LL('Pode usar', 'Can use') + ':</span> ' + (a.modules || []).map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_t' + i + '" value="' + esc(x) + '"' + (u.types.indexOf(x) >= 0 ? ' checked' : '') + '> <b>' + esc(MODN[x] || x) + '</b></label>').join('') + '</div>' +
+        '<div class="full"><span class="muted">' + LL('Responsável de (só vê e regista horas extra destes departamentos; vazio = todos)', 'Responsible for (only sees and enters overtime for these departments; empty = all)') + ':</span> ' + (a.depts || []).map(x => '<label class="muted" style="display:inline-flex;gap:4px;margin-right:10px"><input type="checkbox" class="as_d' + i + '" value="' + esc(x) + '"' + ((u.depts || []).indexOf(x) >= 0 ? ' checked' : '') + '> ' + esc(x) + '</label>').join('') + '</div>' +
         '<div class="act"><button class="btn" onclick="saveAssist(' + i + ',\'' + esc(u.name) + '\')">' + t('save') + '</button></div></div></div>').join('');
   } catch (e) { modal(t('error'), '', '<div class="err" style="margin:14px">' + esc(e) + '</div>'); }
 }
@@ -2425,7 +2478,8 @@ function copyLink() { const el = document.getElementById('as_link'); el.select()
 async function saveAssist(i, name) {
   const types = [...document.querySelectorAll('.as_t' + i)].filter(x => x.checked).map(x => x.value);
   const pin = val('as_pin' + i);
-  try { await call('assistAdmin', { set: { name: name, pin: pin, types: types } }); toast(t('saved')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); }
+  const depts = [...document.querySelectorAll('.as_d' + i)].filter(x => x.checked).map(x => x.value);
+  try { await call('assistAdmin', { set: { name: name, pin: pin, types: types, depts: depts } }); toast(t('saved')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); }
 }
 function assistLink() { assistAdmin(); }
 async function addAssist() { const n = val('as_new').trim(); if (!n) return toast(t('required')); try { await call('assistAdmin', { add: { name: n } }); toast(t('saved') + ' · ' + LL('defina o PIN e os acessos', 'set the PIN and access')); assistAdmin(); } catch (e) { toast(t('error') + ': ' + e); } }
