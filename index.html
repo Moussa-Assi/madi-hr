@@ -1167,7 +1167,7 @@ function personSelect(idAttr, sel) {
   return '<div style="display:flex;gap:6px;margin:4px 0 6px;flex-wrap:wrap">' +
     (ents.length > 1 ? '<select id="' + idAttr + '_e" onchange="ppF(\'' + idAttr + '\')" style="flex:1;min-width:140px"><option value="">' + (pt ? 'Todas as empresas' : 'All companies') + '</option>' + ents.map(e => '<option>' + esc(e) + '</option>').join('') + '</select>' : '') +
     '<input id="' + idAttr + '_q" type="search" autocomplete="off" placeholder="🔍 ' + (pt ? 'Procurar nome ou ID' : 'Search name or ID') + '" oninput="ppF(\'' + idAttr + '\')" style="flex:2;min-width:150px"></div>' +
-    '<select id="' + idAttr + '" style="min-width:240px"><option value="">— ' + t('choose') + ' —</option>' +
+    '<select id="' + idAttr + '" style="width:100%;max-width:100%;min-width:0;text-overflow:ellipsis"><option value="">— ' + t('choose') + ' —</option>' +
     (sel && !has ? '<option value="' + Number(sel) + '" selected>' + Number(sel) + '</option>' : '') +
     list.map(p => '<option value="' + p.id + '"' + (Number(sel) === p.id ? ' selected' : '') + '>' + esc(p.label) + '</option>').join('') + '</select>';
 }
@@ -2017,10 +2017,10 @@ function otYest() { const y = new Date(Date.now() - 864e5); return y.getFullYear
 function otFields(meta) {
   OT_SEL = []; OT_VEH = meta.viaturas || []; OT_META = meta; OT_CALC = {};
   OT_L = [{ data: otYest(), inicio: '', fim: '', tipo: 'depois', onde: '', motivo: '', viatura: '' }];
-  setTimeout(() => { otDrawL(); otPlaces(); }, 0);
+  setTimeout(() => { otDrawL(); otPlaces(); const s = document.getElementById('ot_p'); if (s) s.addEventListener('change', () => { if (s.value) otAdd(); }); }, 0);
   return '<div class="full muted">' + LL('O livro de horas extra é substituído por esta carta: escolha a pessoa, junte uma linha por dia (pode juntar vários dias na mesma carta), gere a carta, imprima, assine e envie a foto. O Moussa aprova e o valor vai sozinho para os salários.', 'The overtime book is replaced by this letter: choose the person, add one line per day (several days can go on the same letter), generate the letter, print, sign and send the photo. Moussa approves and it goes to payroll by itself.') + '</div>' +
     '<div class="full"><b>' + LL('Quem trabalhou', 'Who worked') + ' *</b> <span class="muted" id="ot_n"></span> <small class="muted">' + LL('(uma carta por pessoa, com as mesmas linhas)', '(one letter per person, same lines)') + '</small>' +
-    '<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1;min-width:260px">' + personSelect('ot_p', '') + '</div><button class="btn sec" style="margin-top:8px" onclick="otAdd()">+ ' + LL('Adicionar', 'Add') + '</button></div>' +
+    '<div style="display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap"><div style="flex:1 1 220px;min-width:0">' + personSelect('ot_p', '') + '</div><button class="btn sec" style="margin-top:8px" onclick="otAdd()">+ ' + LL('Adicionar', 'Add') + '</button></div><small class="muted">' + LL('Ao escolher o nome ele entra logo na lista abaixo; pode juntar mais pessoas.', 'Choosing a name adds it straight to the list below; you can add more people.') + '</small>' +
     '<div id="ot_sel" style="display:flex;flex-wrap:wrap;gap:6px;margin-top:6px"></div></div>' +
     '<datalist id="ot_vl"></datalist><datalist id="ot_pl"></datalist><div class="full" id="ot_lines"></div>' +
     '<div class="full"><button class="btn sec" onclick="otLineAdd()">+ ' + LL('Adicionar outro dia', 'Add another day') + '</button></div>' +
@@ -2107,6 +2107,7 @@ function cartaOt(pe, meta, linhas, total, notas) {
 }
 let LTR_BATCH = [];
 async function otSubmit() {
+  if (!OT_SEL.length && Number(val('ot_p'))) otAdd();
   const ids = OT_SEL.slice(), L = otLinesOut(), nx = val('ot_x').trim();
   if (!ids.length) return toast(LL('Escolha quem trabalhou', 'Choose who worked'));
   for (let i = 0; i < L.length; i++) { const x = L[i];
