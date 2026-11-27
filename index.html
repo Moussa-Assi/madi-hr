@@ -1986,7 +1986,7 @@ function afCollect() {
 }
 /* ---------- Overtime book in the app: the department responsible enters it once (date, from–to, workers, reason) → Moussa approves → payroll ---------- */
 function otFields(meta) {
-  OT_SEL = [];
+  OT_SEL = []; OT_VEH = meta.viaturas || []; setTimeout(otVF, 0);
   const ppl = (meta.people || []).slice().sort((a, b) => String(a.dept).localeCompare(String(b.dept)) || String(a.nome).localeCompare(String(b.nome)));
   const depts = [...new Set(ppl.map(p => p.dept || '—'))];
   const yest = new Date(Date.now() - 864e5), yS = yest.getFullYear() + '-' + String(yest.getMonth() + 1).padStart(2, '0') + '-' + String(yest.getDate()).padStart(2, '0');
@@ -1997,7 +1997,7 @@ function otFields(meta) {
     '<label>' + LL('Duração', 'Duration') + '<input id="ot_h" readonly style="background:#f3f4f6;font-weight:700"><small class="muted" id="ot_hi"></small></label>' +
     '<label>' + LL('Quando', 'When') + ' *<select id="ot_t" onchange="otCalc()"><option value="depois">' + LL('Depois do horário', 'After hours') + '</option><option value="antes">' + LL('Antes do horário', 'Before hours') + '</option><option value="intervalo">' + LL('Na hora de intervalo', 'During the break') + '</option><option value="folga">' + LL('Domingo / feriado / folga', 'Sunday / holiday / day off') + '</option></select></label>' +
     '<label>' + LL('Onde (cliente / local)', 'Where (client / place)') + ' *<input id="ot_w" maxlength="120" placeholder="' + LL('ex.: Supermercado VIP Sommerschield', 'e.g. VIP Supermarket Sommerschield') + '"></label>' +
-    '<label>' + LL('Viatura (matrícula)', 'Vehicle (plate)') + '<select id="ot_v"><option value="">' + LL('— sem viatura —', '— no vehicle —') + '</option>' + (meta.viaturas || []).map(v => '<option value="' + esc(v.reg) + '">' + esc(v.reg) + (v.nome ? ' · ' + esc(v.nome) : '') + '</option>').join('') + '</select></label>' +
+    '<label>' + LL('Viatura (matrícula)', 'Vehicle (plate)') + '<input type="search" id="ot_vq" autocomplete="off" placeholder="🔍 ' + LL('Procurar matrícula', 'Search plate') + '" oninput="otVF()" style="margin-bottom:4px"><select id="ot_v"></select></label>' +
     '<label class="full">' + LL('Porquê / trabalho feito', 'Why / work done') + ' *<input id="ot_m" maxlength="200" placeholder="' + LL('ex.: montagem no cliente, descarga do contentor', 'e.g. installation at the client, container unloading') + '"></label>' +
     '<label class="full">' + LL('Notas adicionais', 'Additional notes') + '<input id="ot_x" maxlength="300"></label>' +
     '<div class="full muted" style="font-size:12px">' + LL('A app conta só o tempo fora do horário do trabalhador (ou o intervalo). Com viatura, as horas são confirmadas pelo GPS da Cartrack. Regra: terminado o serviço, a viatura volta e fica estacionada na empresa — as horas contam até à chegada à empresa; a ida para casa não é paga.', 'The app counts only time outside the worker\'s schedule (or the break). With a vehicle, hours are confirmed by the Cartrack GPS. Rule: after the job the vehicle returns and is parked at the company — hours count until it arrives at the company; the trip home is not paid.') + '</div>' +
@@ -2018,7 +2018,14 @@ function otCalc() {
   const sun = d && new Date(d + 'T12:00:00').getDay() === 0, hi = document.getElementById('ot_hi'); if (hi) hi.textContent = (d ? (sun ? LL('domingo × 2', 'Sunday × 2') : LL('seg–sáb × 1,5', 'Mon–Sat × 1.5')) : '') + ' · ' + LL('conta só fora do horário', 'only outside the schedule counts');
   const nn = document.getElementById('ot_n'); if (nn) nn.textContent = n ? '(' + n + ')' : '';
 }
-let OT_SEL = [];
+let OT_SEL = [], OT_VEH = [];
+function otVF() {
+  const s = document.getElementById('ot_v'); if (!s) return;
+  const q = String(val('ot_vq') || '').toLowerCase().replace(/[\s-]/g, ''), cur = s.value;
+  const list = OT_VEH.filter(v => !q || (v.reg + ' ' + v.nome).toLowerCase().replace(/[\s-]/g, '').indexOf(q) >= 0);
+  s.innerHTML = '<option value="">' + LL('— sem viatura —', '— no vehicle —') + (q ? ' (' + list.length + ')' : '') + '</option>' + list.map(v => '<option value="' + esc(v.reg) + '"' + (v.reg === cur ? ' selected' : '') + '>' + esc(v.reg) + (v.nome ? ' · ' + esc(String(v.nome).split(' - ')[0]) : '') + '</option>').join('');
+  if (q && list.length === 1) s.value = list[0].reg;
+}
 function otAdd() {
   const id = Number(val('ot_p')); if (!id) return toast(LL('Escolha a pessoa na lista', 'Choose the person from the list'));
   if (OT_SEL.indexOf(id) < 0) OT_SEL.push(id);
@@ -2329,17 +2336,25 @@ async function renderCt(head) {
     '<div class="act full"><button class="btn" onclick="ctSave()">' + t('save') + '</button><button class="btn sec" onclick="ctTest()"' + (st.configured ? '' : ' disabled') + '>⚡ ' + LL('Testar ligação', 'Test connection') + '</button></div></div>' +
     '<div id="ct_out" style="margin-top:12px"></div></div>';
   main.dataset.head = head;
+  if (st.configured) ctTest();
 }
 async function ctSave() {
   const u = val('ct_u').trim(), p = val('ct_p');
   if (!u || !p) return toast(LL('Escreva o utilizador e a palavra-passe da API', 'Enter the API username and password'));
   try { const r = await sbc.rpc('hr_cartrack_set', { u: u, pw: p }); if (r.error) throw new Error(r.error.message); toast(t('saved')); await renderCt(document.getElementById('main').dataset.head || ''); ctTest(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
 }
+async function ctSaveDept() {
+  const map = {}; document.querySelectorAll('.ct_d').forEach(e => { map[e.dataset.reg] = e.value; });
+  try { await call('cartrack', { op: 'setDept', map: map }); toast(t('saved')); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
 async function ctTest() {
   const o = document.getElementById('ct_out'); if (!o) return; o.innerHTML = '<div class="load">' + t('loading') + '</div>';
   try {
-    const r = await call('cartrack', { op: 'test' });
-    o.innerHTML = '<div class="st s-ok" style="margin-bottom:8px">✓ ' + LL('Ligado — ' + r.n + ' viatura(s) na conta', 'Connected — ' + r.n + ' vehicle(s) on the account') + '</div><table class="tab"><tr><th>' + LL('Matrícula', 'Plate') + '</th><th>' + t('name') + '</th></tr>' + r.vehicles.map(v => '<tr><td><b>' + esc(v.reg) + '</b></td><td>' + esc(v.nome) + '</td></tr>').join('') + '</table>';
+    const r = await call('cartrack', { op: window._ctTested ? 'list' : 'test' }); window._ctTested = 1;
+    window._ctv = r;
+    o.innerHTML = '<div class="bar"><span class="st s-ok">✓ ' + LL('Ligado — ' + r.vehicles.length + ' viatura(s)', 'Connected — ' + r.vehicles.length + ' vehicle(s)') + '</span><span class="muted">' + LL('Escolha o departamento de cada viatura: o responsável de cada departamento só vê as viaturas dele.', 'Choose each vehicle\'s department: each department responsible only sees their own vehicles.') + '</span><span class="sp"></span><button class="btn" onclick="ctSaveDept()">' + t('save') + '</button></div>' +
+      '<table class="tab"><tr><th>' + LL('Matrícula', 'Plate') + '</th><th>' + LL('Nome na Cartrack', 'Name in Cartrack') + '</th><th>' + t('dept') + '</th></tr>' +
+      r.vehicles.map((v, i) => '<tr><td><b>' + esc(v.reg) + '</b></td><td>' + esc(v.nome) + '</td><td><select class="ct_d" data-reg="' + esc(v.reg) + '"><option value="">— ' + LL('sem departamento (só você)', 'no department (only you)') + ' —</option>' + r.depts.map(d => '<option' + (d === v.dept ? ' selected' : '') + '>' + esc(d) + '</option>').join('') + '</select></td></tr>').join('') + '</table>';
   } catch (e) { o.innerHTML = '<div class="err">' + esc(e.message || e) + '</div>'; }
 }
 async function tgAct(act, p) {
