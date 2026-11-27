@@ -1521,7 +1521,7 @@ function absTable(P) {
 /* =========================== ⚙ SETTINGS =========================== */
 let SETV = 'co';
 const SET_SECTIONS = () => [['ppl', LL('Pessoas', 'People')], ['co', LL('Empresas', 'Companies')], ['hor', LL('Horários', 'Work schedules')], ['att', LL('Regras de presença', 'Attendance rules')], ['pay', LL('Regras de salário', 'Payroll rules')],
-  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')], ['log', LL('Histórico', 'History log')]];
+  ['fer', LL('Férias', 'Leave')], ['hol', LL('Feriados', 'Holidays')], ['lst', LL('Listas', 'Lists')], ['hik', LL('Máquina de ponto', 'Fingerprint machine')], ['usr', LL('Utilizadores e acesso', 'Users & access')], ['tg', '🔔 Telegram'], ['log', LL('Histórico', 'History log')]];
 const SET_NUMS = () => ({
   att: [
     ['TOLERANCIA_ATRASO_MIN', LL('Tolerância de atraso', 'Late tolerance'), 'min', LL('O atraso só conta quando a entrada é X min ou mais depois da hora.', 'Late only counts when arrival is X min or more after start time.')],
@@ -1583,6 +1583,7 @@ function renderSettings(d) {
   else if (SETV === 'fer') { body = numCard(d, N.fer) + '<p class="muted">' + LL('Férias: um período seguido conta todos os dias (domingos incluídos), só os feriados não contam; dias soltos contam só esses dias. Clique numa pessoa para corrigir o saldo.', 'Leave: a continuous period counts every day (Sundays included), only holidays do not; separate days count only those days. Click a person to correct the balance.') + '</p>'; setAsync = 'fer'; }
   else if (SETV === 'ppl') { body = ''; setAsync = 'ppl'; }
   else if (SETV === 'log') { body = ''; setAsync = 'log'; }
+  else if (SETV === 'tg') { body = ''; setAsync = 'tg'; }
   else if (SETV === 'hol' && (setAsync = 'hol')) body = '<div class="card" style="padding:14px"><p>' + LL('Feriados e tolerâncias de ponto por ano e por cidade (Todos, Maputo, Nampula, Beira).', 'Holidays and tolerance days per year and city (All, Maputo, Nampula, Beira).') + '</p><button class="btn" onclick="LV=\'hol\';go(\'leave\')">' + LL('Abrir feriados →', 'Open holidays →') + '</button></div>';
   else if (SETV === 'lst') body = '<div class="card" style="padding:14px"><p>' + LL('Listas usadas nos formulários: empresas, departamentos, localizações, funções e tipos de documento. Mudar um nome atualiza todas as pessoas.', 'Lists used in forms: companies, departments, locations, roles and document types. Renaming updates every person.') + '</p><button class="btn" onclick="listsModal()">' + LL('Editar listas', 'Edit lists') + '</button></div>';
   else if (SETV === 'hik') {
@@ -1610,6 +1611,7 @@ async function setFill(k, head) {
     if (k === 'hol') return renderHolidays(head.replace(/<div class="card" style="padding:14px"><p>[\s\S]*$/, ''), await need('holidays', { year: LVY }), true);
     if (k === 'ppl') return renderSetPeople(head, await need('people'));
     if (k === 'log') return renderHistLog(head);
+    if (k === 'tg') return renderTg(head);
   } catch (e) { showErr(e); }
 }
 function renderSetPeople(head, list) {
@@ -2226,6 +2228,35 @@ async function histShow(boxId, q) {
   try { const r = await call('histLog', q); el.innerHTML = '<div class="card" style="margin:8px 0"><h3>📜 ' + LL('Histórico', 'History') + '</h3>' + histTable(r.rows) + '</div>'; } catch (e) { el.innerHTML = '<span class="muted">' + esc(String(e.message || e)) + '</span>'; }
 }
 let HLQ = { q: '', tab: '' };
+/* Settings → Telegram: Moussa links each assistant to the Telegram chat that wrote to the bot. They then get approvals, rejections, send-backs (with his note) and the 1-working-day reminders. */
+async function tgCall(act, p) {
+  if (typeof sbc === 'undefined') throw new Error(LL('Entre com email e palavra-passe', 'Sign in with email and password'));
+  const r = await sbc.rpc('hr_tg_admin', { act: act, p: p || {} });
+  if (r.error) throw new Error(r.error.message);
+  return r.data;
+}
+async function renderTg(head, poll) {
+  const main = document.getElementById('main');
+  let d; try { if (poll) { await tgCall('poll'); await new Promise(r => setTimeout(r, 2500)); } d = await tgCall('list'); } catch (e) { return showErr(e); }
+  window._tg = d;
+  const linked = Object.fromEntries(d.links.map(l => [l.nome, l])), byChat = Object.fromEntries(d.links.map(l => [l.chat, l.nome]));
+  const when = x => x ? new Date(x).toLocaleString('pt-PT', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '';
+  main.innerHTML = head +
+    '<div class="card" style="padding:14px"><h3 style="margin-top:0">' + LL('Notificações no Telegram para as assistentes', 'Telegram notifications for the assistants') + '</h3>' +
+    '<p class="muted" style="margin:0 0 6px">' + LL('Recebem: ✅ aprovado · ❌ rejeitado · ↩ devolvido para corrigir/assinar — com a sua nota — e um lembrete quando um pedido espera mais de 1 dia útil (você também recebe o lembrete).', 'They get: ✅ approved · ❌ rejected · ↩ sent back to fix/sign — with your note — and a reminder when a request waits more than 1 working day (you get the reminder too).') + '</p>' +
+    '<p class="muted" style="margin:0"><b>' + LL('Como ligar:', 'How to link:') + '</b> ' + LL('no telemóvel dela, abra o Telegram, procure o bot da Madi, carregue em <b>Iniciar / Start</b> e escreva o nome dela. Depois carregue em «Atualizar» aqui e escolha a pessoa.', 'on her phone, open Telegram, search the Madi bot, press <b>Start</b> and type her name. Then press «Refresh» here and choose the person.') + '</p></div>' +
+    '<h3 style="margin:16px 0 6px">' + LL('Pessoas ligadas', 'Linked people') + '</h3><div class="card"><table class="tab"><tr><th>' + t('name') + '</th><th>Telegram</th><th>' + LL('Ligada em', 'Linked on') + '</th><th></th></tr>' +
+    d.names.map(n => { const l = linked[n]; return '<tr><td><b>' + esc(n) + '</b></td><td>' + (l ? '✅ ' + esc(l.tg || l.chat) : '<span class="muted">' + LL('não ligada', 'not linked') + '</span>') + '</td><td class="muted">' + (l ? when(l.em) : '') + '</td><td>' +
+      (l ? '<button class="btn sec sm" onclick="tgAct(\'test\',{nome:\'' + esc(n) + '\'})">' + LL('Enviar teste', 'Send test') + '</button> <button class="btn sec sm" onclick="if(confirm(\'' + LL('Desligar ', 'Unlink ') + esc(n) + '?\'))tgAct(\'unlink\',{nome:\'' + esc(n) + '\'})">✕ ' + LL('Desligar', 'Unlink') + '</button>' : '') + '</td></tr>'; }).join('') + '</table></div>' +
+    '<div class="bar" style="margin-top:16px"><h3 style="margin:0">' + LL('Quem escreveu ao bot', 'Who wrote to the bot') + '</h3><span class="sp"></span><button class="btn" onclick="renderTg(document.querySelector(\'#main\').dataset.head, true)">⟳ ' + LL('Atualizar', 'Refresh') + '</button></div>' +
+    '<div class="card"><table class="tab"><tr><th>' + LL('Nome no Telegram', 'Telegram name') + '</th><th>' + LL('Mensagem', 'Message') + '</th><th>' + LL('Quando', 'When') + '</th><th>' + LL('Ligar a', 'Link to') + '</th></tr>' +
+    (d.inbox.length ? d.inbox.map((x, i) => '<tr><td>' + esc(x.tg) + (byChat[x.chat] ? ' <span class="st s-ok">' + esc(byChat[x.chat]) + '</span>' : '') + '</td><td class="muted">' + esc(x.text) + '</td><td class="muted">' + when(x.em) + '</td><td><select id="tgs' + i + '"><option value="">—</option>' + d.names.map(n => '<option' + (byChat[x.chat] === n ? ' selected' : '') + '>' + esc(n) + '</option>').join('') + '</select> <button class="btn sm" onclick="const v=val(\'tgs' + i + '\');if(v)tgAct(\'link\',{nome:v,chat:\'' + esc(x.chat) + '\'})">' + LL('Ligar', 'Link') + '</button></td></tr>').join('')
+      : '<tr><td colspan="4" class="muted" style="padding:12px">' + LL('Ainda ninguém. Depois de ela escrever ao bot, carregue em «Atualizar» (o Telegram guarda as mensagens 24 h).', 'Nobody yet. After she writes to the bot, press «Refresh» (Telegram keeps messages for 24 h).') + '</td></tr>') + '</table></div>';
+  main.dataset.head = head;
+}
+async function tgAct(act, p) {
+  try { await tgCall(act, p); toast(act === 'test' ? LL('Teste enviado', 'Test sent') : t('saved')); renderTg(document.getElementById('main').dataset.head); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
+}
 async function renderHistLog(head) {
   document.getElementById('main').innerHTML = head + '<div class="bar"><select onchange="HLQ.tab=this.value;render()"><option value="">' + LL('Tudo', 'Everything') + '</option>' + Object.keys(HTAB).map(k => '<option value="' + k + '"' + (HLQ.tab === k ? ' selected' : '') + '>' + HTAB[k][LANG === 'pt' ? 0 : 1] + '</option>').join('') + '</select>' +
     '<input type="search" id="hlq" placeholder="' + LL('Procurar (nome, nº, ref., utilizador…)', 'Search (name, nº, ref., user…)') + '" value="' + esc(HLQ.q) + '" onchange="HLQ.q=this.value;render()" style="flex:1;min-width:220px"><span class="muted">' + LL('últimos 500', 'last 500') + '</span></div><div id="hlb"><div class="load">…</div></div>';
