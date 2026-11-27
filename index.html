@@ -223,7 +223,7 @@ const T = {
     grid:'Presença', fromD:'De', toD:'Até', exportS:'Exportar (Excel)', print:'Imprimir', exporting:'A exportar…', fileReady:'Ficheiro criado', openFile:'Abrir ficheiro',
     newHik:'Novas pessoas no Hik-Connect', newHikMsg:'pessoa(s) a picar no relógio sem ficha nem horário', resolveNow:'Resolver agora', firstSeen:'1ª picagem', daysP:'dias com picagem',
     add:'Adicionar', notEmp:'Não é funcionário', newHikHint:'Confirme o departamento e o horário. Os dias desde a 1ª picagem são calculados automaticamente.', legend:'Legenda', entryLate:'Hora = entrada · +N = minutos de atraso', curPeriod:'Período atual',
-    leave:'Licenças', loans:'Adiantamentos', req:'Pedidos', lvReq:'Por aprovar', lvAll:'Todas as licenças', lvBal:'Saldos de férias', lvHol:'Feriados',
+    leave:'Licenças', loans:'Adiantamentos', ot:'Horas extra', req:'Pedidos', lvReq:'Por aprovar', lvAll:'Todas as licenças', lvBal:'Saldos de férias', lvHol:'Feriados',
     approve:'Aprovar', reject:'Rejeitar', newLv:'+ Nova licença', person:'Pessoa', mode:'Datas', modeRange:'Período contínuo', modeDays:'Dias soltos', addDay:'+ dia', nDays:'Dias', nDaysHint:'vazio = calculado (sem domingos e feriados)',
     ref:'Ref.', reqBy:'Pedido por', noReq:'Sem pedidos por aprovar 🎉', entitle:'Direito', carried:'Transitado', usedBefore:'Usados antes', baseDate:'Data base', taken:'Gozados (app)', pendD:'Pendentes', bal:'Saldo', year:'Ano',
     rule:'Regra automática: 1º ano de serviço {1} dias · a partir do 2º ano {2} dias (sem saldo definido)', holType:'Tipo', scope:'Aplica-se a', dayOff:'Folga?', holiday:'Feriado', tolerance:'Tolerância', addHol:'+ Adicionar dia', scopeAll:'Todos', allTypes:'Todos os tipos', allStatus:'Todos os estados',
@@ -270,7 +270,7 @@ const T = {
     grid:'Attendance grid', fromD:'From', toD:'To', exportS:'Export (Excel)', print:'Print', exporting:'Exporting…', fileReady:'File created', openFile:'Open file',
     newHik:'New people on Hik-Connect', newHikMsg:'person(s) punching with no record or schedule', resolveNow:'Resolve now', firstSeen:'First punch', daysP:'days punched',
     add:'Add', notEmp:'Not an employee', newHikHint:'Confirm department and schedule. Days since the first punch are calculated automatically.', legend:'Legend', entryLate:'Time = entry · +N = late minutes', curPeriod:'Current period',
-    leave:'Leave', loans:'Advances', req:'Requests', lvReq:'To approve', lvAll:'All leave', lvBal:'Leave balances', lvHol:'Holidays',
+    leave:'Leave', loans:'Advances', ot:'Overtime', req:'Requests', lvReq:'To approve', lvAll:'All leave', lvBal:'Leave balances', lvHol:'Holidays',
     approve:'Approve', reject:'Reject', newLv:'+ New leave', person:'Person', mode:'Dates', modeRange:'Continuous range', modeDays:'Specific days', addDay:'+ day', nDays:'Days', nDaysHint:'empty = calculated (no Sundays or holidays)',
     ref:'Ref.', reqBy:'Requested by', noReq:'Nothing to approve 🎉', entitle:'Entitlement', carried:'Carried over', usedBefore:'Used before', baseDate:'Base date', taken:'Taken (app)', pendD:'Pending', bal:'Balance', year:'Year',
     rule:'Automatic rule: first year of service {1} days · from 2nd year {2} days (when no balance is set)', holType:'Type', scope:'Applies to', dayOff:'Day off?', holiday:'Holiday', tolerance:'Tolerance day', addHol:'+ Add day', scopeAll:'Everyone', allTypes:'All types', allStatus:'All statuses',
@@ -390,7 +390,7 @@ function paintChrome() {
   const pend = (CACHE.month ? CACHE.month.rows.filter(r => r[6] === 'Verificar').length : 0) + NEWP.length;
   const nreq = window.NREQ || 0;
   document.getElementById('alert').innerHTML = NEWP.length ? '<div class="alertbar">⚠ ' + NEWP.length + ' ' + t('newHikMsg') + ': ' + NEWP.map(p => esc(p.nome || ('ID ' + p.id)) + ' (' + esc(p.dept) + ')').join(', ') + ' <button onclick="go(\'pending\')">' + t('resolveNow') + '</button></div>' : '';
-  document.getElementById('nav').innerHTML = (window.ROLE === 'assistant' ? ['req'] : ['today','month','grid','approvals','leave','loans','pay','pending','people','dash','set']).map(v =>
+  document.getElementById('nav').innerHTML = (window.ROLE === 'assistant' ? ['req'] : ['today','month','grid','approvals','leave','loans','ot','pay','pending','people','dash','set']).map(v =>
     '<button class="' + (VIEW === v ? 'on' : '') + '" onclick="go(\'' + v + '\')">' + t(v) + (v === 'pending' && pend ? '<span class="badge">' + pend + '</span>' : '') + (v === 'approvals' && nreq ? '<span class="badge">' + nreq + '</span>' : '') + (v === 'people' && window.NDOC ? '<span class="badge">' + window.NDOC + '</span>' : '') + '</button>').join('');
 }
 let EDITP = true;
@@ -436,6 +436,7 @@ async function render() {
     if (VIEW === 'leave') return renderLeave();
     if (VIEW === 'loans') { await peopleDL(); return renderLoans(await need('loans')); }
     if (VIEW === 'req') return renderAssist();
+    if (VIEW === 'ot') return renderOtOwner();
     if (VIEW === 'approvals') return renderApprovals(await need('requests'));
     if (VIEW === 'pay') return renderPay(await need('payroll', PAYP ? { periodo: PAYP } : undefined));
     if (VIEW === 'pending') return renderPending(await need('month'));
@@ -1984,6 +1985,21 @@ function afCollect() {
   if (needRef && !ref) return toast(LL('Escolha a referência', 'Choose the reference'));
   return { id: id, dados: dados, ref: ref, needRef: needRef };
 }
+/* ---------- Owner: Overtime tab — enter overtime yourself (same form) + the list of all overtime lines ---------- */
+async function renderOtOwner() {
+  const main = document.getElementById('main');
+  try {
+    await peopleDL();
+    let veh = []; try { veh = (await call('cartrack', { op: 'list' })).vehicles || []; } catch (e) {}
+    const d = await need('requests');
+    const rows = d.rows.filter(r => r.tipo === 'Horas extra' && r.estado !== 'Rascunho').sort((a, b) => b.n - a.n).slice(0, 80);
+    const pend = rows.filter(r => r.estado === 'Pendente').length;
+    main.innerHTML = '<div class="card"><h3 style="margin:0 0 8px">' + LL('Registar horas extra', 'Enter overtime') + '</h3><div class="form">' + otFields({ people: [], viaturas: veh }) + '</div></div>' +
+      '<div class="bar" style="margin-top:16px"><h3 style="margin:0">' + LL('Horas extra registadas', 'Overtime entered') + '</h3><span class="sp"></span>' + (pend ? '<button class="btn" onclick="go(\'approvals\')">' + pend + ' ' + LL('à espera — aprovar', 'waiting — approve') + '</button>' : '') + '</div>' +
+      '<div class="card tw"><table><tr><th>Nº</th><th>' + t('person') + '</th><th>' + LL('Detalhe', 'Detail') + '</th><th>' + t('status2') + '</th><th>' + LL('Registado por', 'Entered by') + '</th></tr>' +
+      (rows.length ? rows.map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.por || '') + '</td></tr>').join('') : '<tr><td colspan="5" class="muted" style="padding:12px">' + LL('Ainda não há horas extra registadas.', 'No overtime entered yet.') + '</td></tr>') + '</table></div>';
+  } catch (e) { showErr(e); }
+}
 /* ---------- Overtime book in the app: the department responsible enters it once (date, from–to, workers, reason) → Moussa approves → payroll ---------- */
 function otFields(meta) {
   OT_SEL = []; OT_VEH = meta.viaturas || []; setTimeout(otVF, 0);
@@ -2047,8 +2063,8 @@ async function otSubmit() {
   const btn = document.getElementById('af_b'); btn.disabled = true; btn.textContent = t('sending');
   const ns = [];
   try {
-    for (const id of ids) { const r = await call('aSubmit2', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m, tipo: tp, onde: w, viatura: vv, notas: nx } }); ns.push(r.n); }
-    toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); OT_SEL = []; AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
+    for (const id of ids) { const r = await call(window.ROLE === 'assistant' ? 'aSubmit2' : 'otOwner', { tipo: 'Horas extra', id: id, ref: '', dados: { data: d, horas: h, inicio: a, fim: b, motivo: m, tipo: tp, onde: w, viatura: vv, notas: nx } }); ns.push(r.n); }
+    toast(t('sent') + ' · ' + ids.length + ' ' + LL('pessoa(s)', 'person(s)') + ' · Nº ' + ns.join(', ')); OT_SEL = []; if (window.ROLE !== 'assistant') { invalidate(); return render(); } AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
   } catch (e) { toast(t('error') + ': ' + (e.message || e) + (ns.length ? ' · ' + LL('já enviados: Nº ', 'already sent: Nº ') + ns.join(', ') : '')); btn.disabled = false; btn.textContent = t('submit'); }
 }
 async function assistSubmit() {
