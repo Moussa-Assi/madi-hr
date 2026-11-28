@@ -2034,7 +2034,7 @@ async function renderIa(head) {
   main.dataset.head = head;
 }
 async function iaSave() {
-  const p = { op: 'cfg', prov: val('ia_p') }; const k = val('ia_k').trim(), m = val('ia_m').trim(); if (k) p.key = k; if (m) p.model = m;
+  const p = { op: 'cfg', prov: val('ia_p') }; const k = val('ia_k').trim(), m = val('ia_m').trim(); if (k) p.apikey = k; if (m) p.model = m;
   try { await call('relmed', p); toast(t('saved')); await renderIa(document.getElementById('main').dataset.head || ''); iaTest(); } catch (e) { toast(t('error') + ': ' + (e.message || e)); }
 }
 async function iaTest() {
