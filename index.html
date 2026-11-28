@@ -234,13 +234,13 @@ const T = {
     assign:'Atribuir', unassignedHint:'Empréstimos do sistema antigo sem pessoa — escolha a pessoa e clique Atribuir.', estimated:'saldo estimado', history:'Histórico de descontos', loansOf:'Empréstimos',
     assistLink:'Link da assistente', copied:'Link copiado', hello:'Olá', submit:'Enviar pedido', sent:'Pedido enviado — aguarda aprovação', myReq:'Os meus pedidos', reqHint:'Os pedidos ficam pendentes até o Moussa aprovar.',
     stApproved:'Aprovado', stPending:'Pendente', stRejected:'Rejeitado', status2:'Estado', after:'depois',
-    choose:'escolher', paidHint:'Férias pagas: escolha a data do pagamento e o nº de dias pagos. Desconta do saldo, não altera a presença.', lateOv:'Min atraso (vazio = manter)',
+    choose:'escolher', paidHint:'Férias pagas: escolha a data do pagamento e o nº de dias pagos. Desconta do saldo, não altera a presença.', lateOv:'Min de atraso a contar (0 = atraso justificado)',
     report:'🖨 Relatório detalhado', show:'Mostrar', printBtn:'Imprimir', punchesCol:'Picagens (hora · dispositivo)', signEmp:'Assinatura do trabalhador', signHR:'RH / Direção', printedOn:'Impresso em', repTitle:'Relatório de presenças',
     transferId:'Transferir ID', lastDay:'Último dia desta pessoa', newName:'Nome da nova pessoa', transferHint:'A pessoa atual fica inativa com todo o histórico (licenças, dívidas) num ID de arquivo. O ID passa para a nova pessoa a partir do dia seguinte.',
     idWas:'este ID era de', showInactive:'Mostrar inativos', totals:'Totais',
     approvals:'Aprovações', login:'Entrar', who:'Quem é?', logout:'Sair', notReady:'Há perfis sem PIN — peça ao Moussa para definir.', newReq:'Novo pedido', machine:'Máquina neste dia (só informação)', viewDoc:'📄 Ver documento', openDrive:'Abrir ficheiro',
     subBy:'Submetido por', recent:'Decididos recentemente', noApprovals:'Nada para aprovar 🎉', assistants:'👤 Assistentes e PINs', newPin:'Novo PIN (6–8 dígitos)', canSubmit:'Pode submeter', pinOk:'PIN definido', pinNo:'Sem PIN', sending:'A enviar…',
-    photo:'Foto do documento assinado *', startT:'Início', endT:'Fim', respSig:'Responsável que assinou', debtNow:'Dívida atual', onlyMin:'— só alterar minutos de atraso —', link:'Link', copy:'Copiar', decNote:'Nota da decisão',
+    photo:'Foto do documento assinado *', startT:'Início', endT:'Fim', respSig:'Responsável que assinou', debtNow:'Dívida atual', onlyMin:'— Atraso justificado (fica presente) —', link:'Link', copy:'Copiar', decNote:'Nota da decisão',
     rtJust:'Justificação de falta', rtLeave:'Licença / férias', rtAdv:'Adiantamento / empréstimo', rtOT:'Horas extra', rtPay:'Pagamento de dívida', reqOwnerHint:'Os pedidos das assistentes (com foto) estão em Aprovações.',
     pay:'Salários', pDraft:'Rascunho', pClosedOn:'Fechado em', pUpTo:'Presenças contadas até', pBase:'Salário base', pOther:'Outras remunerações', pOT:'Horas extra', pLP:'Férias pagas', pBonus:'Bónus', pAllow:'Subsídios',
     pAbs:'Faltas', pLate:'Atrasos', pPro:'Dias fora do contrato', pGross:'Salário bruto', pInss:'INSS', pEf:'Dias efetivos', pPrev:'Saldo anterior', pNewD:'Dívida contraída', pBal:'Saldo atual', pTotD:'Total descontos', pSun:'domingo', pEfH:'vazio = automático', inssBase:'Base INSS', inssBaseH:'vazio = salário base · 0 = isento', efDays:'Dias pagos por mês', efDaysH:'vazio = 30', pAdv:'Pagamento adiantamento', pOth:'Outros descontos', pNet:'Salário líquido', pInssE:'INSS empresa',
@@ -281,13 +281,13 @@ const T = {
     assign:'Assign', unassignedHint:'Loans from the old sheet with no person — choose the person and click Assign.', estimated:'estimated balance', history:'Deduction history', loansOf:'Loans',
     assistLink:'Assistant link', copied:'Link copied', hello:'Hello', submit:'Submit request', sent:'Request sent — awaiting approval', myReq:'My requests', reqHint:'Requests stay pending until Moussa approves them.',
     stApproved:'Approved', stPending:'Pending', stRejected:'Rejected', status2:'Status', after:'after',
-    choose:'choose', paidHint:'Leave paid out: pick the payment date and the number of days paid. Deducted from the balance; attendance is not changed.', lateOv:'Late min (empty = keep)',
+    choose:'choose', paidHint:'Leave paid out: pick the payment date and the number of days paid. Deducted from the balance; attendance is not changed.', lateOv:'Late minutes to count (0 = lateness justified)',
     report:'🖨 Detailed report', show:'Show', printBtn:'Print', punchesCol:'Punches (time · device)', signEmp:'Employee signature', signHR:'HR / Management', printedOn:'Printed on', repTitle:'Attendance report',
     transferId:'Transfer ID', lastDay:'Last day of this person', newName:'New person’s name', transferHint:'The current person becomes inactive and keeps all history (leave, loans) under an archive ID. The ID passes to the new person from the next day.',
     idWas:'this ID belonged to', showInactive:'Show inactive', totals:'Totals',
     approvals:'Approvals', login:'Sign in', who:'Who are you?', logout:'Sign out', notReady:'Some profiles have no PIN yet — ask Moussa to set it.', newReq:'New request', machine:'Machine that day (info only)', viewDoc:'📄 View document', openDrive:'Open file',
     subBy:'Submitted by', recent:'Recently decided', noApprovals:'Nothing to approve 🎉', assistants:'👤 Assistants & PINs', newPin:'New PIN (6–8 digits)', canSubmit:'Can submit', pinOk:'PIN set', pinNo:'No PIN', sending:'Sending…',
-    photo:'Photo of the signed document *', startT:'Start', endT:'End', respSig:'Signed by (manager)', debtNow:'Current debt', onlyMin:'— only change late minutes —', link:'Link', copy:'Copy', decNote:'Decision note',
+    photo:'Photo of the signed document *', startT:'Start', endT:'End', respSig:'Signed by (manager)', debtNow:'Current debt', onlyMin:'— Lateness justified (stays present) —', link:'Link', copy:'Copy', decNote:'Decision note',
     rtJust:'Absence justification', rtLeave:'Leave', rtAdv:'Advance / loan', rtOT:'Overtime', rtPay:'Debt payment', reqOwnerHint:'Assistants’ requests (with photo) are in Approvals.',
     pay:'Payroll', pDraft:'Draft', pClosedOn:'Closed on', pUpTo:'Attendance counted up to', pBase:'Base salary', pOther:'Other pay', pOT:'Overtime', pLP:'Leave paid out', pBonus:'Bonus', pAllow:'Allowances',
     pAbs:'Absences', pLate:'Late', pPro:'Days outside contract', pGross:'Gross pay', pInss:'INSS', pEf:'Effective days', pPrev:'Previous balance', pNewD:'New advance', pBal:'Closing balance', pTotD:'Total deductions', pSun:'Sunday', pEfH:'empty = automatic', inssBase:'INSS base', inssBaseH:'empty = base salary · 0 = exempt', efDays:'Paid days per month', efDaysH:'empty = 30', pAdv:'Advance payment', pOth:'Other deductions', pNet:'Net pay', pInssE:'INSS (company)',
@@ -1358,8 +1358,8 @@ function assistFields(meta) {
     '<div class="act"><button class="btn sec" id="af_b" onclick="assistSubmit()">' + t('submit') + '</button></div></details></div>';
   let f = '';
   if (AF.tipo === 'Justificação') {
-    f = per + '<label>' + t('newStatus') + '<select id="af_st"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
-      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min"></label>' + days + entField() + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
+    f = per + '<label>' + t('newStatus') + '<select id="af_st" onchange="const m=document.getElementById(\'af_min\');if(m&&!this.value&&m.value===\'\')m.value=0"><option value="">' + t('onlyMin') + '</option>' + stOpts(meta.justStatuses, 'Falta justificada') + '</select></label>' +
+      '<label>' + t('lateOv') + '<input type="number" min="0" id="af_min" value="0"></label>' + days + entField() + cmField() + '<label class="full">' + t('note') + '<input id="af_n"></label>';
   } else if (AF.tipo === 'Licença') {
     f = per + '<label>' + t('type') + '<select id="af_lt" onchange="const nd=document.getElementById(\'af_nd\');if(nd)delete nd.dataset.man;ferShow(\'af\');formSync(\'af\')">' + stOpts(meta.leaveTypes, 'Férias') + '</select></label>' +
       '<label>' + t('mode') + '<select id="af_m" onchange="afMode()"><option value="r">' + t('modeRange') + '</option><option value="d">' + t('modeDays') + '</option></select></label>' +
