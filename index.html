@@ -2153,11 +2153,23 @@ function otFields(meta) {
     '<div class="act full" style="flex-direction:column;align-items:stretch;gap:6px"><button class="btn" id="af_b" onclick="otSubmit()">🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign') + '</button><small class="muted">' + LL('Depois: 1) imprimir  2) o trabalhador e o responsável assinam  3) enviar a foto da carta assinada.', 'Then: 1) print  2) the worker and the responsible sign  3) send the photo of the signed letter.') + '</small></div>';
 }
 function otPlus(i) { const e = document.getElementById('otw' + i); if (!e) return; const v = e.value.trim(); if (!v) return e.focus(); if (!/\+\s*$/.test(v)) e.value = v + ' + '; otSet(i, 'onde', e.value, 1); e.focus(); }
+let OT_PL = [];
+function otWD(i) {
+  const inp = document.getElementById('otw' + i), box = document.getElementById('otwd' + i); if (!inp || !box) return;
+  const parts = inp.value.split(' + '), q = parts[parts.length - 1].trim().toLowerCase();
+  const norm = v => v.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  const L = q.length < 2 ? OT_PL.slice(0, 8) : OT_PL.filter(v => norm(v.toLowerCase()).indexOf(norm(q)) >= 0).slice(0, 40);
+  if (!L.length) { box.hidden = true; return; }
+  box.innerHTML = (q.length < 2 ? '<div class="o muted">' + LL('Escreva 2 letras para procurar nos ' + OT_PL.length + ' clientes / locais', 'Type 2 letters to search the ' + OT_PL.length + ' clients / places') + '</div>' : '') +
+    L.map((v, k) => '<div class="o" onmousedown="event.preventDefault()" onclick="otWPick(' + i + ',' + OT_PL.indexOf(v) + ')">' + esc(v) + '</div>').join('');
+  box.hidden = false;
+}
+function otWPick(i, k) { const inp = document.getElementById('otw' + i); if (!inp) return; const parts = inp.value.split(' + '); parts[parts.length - 1] = OT_PL[k]; inp.value = parts.join(' + '); otSet(i, 'onde', inp.value, 1); const b = document.getElementById('otwd' + i); if (b) b.hidden = true; }
 async function otPlaces() {
-  const dl = document.getElementById('ot_pl'); if (!dl || dl.childElementCount) return;
+  if (OT_PL.length) return;
   try { const L = window.ROLE === 'assistant' ? (CACHE.otpl || (CACHE.otpl = await call('aOtPlaces'))) : ((await otMeta()).lugares || []);
     const add = new Set(L); (OT_L || []).forEach(x => String(x.onde || '').split(' + ').forEach(z => { z = z.trim(); if (z) add.add(z); }));
-    dl.innerHTML = [...add].map(v => '<option value="' + esc(v) + '">').join(''); } catch (e) {}
+    OT_PL = [...add]; } catch (e) {}
 }
 function otDD(i) {
   const inp = document.getElementById('otv' + i), box = document.getElementById('otdd' + i); if (!inp || !box) return;
@@ -2179,7 +2191,7 @@ function otDrawL() {
     '<label>' + t('startT') + ' *<input type="time" value="' + esc(x.inicio) + '" onchange="otSet(' + i + ',\'inicio\',this.value)"></label>' +
     '<label>' + t('endT') + ' *<input type="time" value="' + esc(x.fim) + '" onchange="otSet(' + i + ',\'fim\',this.value)"></label>' +
     '<label>' + LL('Quando', 'When') + ' *<select onchange="otSet(' + i + ',\'tipo\',this.value)">' + OT_TP().map(o => '<option value="' + o[0] + '"' + (o[0] === x.tipo ? ' selected' : '') + '>' + o[1] + '</option>').join('') + '</select></label>' +
-    '<label>' + LL('Onde (cliente / local)', 'Where (client / place)') + ' *<span style="display:flex;gap:4px"><input id="otw' + i + '" list="ot_pl" value="' + esc(x.onde) + '" maxlength="120" style="flex:1" placeholder="' + LL('ex.: VIP Matola + VIP Matola Rio', 'e.g. VIP Matola + VIP Matola Rio') + '" oninput="otSet(' + i + ',\'onde\',this.value,1)"><button type="button" class="btn sec sm" title="' + LL('Outro cliente no mesmo período', 'Another client in the same period') + '" onclick="otPlus(' + i + ')">+</button></span><small class="muted">' + LL('Vários clientes no mesmo período: carregue em + (fica na mesma linha)', 'Several clients in the same period: press + (stays on the same line)') + '</small></label>' +
+    '<label>' + LL('Onde (cliente / local)', 'Where (client / place)') + ' *<span style="display:flex;gap:4px"><input id="otw' + i + '" value="' + esc(x.onde) + '" maxlength="160" style="flex:1" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="' + LL('procurar cliente ou escrever o local', 'search a client or type the place') + '" onfocus="otWD(' + i + ')" oninput="otSet(' + i + ',\'onde\',this.value,1);otWD(' + i + ')" onblur="setTimeout(() => { const b = document.getElementById(\'otwd' + i + '\'); if (b) b.hidden = true; }, 250)"><button type="button" class="btn sec sm" title="' + LL('Outro cliente no mesmo período', 'Another client in the same period') + '" onclick="otPlus(' + i + ')">+</button></span><small class="muted">' + LL('Vários clientes no mesmo período: carregue em + (fica na mesma linha)', 'Several clients in the same period: press + (stays on the same line)') + '</small><div id="otwd' + i + '" class="otdd" hidden></div></label>' +
     '<label>' + LL('Viatura (matrícula)', 'Vehicle (plate)') + '<input id="otv' + i + '" value="' + esc(x.viatura) + '" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="🔍 ' + LL('tocar para escolher · vazio = sem viatura', 'tap to choose · empty = no vehicle') + '" onfocus="otDD(' + i + ')" oninput="otDD(' + i + ')" onblur="setTimeout(() => otDDClose(' + i + '), 250)" onchange="otSet(' + i + ',\'viatura\',this.value.trim().toUpperCase())"><div id="otdd' + i + '" class="otdd" hidden></div></label>' +
     '<label class="full">' + LL('Porquê / trabalho feito', 'Why / work done') + ' *<input value="' + esc(x.motivo) + '" maxlength="200" placeholder="' + LL('ex.: montagem no cliente, descarga do contentor', 'e.g. installation at the client, container unloading') + '" oninput="otSet(' + i + ',\'motivo\',this.value,1)"></label>' +
     '</div></div>').join('');
