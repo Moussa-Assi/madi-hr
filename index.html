@@ -1995,7 +1995,8 @@ async function renderOtOwner() {
   const main = document.getElementById('main');
   try {
     await peopleDL();
-    const [d, mine, meta] = await Promise.all([need('requests'), call('otMine'), otMeta()]);
+    const [d0, mine0, meta0] = await Promise.all([need('requests').catch(e => ({ rows: [], err: e })), call('otMine').catch(e => []), otMeta().catch(e => ({}))]);
+    const d = d0 && Array.isArray(d0.rows) ? d0 : { rows: [] }, mine = Array.isArray(mine0) ? mine0 : [], meta = meta0 || {};
     window._mine = mine;
     const rows = d.rows.filter(r => r.tipo === 'Horas extra' && r.estado !== 'Rascunho' && r.estado !== 'Anulado').sort((a, b) => b.n - a.n).slice(0, 80);
     const pend = rows.filter(r => r.estado === 'Pendente').length;
@@ -2012,7 +2013,7 @@ async function renderOtOwner() {
       (rows.length ? rows.map(r => '<tr><td>' + r.n + '</td><td>' + esc(r.nome) + '</td><td>' + reqSummary(r) + '</td><td>' + stwTag(r.estado) + '</td><td class="muted">' + esc(r.por || '') + '</td></tr>').join('') : '<tr><td colspan="5" class="muted" style="padding:12px">' + LL('Ainda não há horas extra registadas.', 'No overtime entered yet.') + '</td></tr>') + '</table></div>';
     mine.forEach(r => ((r.dados && r.dados.linhas) || []).forEach((ln, i) => { if (ln.viatura) setTimeout(() => otGpsLoad(r.n, ln, i), 100 + i * 400); }));
     if (LTR_NEW && mine.some(r => r.n === LTR_NEW)) setTimeout(() => ltrPrint(LTR_NEW), 300);
-  } catch (e) { showErr(e); }
+  } catch (e) { showErr(String(e) + ' @ ' + String((e && e.stack) || '').split('\n').slice(1, 3).join(' ').replace(/https?:\/\/[^ )]+/g, '').trim()); }
 }
 /* ---------- Infrações disciplinares (Lei n.º 13/2023): list, deadlines, nota de culpa, decisão ---------- */
 const INF_SANC = () => [['Admoestação verbal', LL('Admoestação verbal', 'Verbal warning'), 0], ['Repreensão registada', LL('Repreensão registada', 'Recorded reprimand'), 0],
