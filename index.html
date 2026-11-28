@@ -2089,7 +2089,10 @@ async function renderRel(noRun) {
       (L.length ? L.slice(0, 30).map(o => '<tr' + (o.trab >= 3 || o.flag >= 2 ? ' style="background:var(--lateb)"' : '') + '><td><b>' + esc(o.nome) + '</b></td><td class="n">' + o.n + '</td><td class="n">' + o.trab + '</td><td class="n">' + o.dias + '</td><td class="n">' + (o.flag || '') + '</td><td class="muted" style="font-size:12px">' + esc(o.nomes.join(', ')) + '</td></tr>').join('') : '<tr><td colspan="6" class="muted">' + LL('Ainda sem relatórios lidos.', 'No reports read yet.') + '</td></tr>') + '</table></div>';
     main.innerHTML = '<div class="bar"><h3 style="margin:0">🩺 ' + LL('Relatórios médicos e faltas', 'Medical reports & absences') + '</h3><span class="sp"></span>' +
       (R.temChave ? '<span class="muted" style="font-size:12px">' + esc(R.prov === 'claude' ? 'Claude' : 'Gemini') + '</span>' + (R.pendentes ? ' <button class="btn" onclick="relRun()">🔍 ' + LL('Ler ' + R.pendentes + ' relatório(s) novo(s)', 'Read ' + R.pendentes + ' new report(s)') + '</button>' : '') : '<button class="btn" onclick="SETV=\'ia\';go(\'set\')">' + LL('Ligar a IA nas Definições', 'Connect the AI in Settings') + '</button>') + '</div>' +
-      '<div id="rel_prog" class="muted" style="margin:6px 0"></div>' +
+      '<div class="card" style="padding:10px 14px;margin-bottom:10px"><b>🤖 ' + LL('Leitura pela IA', 'AI reading') + ':</b> ' + (R.lidos || 0) + ' ' + LL('lido(s)', 'read') + ' · ' + (R.pendentes || 0) + ' ' + LL('à espera', 'waiting') + (R.falhados ? ' · <span style="color:var(--bad,#c00)">' + R.falhados + ' ' + LL('com erro', 'failed') + '</span>' : '') +
+      (R.ultErro ? '<div style="margin-top:6px;padding:8px 10px;border-radius:6px;background:var(--lateb,#fff3e0);font-size:13px">⚠ ' + esc(R.ultErro) + (R.ultErroEm ? ' <span class="muted">(' + esc(R.ultErroEm) + ')</span>' : '') + '</div>' : '') +
+      (R.falhados ? ' <button class="btn sec sm" style="margin-top:6px" onclick="relRetry()">↻ ' + LL('Tentar de novo os que falharam', 'Retry the failed ones') + '</button>' : '') +
+      '<div id="rel_prog" class="muted" style="margin-top:6px"></div></div>' +
       '<div class="card"><h3>⚖ ' + LL('Alertas da Lei do Trabalho', 'Labour law alerts') + ' (' + R.alertas.length + ')</h3><div style="padding:6px 14px 12px">' +
       (R.alertas.length ? R.alertas.map(x => '<div style="margin:4px 0"><span class="st ' + alT[x.tipo][2] + '">' + alT[x.tipo][0] + ' ' + alT[x.tipo][1] + '</span> <b>' + esc(x.nome) + '</b> <span class="muted">' + esc(x.dept || '') + '</span> — ' + esc(x.txt) + '</div>').join('') : '<span class="muted">' + LL('Nenhum alerta.', 'No alerts.') + '</span>') +
       '<div class="muted" style="font-size:12px;margin-top:8px">' + LL('Art. 113.º: Junta de Saúde com mais de 5 dias de doença por trimestre ou mais de 15 seguidos. Art. 115.º: processo disciplinar com 3 faltas injustificadas seguidas ou 6 no semestre; 15 seguidas = presunção de abandono.', 'Art. 113: health board with more than 5 sick days per quarter or more than 15 in a row. Art. 115: disciplinary process with 3 unjustified absences in a row or 6 in a semester; 15 in a row = presumed abandonment.') + '</div></div></div>' +
@@ -2099,6 +2102,7 @@ async function renderRel(noRun) {
     if (!noRun && R.temChave && R.pendentes) relRun();
   } catch (e) { showErr(e); }
 }
+async function relRetry() { try { await call('relmed', { op: 'retry' }); renderRel(); } catch (e) { toast(String(e.message || e)); } }
 async function relRedo(n) { try { await call('relmed', { op: 'redo', n: n }); relRun(); } catch (e) { toast(String(e.message || e)); } }
 function relInf(n) {
   const x = REL.rows.find(z => z.n === n); if (!x) return;
