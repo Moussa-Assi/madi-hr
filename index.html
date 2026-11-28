@@ -2280,12 +2280,19 @@ async function otSubmit() {
     AF = { tipo: AF.tipo, days: [] }; AV = 'mine'; render();
   } catch (e) { toast(t('error') + ': ' + (e.message || e) + (ns.length ? ' · ' + LL('já criadas: Nº ', 'already created: Nº ') + ns.join(', ') : '')); btn.disabled = false; btn.textContent = '🖨 ' + LL('Gerar carta para assinar', 'Generate letter to sign'); }
 }
+function otCliTxt(cl, pdf) {
+  if (!cl || !cl.length) return '';
+  const km = m => m >= 1000 ? (Math.round(m / 100) / 10 + ' km') : m + ' m';
+  return cl.filter(c => !c.semLocal).map(c => c.ok ? '📍 ' + esc(c.nome.replace(/\s*\([^)]*\)$/, '')) + ': <b>parou no cliente</b> (' + esc(c.de) + (c.ate ? '–' + esc(c.ate) : '') + ')'
+    : '📍 ' + esc(c.nome.replace(/\s*\([^)]*\)$/, '')) + ': <b>' + (pdf ? 'NÃO parou no cliente' : LL('NÃO parou no cliente', 'did NOT stop at the client')) + '</b>' + (c.m !== null && c.m !== undefined ? ' (' + LL('paragem mais perto a ', 'nearest stop ') + km(c.m) + ')' : '')).join(' · ');
+}
 function otGpsLtr(x) {
   const g = x.gps, decl = x.horasDecl ? ' · declaradas ' + hmH(x.horasDecl) + ' → pagas <b>' + hmH(x.horas) + '</b>' : '';
   if (!g) return 'GPS: não verificado';
   if (g.erro) return 'GPS: indisponível (' + esc(g.erro) + ') — a confirmar';
   if (!g.saida) return '⚠ GPS: sem paragem em cliente depois das ' + esc(x.inicio) + (g.fim ? ' · motor desligado às ' + esc(g.fim) + (g.fimZona ? ' (' + esc(g.fimZona) + ')' : '') : '') + ' — a confirmar pela direção';
-  return 'GPS: saiu do cliente às <b>' + esc(g.saida) + '</b> · ' + (g.voltou ? 'chegou à empresa às <b>' + esc(g.chegada) + '</b> → conta até à chegada' : '<b>NÃO voltou à empresa — INFRAÇÃO</b>' + (g.fim ? ' (motor desligado às ' + esc(g.fim) + (g.fimZona ? ', ' + esc(g.fimZona) : '') + ')' : '') + ' → conta só até à saída do cliente') + decl;
+  const ct = otCliTxt(g.clientes, 1);
+  return (ct ? ct + '<br>' : '') + 'GPS: saiu do cliente às <b>' + esc(g.saida) + '</b> · ' + (g.voltou ? 'chegou à empresa às <b>' + esc(g.chegada) + '</b> → conta até à chegada' : '<b>NÃO voltou à empresa — INFRAÇÃO</b>' + (g.fim ? ' (motor desligado às ' + esc(g.fim) + (g.fimZona ? ', ' + esc(g.fimZona) : '') + ')' : '') + ' → conta só até à saída do cliente') + decl;
 }
 /* payslip-size card (90 mm wide), several per A4 sheet */
 function otLtrHtml(c, n, qr) {
@@ -2797,7 +2804,7 @@ async function otGpsLoad(n, x, i) {
     const verdict = !g.saidaCliente ? '<span class="st s-chk">' + LL('sem paragem em cliente depois de ', 'no client stop after ') + esc(x.inicio) + '</span>'
       : g.voltou ? '<span class="st s-ok">✓ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e chegou à empresa às ' + g.chegada, 'left the client at ' + g.saidaCliente + ' and reached the company at ' + g.chegada) + '</span>'
       : '<span class="st s-bad">⚠ ' + LL('saiu do cliente às ' + g.saidaCliente + ' e NÃO voltou à empresa', 'left the client at ' + g.saidaCliente + ' and did NOT return to the company') + (g.fimCarro ? ' — ' + LL('motor desligado às ', 'engine off at ') + g.fimCarro.t + ' ' + mp(g.fimCarro) : '') + '</span>';
-    el.innerHTML = '🚚 <b>' + esc(g.reg) + '</b> · ' + verdict +
+    el.innerHTML = (g.clientes && g.clientes.some(c => !c.semLocal) ? '<div>' + otCliTxt(g.clientes) + '</div>' : '') + '🚚 <b>' + esc(g.reg) + '</b> · ' + verdict +
       (g.horasVerif !== undefined && g.horasVerif !== null ? ' · ' + LL('GPS', 'GPS') + ': <b>' + hmH(g.horasVerif) + '</b>' + (document.getElementById(hid) ? '' : ' ' + LL('contam pelo GPS', 'count by GPS')) + (!document.getElementById(hid) ? '' : ' <button class="btn sec sm" onclick="document.getElementById(\'' + hid + '\').value=\'' + hmH(g.horasVerif) + '\';' + (line ? 'otApTot(' + n + ',' + (((window._req || {}).rows || []).find(z => z.n === n) || { dados: { linhas: [] } }).dados.linhas.length + ')' : '') + '">' + LL('usar', 'use') + '</button>') : '') +
       otStopsTxt(g.stops, x.inicio, x.fim, mp);
   } catch (e) { el.innerHTML = '🚚 ' + esc(e.message || e); }
